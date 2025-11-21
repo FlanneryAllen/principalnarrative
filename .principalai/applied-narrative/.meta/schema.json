@@ -1,0 +1,297 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://principalai.com/schemas/applied-narrative/v1",
+  "title": "Applied Narrative Document Schemas",
+  "description": "JSON Schema definitions for all Applied Narrative document types",
+  "definitions": {
+    "baseDocument": {
+      "type": "object",
+      "required": ["documentType", "version", "lastUpdated", "author", "status"],
+      "properties": {
+        "documentType": {
+          "type": "string",
+          "description": "The type of document"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version of the document"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of last update (YYYY-MM-DD)"
+        },
+        "author": {
+          "type": "string",
+          "description": "Primary author or team"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "active", "deprecated", "archived"],
+          "description": "Current status of the document"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorization and search"
+        },
+        "relatedDocuments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths to related documents"
+        },
+        "changelog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["date", "change", "author"],
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "change": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "History of changes to this document"
+        }
+      }
+    },
+    "vision": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": {
+              "const": "vision"
+            }
+          }
+        }
+      ],
+      "description": "Vision, mission, and strategic direction document"
+    },
+    "priorities": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "required": ["timeframe", "reviewCycle"],
+          "properties": {
+            "documentType": {
+              "const": "priorities"
+            },
+            "timeframe": {
+              "type": "string",
+              "description": "The time period these priorities cover (e.g., 'Q4 2025')"
+            },
+            "reviewCycle": {
+              "type": "string",
+              "enum": ["weekly", "monthly", "quarterly", "annually"],
+              "description": "How often to review these priorities"
+            }
+          }
+        }
+      ],
+      "description": "Current strategic priorities, OKRs, and goals"
+    },
+    "brandVoice": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": {
+              "const": "brandVoice"
+            }
+          }
+        }
+      ],
+      "description": "Brand voice, tone, and communication guidelines"
+    },
+    "customerPainPoints": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "properties": {
+            "documentType": {
+              "const": "customerPainPoints"
+            }
+          }
+        }
+      ],
+      "description": "Customer segments, pain points, and jobs to be done"
+    },
+    "adr": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "required": ["adrNumber", "title", "date", "deciders"],
+          "properties": {
+            "documentType": {
+              "const": "adr"
+            },
+            "adrNumber": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Sequential ADR number"
+            },
+            "title": {
+              "type": "string",
+              "description": "Decision title"
+            },
+            "date": {
+              "type": "string",
+              "format": "date",
+              "description": "Date decision was made"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["proposed", "accepted", "deprecated", "superseded"],
+              "description": "Status of this decision"
+            },
+            "deciders": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "People who made this decision"
+            },
+            "supersededBy": {
+              "type": ["integer", "null"],
+              "description": "ADR number that supersedes this one"
+            },
+            "relatedTo": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "description": "Related ADR numbers"
+            }
+          }
+        }
+      ],
+      "description": "Architecture Decision Record"
+    },
+    "technicalContext": {
+      "allOf": [
+        { "$ref": "#/definitions/baseDocument" },
+        {
+          "type": "object",
+          "required": ["category"],
+          "properties": {
+            "documentType": {
+              "const": "technicalContext"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "architecture",
+                "infrastructure",
+                "patterns",
+                "stack",
+                "workflow",
+                "deployment",
+                "monitoring",
+                "api",
+                "security",
+                "performance"
+              ],
+              "description": "Category of technical context"
+            },
+            "relatedADRs": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "description": "ADR numbers related to this context"
+            }
+          }
+        }
+      ],
+      "description": "Technical architecture and context documentation"
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/vision" },
+    { "$ref": "#/definitions/priorities" },
+    { "$ref": "#/definitions/brandVoice" },
+    { "$ref": "#/definitions/customerPainPoints" },
+    { "$ref": "#/definitions/adr" },
+    { "$ref": "#/definitions/technicalContext" }
+  ],
+  "examples": [
+    {
+      "documentType": "vision",
+      "version": "1.0.0",
+      "lastUpdated": "2025-11-21",
+      "author": "Principal AI Team",
+      "status": "active",
+      "tags": ["vision", "mission", "strategy"],
+      "relatedDocuments": ["priorities.md", "brand-voice.md"],
+      "changelog": [
+        {
+          "date": "2025-11-21",
+          "change": "Initial vision document",
+          "author": "Founding Team"
+        }
+      ]
+    },
+    {
+      "documentType": "adr",
+      "adrNumber": 1,
+      "title": "Use PostgreSQL for primary database",
+      "version": "1.0.0",
+      "date": "2025-11-21",
+      "lastUpdated": "2025-11-21",
+      "author": "Engineering Team",
+      "status": "accepted",
+      "deciders": ["Alice", "Bob", "Charlie"],
+      "tags": ["database", "infrastructure"],
+      "relatedTo": [2, 5],
+      "supersededBy": null,
+      "changelog": [
+        {
+          "date": "2025-11-21",
+          "change": "Decision made and documented",
+          "author": "Alice"
+        }
+      ]
+    },
+    {
+      "documentType": "technicalContext",
+      "category": "architecture",
+      "version": "1.0.0",
+      "lastUpdated": "2025-11-21",
+      "author": "Engineering Team",
+      "status": "active",
+      "tags": ["architecture", "system-design"],
+      "relatedDocuments": ["tech-stack.md"],
+      "relatedADRs": [1, 3, 7],
+      "changelog": [
+        {
+          "date": "2025-11-21",
+          "change": "Initial architecture overview",
+          "author": "Tech Lead"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "schemaVersion": "1.0.0",
+    "created": "2025-11-21",
+    "description": "This schema defines the structure and validation rules for all Applied Narrative documents. It ensures consistency across document types and enables tooling to validate and process documents programmatically."
+  }
+}

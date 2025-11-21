@@ -1,0 +1,205 @@
+{
+  "$schema": "./schema.json",
+  "indexVersion": "1.0.0",
+  "lastUpdated": "2025-11-21",
+  "generatedBy": "Narrative Agent Foundation",
+  "description": "Index of all Applied Narrative documents with metadata and relationships",
+
+  "documents": {
+    "vision": {
+      "path": "../vision.md",
+      "documentType": "vision",
+      "title": "Vision & Mission",
+      "status": "draft",
+      "lastUpdated": "2025-11-21",
+      "tags": ["vision", "mission", "values", "strategy"],
+      "relatedDocuments": ["priorities", "brandVoice"],
+      "description": "Company vision, mission, core values, and strategic pillars"
+    },
+
+    "priorities": {
+      "path": "../priorities.md",
+      "documentType": "priorities",
+      "title": "Strategic Priorities",
+      "status": "draft",
+      "lastUpdated": "2025-11-21",
+      "timeframe": "Q4 2025",
+      "tags": ["priorities", "strategy", "okrs", "goals"],
+      "relatedDocuments": ["vision"],
+      "description": "Current strategic priorities, OKRs, and goals"
+    },
+
+    "brandVoice": {
+      "path": "../brand-voice.md",
+      "documentType": "brandVoice",
+      "title": "Brand Voice & Communication Guidelines",
+      "status": "draft",
+      "lastUpdated": "2025-11-21",
+      "tags": ["brand", "voice", "tone", "messaging", "communication"],
+      "relatedDocuments": ["vision", "customerPainPoints"],
+      "description": "Brand voice attributes, tone variations, and communication guidelines"
+    },
+
+    "customerPainPoints": {
+      "path": "../customer-pain-points.md",
+      "documentType": "customerPainPoints",
+      "title": "Customer Pain Points",
+      "status": "draft",
+      "lastUpdated": "2025-11-21",
+      "tags": ["customers", "pain-points", "problems", "jobs-to-be-done", "market"],
+      "relatedDocuments": ["vision", "brandVoice", "priorities"],
+      "description": "Target customer segments, pain points, jobs to be done, and value propositions"
+    }
+  },
+
+  "directories": {
+    "decisions": {
+      "path": "../decisions/",
+      "purpose": "Architecture Decision Records (ADRs)",
+      "documentType": "adr",
+      "count": 0,
+      "description": "Significant architectural and technical decisions with context and consequences"
+    },
+
+    "technicalContext": {
+      "path": "../technical-context/",
+      "purpose": "Technical architecture and system context",
+      "documentType": "technicalContext",
+      "count": 0,
+      "description": "System architecture, tech stack, patterns, and development practices"
+    }
+  },
+
+  "relationships": {
+    "graph": {
+      "vision": {
+        "influences": ["priorities", "brandVoice", "customerPainPoints"],
+        "informedBy": ["customerPainPoints"]
+      },
+      "priorities": {
+        "derivedFrom": ["vision"],
+        "influences": ["decisions"],
+        "relatedTo": ["customerPainPoints"]
+      },
+      "brandVoice": {
+        "derivedFrom": ["vision"],
+        "relatedTo": ["customerPainPoints"]
+      },
+      "customerPainPoints": {
+        "informs": ["vision", "priorities", "brandVoice"],
+        "relatedTo": ["decisions"]
+      },
+      "decisions": {
+        "influences": ["technicalContext"],
+        "informedBy": ["priorities", "customerPainPoints"]
+      },
+      "technicalContext": {
+        "references": ["decisions"],
+        "informedBy": ["decisions"]
+      }
+    },
+
+    "tags": {
+      "vision": ["vision", "mission", "values", "strategy"],
+      "mission": ["vision", "mission", "values", "strategy"],
+      "strategy": ["vision", "priorities", "strategy"],
+      "priorities": ["priorities", "strategy", "okrs", "goals"],
+      "okrs": ["priorities", "strategy", "okrs", "goals"],
+      "brand": ["brandVoice", "brand", "voice", "tone", "messaging", "communication"],
+      "customers": ["customerPainPoints", "customers", "pain-points", "problems", "jobs-to-be-done", "market"],
+      "architecture": ["decisions", "technicalContext"],
+      "technical": ["decisions", "technicalContext"]
+    }
+  },
+
+  "stats": {
+    "totalDocuments": 4,
+    "totalDirectories": 2,
+    "documentsByType": {
+      "vision": 1,
+      "priorities": 1,
+      "brandVoice": 1,
+      "customerPainPoints": 1,
+      "adr": 0,
+      "technicalContext": 0
+    },
+    "documentsByStatus": {
+      "draft": 4,
+      "active": 0,
+      "deprecated": 0,
+      "archived": 0
+    }
+  },
+
+  "narrativeAgent": {
+    "contextPriority": [
+      "vision",
+      "priorities",
+      "customerPainPoints",
+      "brandVoice",
+      "decisions",
+      "technicalContext"
+    ],
+    "updateFrequency": {
+      "vision": "quarterly",
+      "priorities": "weekly",
+      "brandVoice": "as-needed",
+      "customerPainPoints": "monthly",
+      "decisions": "per-decision",
+      "technicalContext": "per-change"
+    },
+    "readPatterns": {
+      "startSession": ["vision", "priorities"],
+      "newFeature": ["customerPainPoints", "priorities", "decisions"],
+      "architectureDecision": ["technicalContext", "decisions", "priorities"],
+      "communication": ["brandVoice", "customerPainPoints"]
+    }
+  },
+
+  "validation": {
+    "schemaVersion": "1.0.0",
+    "lastValidated": "2025-11-21",
+    "validationRules": {
+      "frontmatterRequired": true,
+      "changelogRequired": true,
+      "tagsRequired": true,
+      "statusRequired": true
+    }
+  },
+
+  "search": {
+    "indexedFields": [
+      "documentType",
+      "title",
+      "tags",
+      "status",
+      "description",
+      "relatedDocuments"
+    ],
+    "searchableContent": [
+      "vision.md",
+      "priorities.md",
+      "brand-voice.md",
+      "customer-pain-points.md"
+    ]
+  },
+
+  "maintenance": {
+    "nextReview": "2025-12-21",
+    "reviewSchedule": "monthly",
+    "owner": "Principal AI Team",
+    "notifications": {
+      "staleDocuments": true,
+      "missingLinks": true,
+      "schemaViolations": true
+    }
+  },
+
+  "notes": [
+    "This index is automatically maintained by the Narrative Agent",
+    "Manual edits will be preserved but may be overwritten on regeneration",
+    "Use tags for cross-document discovery",
+    "Update relatedDocuments to maintain the knowledge graph",
+    "Status field tracks document lifecycle"
+  ]
+}
