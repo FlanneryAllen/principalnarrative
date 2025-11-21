@@ -1,0 +1,23 @@
+{
+  "id": "glossary-of-terms",
+  "version": "1.0.0",
+  "name": "Glossary of Terms",
+  "description": "Codebase view extracted from documentation",
+  "rows": 1,
+  "cols": 1,
+  "referenceGroups": {},
+  "overviewPath": "applied-narrative/definitions/glossary.md",
+  "category": "docs",
+  "displayOrder": 0,
+  "timestamp": "2025-11-21T23:56:44.095Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}

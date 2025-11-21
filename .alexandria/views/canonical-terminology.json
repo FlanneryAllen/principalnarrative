@@ -1,0 +1,23 @@
+{
+  "id": "canonical-terminology",
+  "version": "1.0.0",
+  "name": "Canonical Terminology",
+  "description": "Codebase view extracted from documentation",
+  "rows": 1,
+  "cols": 1,
+  "referenceGroups": {},
+  "overviewPath": "applied-narrative/naming/terminology.md",
+  "category": "docs",
+  "displayOrder": 0,
+  "timestamp": "2025-11-21T23:56:44.099Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 1,
+      "cols": 1,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}
