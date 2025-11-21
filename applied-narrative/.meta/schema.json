@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applied Narrative Schema",
+  "description": "Schema for validating narrative unit documents in the Applied Narrative Intelligence Layer",
+  "version": "1.0.0",
+
+  "definitions": {
+    "frontmatter": {
+      "type": "object",
+      "required": ["type", "version", "status"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["strategy", "messaging", "naming", "marketing", "proof", "story", "constraints", "definitions", "coherence"],
+          "description": "The narrative layer this unit belongs to"
+        },
+        "subtype": {
+          "type": "string",
+          "description": "Specific category within the layer"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version of this document"
+        },
+        "created": {
+          "type": "string",
+          "format": "date",
+          "description": "Date document was created"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of last update"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "active", "deprecated", "archived"],
+          "description": "Current status of this narrative unit"
+        },
+        "owners": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "People responsible for this document"
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Searchable tags for this unit"
+        }
+      }
+    },
+
+    "proofMetric": {
+      "type": "object",
+      "required": ["id", "name", "category", "verified"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+-\\d{3}$",
+          "description": "Unique identifier for this metric"
+        },
+        "name": {"type": "string"},
+        "category": {
+          "type": "string",
+          "enum": ["performance", "adoption", "roi", "satisfaction", "reliability"]
+        },
+        "value": {"type": ["number", "null"]},
+        "unit": {"type": "string"},
+        "measurement_date": {"type": ["string", "null"], "format": "date"},
+        "source": {"type": "string"},
+        "verified": {"type": "boolean"},
+        "verified_by": {"type": ["string", "null"]},
+        "verified_date": {"type": ["string", "null"], "format": "date"},
+        "claims_using": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "References to claims that use this metric"
+        }
+      }
+    },
+
+    "driftEvent": {
+      "type": "object",
+      "required": ["id", "type", "severity", "detected_at", "status"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {
+          "type": "string",
+          "enum": [
+            "semantic",
+            "strategic",
+            "messaging",
+            "naming",
+            "proof",
+            "promise-delivery",
+            "opportunity-silence"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "detected_at": {"type": "string", "format": "date-time"},
+        "source_unit": {"type": "string"},
+        "target_unit": {"type": "string"},
+        "description": {"type": "string"},
+        "suggested_resolution": {"type": "string"},
+        "status": {
+          "type": "string",
+          "enum": ["open", "acknowledged", "resolved", "ignored"]
+        },
+        "resolved_at": {"type": ["string", "null"], "format": "date-time"},
+        "resolved_by": {"type": ["string", "null"]}
+      }
+    },
+
+    "coherenceScore": {
+      "type": "object",
+      "required": ["overall", "timestamp"],
+      "properties": {
+        "overall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "semantic": {"type": "number", "minimum": 0, "maximum": 1},
+            "strategic": {"type": "number", "minimum": 0, "maximum": 1},
+            "messaging": {"type": "number", "minimum": 0, "maximum": 1},
+            "naming": {"type": "number", "minimum": 0, "maximum": 1},
+            "proof": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "timestamp": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

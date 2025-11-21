@@ -1,0 +1,105 @@
+{
+  "$schema": "./schema.json",
+  "title": "Applied Narrative Index",
+  "description": "Master index of all narrative units and their relationships",
+  "version": "1.0.0",
+  "generated_at": "2024-01-01T00:00:00Z",
+
+  "layers": {
+    "strategy": {
+      "description": "Product purpose, architecture principles, growth priorities, long-term intent",
+      "path": "/applied-narrative/strategy/",
+      "units": [
+        {"file": "vision.md", "subtype": "vision", "status": "draft"},
+        {"file": "priorities.md", "subtype": "priorities", "status": "draft"},
+        {"file": "architecture-principles.md", "subtype": "architecture-principles", "status": "draft"}
+      ]
+    },
+    "messaging": {
+      "description": "Messaging pillars, category definition, value propositions, voice principles",
+      "path": "/applied-narrative/messaging/",
+      "units": [
+        {"file": "pillars.md", "subtype": "pillars", "status": "draft"},
+        {"file": "voice.md", "subtype": "voice", "status": "draft"},
+        {"file": "value-propositions.md", "subtype": "value-propositions", "status": "draft"}
+      ]
+    },
+    "naming": {
+      "description": "Canonical terminology, forbidden terms, API naming, UI patterns",
+      "path": "/applied-narrative/naming/",
+      "units": [
+        {"file": "terminology.md", "subtype": "terminology", "status": "draft"},
+        {"file": "api-naming.md", "subtype": "api-naming", "status": "draft"},
+        {"file": "ui-patterns.md", "subtype": "ui-patterns", "status": "draft"}
+      ]
+    },
+    "marketing": {
+      "description": "Product copy, feature descriptions, release notes, competitive narratives",
+      "path": "/applied-narrative/marketing/",
+      "units": [
+        {"file": "product-copy.md", "subtype": "product-copy", "status": "draft"},
+        {"file": "feature-descriptions.md", "subtype": "feature-descriptions", "status": "draft"},
+        {"file": "release-notes.md", "subtype": "release-notes", "status": "draft"},
+        {"file": "competitive.md", "subtype": "competitive", "status": "draft"}
+      ]
+    },
+    "proof": {
+      "description": "Performance metrics, adoption stats, ROI data, customer quotes, case studies",
+      "path": "/applied-narrative/proof/",
+      "units": [
+        {"file": "metrics/performance.json", "subtype": "performance-metrics", "status": "draft"},
+        {"file": "adoption-stats/adoption.json", "subtype": "adoption-statistics", "status": "draft"},
+        {"file": "roi-stats/roi.json", "subtype": "roi-statistics", "status": "draft"},
+        {"file": "customer-quotes/quotes.md", "subtype": "customer-quotes", "status": "draft"},
+        {"file": "case-studies/template.md", "subtype": "case-study-template", "status": "draft"}
+      ]
+    },
+    "story": {
+      "description": "Explanatory models, metaphors, product narrative, storytelling elements",
+      "path": "/applied-narrative/story/",
+      "units": [
+        {"file": "explanatory-models.md", "subtype": "explanatory-models", "status": "draft"},
+        {"file": "product-narrative.md", "subtype": "product-narrative", "status": "draft"}
+      ]
+    },
+    "constraints": {
+      "description": "Architectural constraints, business rules, legal requirements",
+      "path": "/applied-narrative/constraints/",
+      "units": [
+        {"file": "architectural.md", "subtype": "architectural", "status": "draft"},
+        {"file": "business.md", "subtype": "business", "status": "draft"}
+      ]
+    },
+    "definitions": {
+      "description": "Glossary, personas, canonical definitions",
+      "path": "/applied-narrative/definitions/",
+      "units": [
+        {"file": "glossary.md", "subtype": "glossary", "status": "draft"},
+        {"file": "personas.md", "subtype": "personas", "status": "draft"}
+      ]
+    }
+  },
+
+  "drift_detection": {
+    "enabled": true,
+    "types": [
+      "semantic",
+      "strategic",
+      "messaging",
+      "naming",
+      "proof",
+      "promise-delivery",
+      "opportunity-silence"
+    ],
+    "thresholds": {
+      "coherence_warning": 0.7,
+      "coherence_critical": 0.5
+    }
+  },
+
+  "api_endpoints": {
+    "query": "/context/query",
+    "validate": "/context/validate",
+    "update": "/context/update"
+  }
+}

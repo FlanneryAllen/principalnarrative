@@ -1,0 +1,21 @@
+{
+  "$schema": "../.meta/schema.json",
+  "type": "coherence",
+  "subtype": "history",
+  "description": "Historical coherence scores and drift events",
+  "version": "1.0.0",
+
+  "snapshots": [],
+
+  "drift_history": [],
+
+  "remediation_log": [],
+
+  "statistics": {
+    "average_coherence_30d": null,
+    "drift_events_30d": 0,
+    "resolved_drift_30d": 0,
+    "most_common_drift_type": null,
+    "layers_with_most_drift": []
+  }
+}

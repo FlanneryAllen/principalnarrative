@@ -1,0 +1,102 @@
+{
+  "$schema": "../.meta/proof-schema.json",
+  "type": "proof",
+  "subtype": "adoption-statistics",
+  "version": "1.0.0",
+  "updated": "2024-11-15",
+  "metrics": [
+    {
+      "id": "adopt-001",
+      "name": "Active Teams",
+      "category": "adoption",
+      "value": 7200,
+      "unit": "teams",
+      "definition": "Teams with 5+ reviews in the last 30 days",
+      "measurement_date": "2024-11-15",
+      "growth_rate": 12,
+      "growth_period": "month-over-month",
+      "source": "Product analytics",
+      "verified": true,
+      "verified_by": "Data Team",
+      "verified_date": "2024-11-15",
+      "claims_using": ["marketing materials"],
+      "public_approved": false,
+      "public_version": "thousands of teams",
+      "notes": "Target: 10,000 by end of 2024"
+    },
+    {
+      "id": "adopt-002",
+      "name": "Total PRs Reviewed",
+      "category": "adoption",
+      "value": 2500000,
+      "unit": "pull requests",
+      "measurement_date": "2024-11-15",
+      "period": "all-time",
+      "source": "Product analytics",
+      "verified": true,
+      "verified_by": "Data Team",
+      "verified_date": "2024-11-15",
+      "public_approved": true,
+      "claims_using": [],
+      "notes": "Cumulative since launch"
+    },
+    {
+      "id": "adopt-003",
+      "name": "GitHub Marketplace Rating",
+      "category": "satisfaction",
+      "value": 4.8,
+      "unit": "stars",
+      "scale": "1-5",
+      "measurement_date": "2024-11-10",
+      "review_count": 342,
+      "source": "GitHub Marketplace",
+      "verified": true,
+      "verified_by": "Marketing",
+      "verified_date": "2024-11-10",
+      "public_approved": true,
+      "claims_using": ["priorities.md:KR1"],
+      "notes": "Target achieved"
+    },
+    {
+      "id": "adopt-004",
+      "name": "Enterprise Customers",
+      "category": "adoption",
+      "value": 23,
+      "unit": "customers",
+      "definition": "Customers on Enterprise plan ($50K+ ARR)",
+      "measurement_date": "2024-11-15",
+      "source": "Salesforce",
+      "verified": true,
+      "verified_by": "Sales",
+      "verified_date": "2024-11-15",
+      "public_approved": false,
+      "public_version": "20+ enterprise customers",
+      "notes": "Target: 26 by end of Q4"
+    },
+    {
+      "id": "adopt-005",
+      "name": "Monthly Recurring Revenue",
+      "category": "financial",
+      "value": 1400000,
+      "unit": "USD",
+      "measurement_date": "2024-11-01",
+      "growth_rate": 8,
+      "growth_period": "month-over-month",
+      "source": "Stripe",
+      "verified": true,
+      "verified_by": "Finance",
+      "verified_date": "2024-11-05",
+      "public_approved": false,
+      "notes": "Target: $2M by end of 2024. INTERNAL ONLY."
+    }
+  ],
+  "narrative_constraints": {
+    "description": "Adoption claims require verified statistics",
+    "rules": [
+      "Exact user/team counts are internal only",
+      "Use public_version for external communications",
+      "Financial data is strictly internal",
+      "Growth claims require baseline and current"
+    ]
+  }
+}

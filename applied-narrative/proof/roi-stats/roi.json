@@ -1,0 +1,88 @@
+{
+  "$schema": "../.meta/proof-schema.json",
+  "type": "proof",
+  "subtype": "roi-statistics",
+  "version": "1.0.0",
+  "updated": "2024-11-01",
+  "metrics": [
+    {
+      "id": "roi-001",
+      "name": "Senior Developer Time Savings",
+      "category": "roi",
+      "value": 4.2,
+      "unit": "hours/week",
+      "calculation_method": "Survey of senior developers (5+ years experience) comparing weekly review time before and after CodePilot adoption",
+      "assumptions": [
+        "Self-reported data",
+        "Assumes consistent PR volume",
+        "Does not account for review quality changes"
+      ],
+      "customer_segment": "Teams with 10+ developers",
+      "sample_size": 127,
+      "sample_unit": "developers",
+      "source": "Customer survey Q3 2024",
+      "survey_date": "2024-09-15",
+      "verified": true,
+      "verified_by": "Customer Success",
+      "verified_date": "2024-10-01",
+      "claims_using": ["value-propositions.md:sam-benefits"],
+      "notes": "Range: 2-8 hours/week depending on team size and PR volume"
+    },
+    {
+      "id": "roi-002",
+      "name": "Review Cycle Time Reduction",
+      "category": "roi",
+      "value": 73,
+      "unit": "percent",
+      "calculation_method": "Median reduction in time from PR open to merge, comparing 90 days pre-CodePilot to 90 days post-adoption",
+      "assumptions": [
+        "Consistent team size",
+        "No major process changes during period",
+        "CodePilot as primary change variable"
+      ],
+      "baseline": "4.2 days median PR cycle time",
+      "comparison_period": "90 days",
+      "customer_segment": "All active customers",
+      "sample_size": 50,
+      "sample_unit": "teams",
+      "source": "GitHub API data analysis",
+      "verified": true,
+      "verified_by": "Data Team",
+      "verified_date": "2024-10-20",
+      "claims_using": ["value-propositions.md:emma-benefits", "pillars.md"],
+      "notes": "Post-CodePilot median: 1.1 days"
+    },
+    {
+      "id": "roi-003",
+      "name": "Cost per Review Reduction",
+      "category": "roi",
+      "value": 62,
+      "unit": "percent",
+      "calculation_method": "Estimated developer hourly cost × review time, before vs after CodePilot",
+      "assumptions": [
+        "Average developer cost: $75/hour (loaded)",
+        "Does not include CodePilot subscription cost",
+        "Assumes time savings translate to productive work"
+      ],
+      "baseline": "$45 average cost per review",
+      "customer_segment": "Enterprise customers",
+      "sample_size": 12,
+      "sample_unit": "companies",
+      "source": "Customer interviews",
+      "verified": true,
+      "verified_by": "Sales Engineering",
+      "verified_date": "2024-09-01",
+      "claims_using": [],
+      "notes": "Net ROI positive after ~2 months for most teams"
+    }
+  ],
+  "narrative_constraints": {
+    "description": "ROI claims require documented methodology",
+    "rules": [
+      "ROI claims must include calculation methodology on request",
+      "Assumptions must be disclosed in detailed contexts",
+      "Customer segment must be specified",
+      "Time-based claims need sample period specified"
+    ]
+  }
+}

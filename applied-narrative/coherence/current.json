@@ -1,0 +1,118 @@
+{
+  "$schema": "../.meta/schema.json",
+  "type": "coherence",
+  "description": "Current coherence state of the Applied Narrative",
+  "version": "1.0.0",
+  "updated": "2024-11-21",
+
+  "score": {
+    "overall": 0.84,
+    "timestamp": "2024-11-21T10:30:00Z",
+    "dimensions": {
+      "semantic": 0.91,
+      "strategic": 0.88,
+      "messaging": 0.85,
+      "naming": 0.79,
+      "proof": 0.82
+    },
+    "trend": "stable"
+  },
+
+  "drift_events": [
+    {
+      "id": "drift-001",
+      "type": "promise-delivery",
+      "severity": "medium",
+      "detected_at": "2024-11-20T14:22:00Z",
+      "source_unit": "marketing/product-copy.md",
+      "target_unit": "marketing/feature-descriptions.md",
+      "description": "Enterprise landing page mentions 'self-hosted deployment available' but feature status is 'Beta' with ship date Dec 1",
+      "suggested_resolution": "Update copy to 'self-hosted deployment coming December 2024' or wait until ship date to claim availability",
+      "status": "open",
+      "resolved_at": null,
+      "resolved_by": null
+    },
+    {
+      "id": "drift-002",
+      "type": "naming",
+      "severity": "low",
+      "detected_at": "2024-11-19T09:15:00Z",
+      "source_unit": "external/blog-post-draft.md",
+      "target_unit": "naming/terminology.md",
+      "description": "Blog post draft uses 'Code Pilot' (two words) instead of canonical 'CodePilot'",
+      "suggested_resolution": "Replace all instances of 'Code Pilot' with 'CodePilot'",
+      "status": "resolved",
+      "resolved_at": "2024-11-19T11:30:00Z",
+      "resolved_by": "content-team"
+    },
+    {
+      "id": "drift-003",
+      "type": "proof",
+      "severity": "high",
+      "detected_at": "2024-11-18T16:45:00Z",
+      "source_unit": "marketing/product-copy.md",
+      "target_unit": "proof/metrics/performance.json",
+      "description": "Homepage claims '3x faster reviews' but no proof metric supports this claim. Closest metric [perf-002] shows 73% cycle time reduction.",
+      "suggested_resolution": "Change claim to '73% faster review cycles' with link to proof, or add new verified metric for '3x' claim",
+      "status": "open",
+      "resolved_at": null,
+      "resolved_by": null
+    },
+    {
+      "id": "drift-004",
+      "type": "opportunity-silence",
+      "severity": "low",
+      "detected_at": "2024-11-17T08:00:00Z",
+      "source_unit": "proof/metrics/performance.json",
+      "target_unit": "messaging/pillars.md",
+      "description": "perf-003 shows false positive rate improved from 12% to 4.8% (60% improvement) but this achievement is not prominently featured in messaging",
+      "suggested_resolution": "Consider adding accuracy improvement story to messaging pillars or blog content",
+      "status": "acknowledged",
+      "resolved_at": null,
+      "resolved_by": null
+    },
+    {
+      "id": "drift-005",
+      "type": "messaging",
+      "severity": "medium",
+      "detected_at": "2024-11-15T13:20:00Z",
+      "source_unit": "external/sales-deck.pptx",
+      "target_unit": "messaging/voice.md",
+      "description": "Sales deck slide 7 uses 'revolutionary AI technology' - 'revolutionary' is on forbidden language list",
+      "suggested_resolution": "Replace 'revolutionary AI technology' with 'fundamentally different approach to code review'",
+      "status": "open",
+      "resolved_at": null,
+      "resolved_by": null
+    }
+  ],
+
+  "alerts": {
+    "active": [
+      {
+        "id": "alert-001",
+        "type": "proof-expiring",
+        "message": "perf-002 (Review Cycle Time Reduction) verification date is 35 days old - approaching 60-day refresh threshold",
+        "created_at": "2024-11-20T00:00:00Z"
+      }
+    ],
+    "thresholds": {
+      "coherence_warning": 0.7,
+      "coherence_critical": 0.5,
+      "proof_refresh_days": 60
+    }
+  },
+
+  "last_full_scan": "2024-11-21T10:30:00Z",
+  "next_scheduled_scan": "2024-11-22T10:30:00Z",
+
+  "health_summary": {
+    "strategy": {"status": "healthy", "last_updated": "2024-11-01", "drift_count": 0},
+    "messaging": {"status": "warning", "last_updated": "2024-11-01", "drift_count": 2},
+    "naming": {"status": "healthy", "last_updated": "2024-10-15", "drift_count": 0},
+    "marketing": {"status": "warning", "last_updated": "2024-11-15", "drift_count": 2},
+    "proof": {"status": "healthy", "last_updated": "2024-11-15", "drift_count": 0},
+    "story": {"status": "stale", "last_updated": "2024-06-01", "drift_count": 0},
+    "constraints": {"status": "healthy", "last_updated": "2024-10-01", "drift_count": 0},
+    "definitions": {"status": "healthy", "last_updated": "2024-11-01", "drift_count": 0}
+  }
+}

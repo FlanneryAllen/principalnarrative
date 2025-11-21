@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narrative Agent Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--bg-card);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--bg-card);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .score-value {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .score-label {
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .score-healthy { color: var(--accent-green); }
+        .score-warning { color: var(--accent-yellow); }
+        .score-critical { color: var(--accent-red); }
+
+        .dimension-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .dimension-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .dimension-label {
+            width: 80px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .dimension-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .dimension-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .dimension-value {
+            width: 45px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .drift-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .drift-item {
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+        }
+
+        .drift-item.critical { border-color: var(--accent-red); }
+        .drift-item.high { border-color: var(--accent-red); }
+        .drift-item.medium { border-color: var(--accent-yellow); }
+        .drift-item.low { border-color: var(--accent-blue); }
+
+        .drift-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .drift-type {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .drift-severity {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .drift-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .drift-source {
+            font-size: 0.8rem;
+            color: var(--accent-purple);
+            font-family: monospace;
+        }
+
+        .drift-resolution {
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--bg-secondary);
+        }
+
+        .validator-section {
+            grid-column: 1 / -1;
+        }
+
+        .validator-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .validator-input {
+            flex: 1;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--bg-card);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .validator-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .validator-btn {
+            padding: 14px 28px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .validator-btn:hover {
+            background: #2563eb;
+        }
+
+        .validator-btn:disabled {
+            background: var(--bg-card);
+            cursor: not-allowed;
+        }
+
+        .validation-result {
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .validation-result.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .result-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .result-valid .result-icon {
+            background: rgba(34, 197, 94, 0.2);
+        }
+
+        .result-invalid .result-icon {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .result-valid .result-title { color: var(--accent-green); }
+        .result-invalid .result-title { color: var(--accent-red); }
+
+        .result-confidence {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .result-section {
+            margin-top: 16px;
+        }
+
+        .result-section-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .issue-item, .suggestion-item {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .issue-item { border-left: 3px solid var(--accent-red); }
+        .suggestion-item { border-left: 3px solid var(--accent-green); }
+
+        .scan-btn {
+            padding: 10px 20px;
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .scan-btn:hover {
+            background: #9333ea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--bg-card);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Narrative Agent Dashboard</h1>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>API Connected</span>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Coherence Score Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Coherence Score</span>
+                </div>
+                <div class="score-display">
+                    <div class="score-value" id="coherence-score">--</div>
+                    <div class="score-label">Overall Alignment</div>
+                </div>
+            </div>
+
+            <!-- Dimensions Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Dimensions</span>
+                </div>
+                <div class="dimension-bars" id="dimensions">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Quick Stats</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-drift">-</div>
+                        <div class="stat-label">Open Drifts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-metrics">-</div>
+                        <div class="stat-label">Proof Metrics</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-features">-</div>
+                        <div class="stat-label">Features</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-terms">-</div>
+                        <div class="stat-label">Forbidden Terms</div>
+                    </div>
+                </div>
+                <button class="scan-btn" onclick="runScan()">Run Drift Scan</button>
+            </div>
+        </div>
+
+        <!-- Claim Validator -->
+        <div class="card validator-section">
+            <div class="card-header">
+                <span class="card-title">Claim Validator</span>
+            </div>
+            <div class="validator-form">
+                <input type="text" class="validator-input" id="claim-input"
+                       placeholder="Enter a claim to validate (e.g., 'CodePilot is 3x faster than competitors')">
+                <button class="validator-btn" onclick="validateClaim()">Validate</button>
+            </div>
+            <div class="validation-result" id="validation-result"></div>
+        </div>
+
+        <!-- Drift Events -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <span class="card-title">Drift Events</span>
+                <span id="drift-count" style="color: var(--text-secondary);">-</span>
+            </div>
+            <div class="drift-list" id="drift-list">
+                <div class="loading"><div class="spinner"></div>Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+                return null;
+            }
+        }
+
+        async function loadCoherence() {
+            const data = await fetchData('/coherence/score');
+            if (!data) return;
+
+            // Update score
+            const scoreEl = document.getElementById('coherence-score');
+            const score = (data.overall * 100).toFixed(0);
+            scoreEl.textContent = score;
+
+            // Color based on score
+            scoreEl.className = 'score-value';
+            if (data.overall >= 0.7) scoreEl.classList.add('score-healthy');
+            else if (data.overall >= 0.5) scoreEl.classList.add('score-warning');
+            else scoreEl.classList.add('score-critical');
+
+            // Update dimensions
+            const dimContainer = document.getElementById('dimensions');
+            let dimHTML = '';
+
+            const colors = {
+                semantic: '#3b82f6',
+                strategic: '#22c55e',
+                messaging: '#a855f7',
+                naming: '#eab308',
+                proof: '#ef4444'
+            };
+
+            for (const [dim, value] of Object.entries(data.dimensions || {})) {
+                const pct = (value * 100).toFixed(0);
+                dimHTML += `
+                    <div class="dimension-row">
+                        <span class="dimension-label">${dim}</span>
+                        <div class="dimension-bar-bg">
+                            <div class="dimension-bar" style="width: ${pct}%; background: ${colors[dim] || '#3b82f6'}"></div>
+                        </div>
+                        <span class="dimension-value">${pct}%</span>
+                    </div>
+                `;
+            }
+
+            dimContainer.innerHTML = dimHTML || '<div class="empty-state">No dimensions</div>';
+        }
+
+        async function loadDriftEvents() {
+            const data = await fetchData('/coherence/drift');
+            if (!data) return;
+
+            document.getElementById('drift-count').textContent = `${data.total} events`;
+            document.getElementById('stat-drift').textContent = data.open_count;
+
+            const listEl = document.getElementById('drift-list');
+
+            if (!data.drift_events || data.drift_events.length === 0) {
+                listEl.innerHTML = '<div class="empty-state">No drift events detected</div>';
+                return;
+            }
+
+            let html = '';
+            for (const event of data.drift_events) {
+                html += `
+                    <div class="drift-item ${event.severity}">
+                        <div class="drift-header">
+                            <span class="drift-type">${event.type}</span>
+                            <span class="drift-severity" style="color: ${getSeverityColor(event.severity)}">${event.severity}</span>
+                        </div>
+                        <div class="drift-description">${event.description}</div>
+                        <div class="drift-source">${event.source_unit}</div>
+                        ${event.suggested_resolution ? `<div class="drift-resolution">→ ${event.suggested_resolution}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        function getSeverityColor(severity) {
+            const colors = {
+                critical: '#ef4444',
+                high: '#ef4444',
+                medium: '#eab308',
+                low: '#3b82f6'
+            };
+            return colors[severity] || '#94a3b8';
+        }
+
+        async function loadStats() {
+            const [metrics, features, terms] = await Promise.all([
+                fetchData('/proof/metrics'),
+                fetchData('/features'),
+                fetchData('/naming/forbidden')
+            ]);
+
+            if (metrics) document.getElementById('stat-metrics').textContent = metrics.total;
+            if (features) document.getElementById('stat-features').textContent = features.total;
+            if (terms) document.getElementById('stat-terms').textContent = terms.total;
+        }
+
+        async function validateClaim() {
+            const input = document.getElementById('claim-input');
+            const resultEl = document.getElementById('validation-result');
+            const claim = input.value.trim();
+
+            if (!claim) {
+                alert('Please enter a claim to validate');
+                return;
+            }
+
+            resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>Validating...</div>';
+            resultEl.classList.add('show');
+
+            try {
+                const response = await fetch(`${API_BASE}/context/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ claim, require_proof: true })
+                });
+
+                const data = await response.json();
+
+                let html = `
+                    <div class="result-header ${data.valid ? 'result-valid' : 'result-invalid'}">
+                        <div class="result-icon">${data.valid ? '✓' : '✗'}</div>
+                        <div>
+                            <div class="result-title">${data.valid ? 'Claim Valid' : 'Issues Found'}</div>
+                            <div class="result-confidence">Confidence: ${(data.confidence * 100).toFixed(0)}%</div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.issues && data.issues.length > 0) {
+                    html += `<div class="result-section">
+                        <div class="result-section-title">Issues</div>
+                        ${data.issues.map(i => `<div class="issue-item">${i}</div>`).join('')}
+                    </div>`;
+                }
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    html += `<div class="result-section">
+                        <div class="result-section-title">Suggestions</div>
+                        ${data.suggestions.map(s => `<div class="suggestion-item">${s}</div>`).join('')}
+                    </div>`;
+                }
+
+                if (data.proof_references && data.proof_references.length > 0) {
+                    html += `<div class="result-section">
+                        <div class="result-section-title">Proof References</div>
+                        ${data.proof_references.map(p => `
+                            <div class="suggestion-item">
+                                <strong>${p.id}</strong>: ${p.name} = ${p.value} ${p.unit}
+                                ${p.verified ? '(verified)' : '(unverified)'}
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
+
+                resultEl.innerHTML = html;
+
+            } catch (error) {
+                resultEl.innerHTML = `<div class="issue-item">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function runScan() {
+            const btn = document.querySelector('.scan-btn');
+            btn.disabled = true;
+            btn.textContent = 'Scanning...';
+
+            try {
+                const response = await fetch(`${API_BASE}/coherence/scan`, { method: 'POST' });
+                const data = await response.json();
+
+                alert(`Scan complete! Found ${data.total} drift events.`);
+
+                // Reload data
+                await Promise.all([loadCoherence(), loadDriftEvents(), loadStats()]);
+
+            } catch (error) {
+                alert('Scan failed: ' + error.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Run Drift Scan';
+        }
+
+        // Handle Enter key in input
+        document.getElementById('claim-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') validateClaim();
+        });
+
+        // Initial load
+        Promise.all([loadCoherence(), loadDriftEvents(), loadStats()]);
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadCoherence();
+            loadDriftEvents();
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Narrative Agent API Dependencies
+
+# Web framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Data validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# YAML parsing for frontmatter
+pyyaml>=6.0.1
+
+# HTTP client (for future integrations)
+httpx>=0.25.0
+
+# Development
+python-multipart>=0.0.6
+
+# Optional: For future embedding support
+# sentence-transformers>=2.2.0
+# chromadb>=0.4.0
