@@ -1,5 +1,5 @@
 """
-Services for the Narrative Agent API.
+Services for the Principal Narrative API.
 """
 from .narrative import NarrativeService
 from .validator import ValidatorService

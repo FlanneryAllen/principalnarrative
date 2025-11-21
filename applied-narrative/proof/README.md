@@ -8,7 +8,7 @@ updated: 2024-01-01
 
 # Statistics & Proof Library
 
-This directory contains validated evidence used to support marketing claims, documentation assertions, and agent-generated content. The Narrative Agent uses this library to:
+This directory contains validated evidence used to support marketing claims, documentation assertions, and agent-generated content. The Principal Narrative uses this library to:
 
 1. **Validate claims** - Check that assertions have supporting evidence
 2. **Detect proof drift** - Flag when claims diverge from available proof

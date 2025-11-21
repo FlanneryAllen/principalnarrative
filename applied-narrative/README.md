@@ -60,7 +60,7 @@ applied-narrative/
 
 ## Drift Detection
 
-The Narrative Agent monitors for seven types of drift:
+The Principal Narrative monitors for seven types of drift:
 
 | Drift Type | Description |
 |------------|-------------|

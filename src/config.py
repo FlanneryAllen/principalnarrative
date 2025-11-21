@@ -1,5 +1,5 @@
 """
-Configuration for the Narrative Agent API.
+Configuration for the Principal Narrative API.
 """
 from pathlib import Path
 from pydantic_settings import BaseSettings
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # Paths
-    app_name: str = "Narrative Agent API"
+    app_name: str = "Principal Narrative API"
     app_version: str = "1.0.0"
 
     # Applied Narrative directory (relative to project root)

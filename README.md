@@ -1,10 +1,10 @@
-# Narrative Agent
+# Principal Narrative
 
 An AI system that maintains organizational context by capturing, structuring, and evolving institutional knowledge from unstructured sources.
 
-## What is the Narrative Agent?
+## What is the Principal Narrative?
 
-The Narrative Agent is a **context preservation and coordination system** that:
+The Principal Narrative is a **context preservation and coordination system** that:
 
 - **Captures** organizational knowledge from unstructured sources (Slack, meetings, docs)
 - **Structures** that knowledge into version-controlled markdown documents
@@ -12,13 +12,13 @@ The Narrative Agent is a **context preservation and coordination system** that:
 - **Coordinates** other AI agents by providing canonical organizational context
 - **Detects** when reality drifts from documented intent
 
-Unlike coding agents that generate code, the Narrative Agent preserves the "why" behind decisions, ensuring all AI agents operate with consistent understanding of company vision, priorities, and technical context.
+Unlike coding agents that generate code, the Principal Narrative preserves the "why" behind decisions, ensuring all AI agents operate with consistent understanding of company vision, priorities, and technical context.
 
 ## Project Structure
 
 ```
-narrative-agent/
-├── .principalai/
+principalnarrative/
+├── .principalnarrative/
 │   ├── applied-narrative/      # Git-native organizational context
 │   │   ├── README.md
 │   │   ├── vision.md           # Vision, mission, values
@@ -31,7 +31,7 @@ narrative-agent/
 │   │       ├── schema.json     # JSON Schema for documents
 │   │       └── index.json      # Document index & relationships
 │   └── specs/
-│       └── narrative-agent-spec.md  # Full system specification
+│       └── principalnarrative-spec.md  # Full system specification
 └── README.md                   # This file
 ```
 
@@ -54,9 +54,9 @@ All documents use:
 
 ## Documentation
 
-- **Applied Narrative Guide**: `.principalai/applied-narrative/README.md`
-- **System Specification**: `.principalai/specs/narrative-agent-spec.md`
-- **Schema Definition**: `.principalai/applied-narrative/.meta/schema.json`
+- **Applied Narrative Guide**: `.principalnarrative/applied-narrative/README.md`
+- **System Specification**: `.principalnarrative/specs/principalnarrative-spec.md`
+- **Schema Definition**: `.principalnarrative/applied-narrative/.meta/schema.json`
 
 ## Core Capabilities (Planned)
 
@@ -80,7 +80,7 @@ Catch when reality diverges from documented intent:
 Provide canonical context to other AI agents:
 ```python
 # Coding agent queries brand voice before naming
-context = narrative_agent.query(
+context = principal_narrative.query(
     doc_type="brandVoice",
     topic="naming_conventions"
 )
@@ -104,7 +104,7 @@ Multi-dimensional alignment measurement:
 ## Getting Started
 
 ### Current Status
-This repository contains the foundational data structure and specification for the Narrative Agent system. Implementation is planned in phases:
+This repository contains the foundational data structure and specification for the Principal Narrative system. Implementation is planned in phases:
 
 - **Phase 1-2**: Foundation (Git integration, CLI, Claude API)
 - **Phase 3-4**: Core intelligence (embeddings, drift detection)
@@ -115,7 +115,7 @@ This repository contains the foundational data structure and specification for t
 
 ### Next Steps
 
-1. Review the specification: `.principalai/specs/narrative-agent-spec.md`
+1. Review the specification: `.principalnarrative/specs/principalnarrative-spec.md`
 2. Populate Applied Narrative templates with actual organizational context
 3. Begin implementation following the phased plan
 
@@ -123,11 +123,11 @@ This repository contains the foundational data structure and specification for t
 
 **"Context is everything."**
 
-Software teams lose institutional knowledge every time someone leaves, every decision is made in Slack without documentation, every architectural choice lacks recorded rationale. The Narrative Agent ensures that the "why" behind decisions is preserved, version-controlled, and accessible to both humans and AI agents.
+Software teams lose institutional knowledge every time someone leaves, every decision is made in Slack without documentation, every architectural choice lacks recorded rationale. The Principal Narrative ensures that the "why" behind decisions is preserved, version-controlled, and accessible to both humans and AI agents.
 
 ## Contributing
 
-See `.principalai/applied-narrative/README.md` for guidelines on maintaining organizational context documents.
+See `.principalnarrative/applied-narrative/README.md` for guidelines on maintaining organizational context documents.
 
 ## License
 

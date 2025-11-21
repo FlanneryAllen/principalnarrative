@@ -215,7 +215,7 @@ See example ADRs in this directory:
 
 ## Tools
 
-The Narrative Agent can:
+The Principal Narrative can:
 - Create new ADRs from discussions
 - Update ADR status
 - Find related decisions

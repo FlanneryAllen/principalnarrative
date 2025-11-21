@@ -1,5 +1,5 @@
 """
-Pydantic models for the Narrative Agent API.
+Pydantic models for the Principal Narrative API.
 """
 from datetime import datetime
 from enum import Enum

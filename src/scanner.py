@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Narrative Agent Drift Scanner CLI
+Principal Narrative Drift Scanner CLI
 
 Usage:
     python -m src.scanner              # Run full scan

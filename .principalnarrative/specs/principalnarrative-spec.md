@@ -1,12 +1,12 @@
 ---
 documentType: specification
-title: Narrative Agent System Specification
+title: Principal Narrative System Specification
 version: 1.0.0
 lastUpdated: 2025-11-21
 author: Principal AI Team
 status: draft
 tags:
-  - narrative-agent
+  - principalnarrative
   - specification
   - architecture
   - ai-agents
@@ -19,11 +19,11 @@ changelog:
     author: Principal AI Team
 ---
 
-# Narrative Agent System Specification
+# Principal Narrative System Specification
 
 ## Executive Summary
 
-The Narrative Agent is an AI system that maintains organizational context by capturing, structuring, and evolving institutional knowledge from unstructured sources. Unlike coding agents that generate code, the Narrative Agent preserves the "why" behind decisions, ensuring all AI agents operate with consistent understanding of company vision, priorities, and technical context.
+The Principal Narrative is an AI system that maintains organizational context by capturing, structuring, and evolving institutional knowledge from unstructured sources. Unlike coding agents that generate code, the Principal Narrative preserves the "why" behind decisions, ensuring all AI agents operate with consistent understanding of company vision, priorities, and technical context.
 
 **Core Value Proposition:**
 - Transforms scattered tribal knowledge into structured, version-controlled context
@@ -35,9 +35,9 @@ The Narrative Agent is an AI system that maintains organizational context by cap
 
 ## 1. System Overview
 
-### 1.1 What is a Narrative Agent?
+### 1.1 What is a Principal Narrative?
 
-The Narrative Agent is a **context preservation and coordination system** that:
+The Principal Narrative is a **context preservation and coordination system** that:
 
 1. **Captures** organizational knowledge from unstructured sources (Slack, meetings, docs)
 2. **Structures** that knowledge into the Applied Narrative format
@@ -45,7 +45,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 4. **Coordinates** other AI agents by providing canonical organizational context
 5. **Detects** when reality drifts from documented intent
 
-**Analogy:** If coding agents are the hands building the product, the Narrative Agent is the institutional memory ensuring those hands know what they're building and why.
+**Analogy:** If coding agents are the hands building the product, the Principal Narrative is the institutional memory ensuring those hands know what they're building and why.
 
 ### 1.2 Core Responsibilities
 
@@ -59,7 +59,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 
 ### 1.3 How It Differs from Coding Agents
 
-| Dimension | Coding Agent | Narrative Agent |
+| Dimension | Coding Agent | Principal Narrative |
 |-----------|--------------|-----------------|
 | **Primary Output** | Source code | Structured context (markdown) |
 | **Focus** | "What" and "how" | "Why" and "for whom" |
@@ -68,7 +68,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 | **Scope** | Single codebase | Entire organization |
 | **Memory** | Code comments, docs | Applied Narrative knowledge base |
 
-**Key Insight:** The Narrative Agent doesn't compete with coding agents—it *enables* them by providing the organizational context they need to make aligned decisions.
+**Key Insight:** The Principal Narrative doesn't compete with coding agents—it *enables* them by providing the organizational context they need to make aligned decisions.
 
 ---
 
@@ -177,7 +177,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 - Finds metrics and success criteria
 
 **Claude API (Intelligence)**
-- Core reasoning engine for the Narrative Agent
+- Core reasoning engine for the Principal Narrative
 - Synthesizes information across multiple sources
 - Generates structured documents from conversations
 - Validates coherence and consistency
@@ -205,7 +205,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 #### Storage Layer
 
 **Git Manager**
-- Commits context changes to `.principalai/applied-narrative/`
+- Commits context changes to `.principalnarrative/applied-narrative/`
 - Manages branches, merges, conflicts
 - Generates meaningful commit messages
 - Tags significant context updates
@@ -243,7 +243,7 @@ The Narrative Agent is a **context preservation and coordination system** that:
 #### With Coding Agents
 ```python
 # Coding agent checks brand voice before naming
-context = narrative_agent.query(
+context = principal_narrative.query(
     doc_type="brandVoice",
     topic="naming_conventions"
 )
@@ -253,7 +253,7 @@ context = narrative_agent.query(
 #### With Planning Agents
 ```python
 # Planning agent validates feature against priorities
-coherence_score = narrative_agent.validate_coherence(
+coherence_score = principal_narrative.validate_coherence(
     proposed_feature="Real-time collaboration",
     against=["priorities", "customerPainPoints"]
 )
@@ -263,7 +263,7 @@ coherence_score = narrative_agent.validate_coherence(
 #### With Communication Agents
 ```python
 # Comms agent gets brand voice for email
-voice_guide = narrative_agent.get_context(
+voice_guide = principal_narrative.get_context(
     document="brandVoice",
     section="email_tone"
 )
@@ -408,7 +408,7 @@ class DriftDetector:
 ```
 Task: Build new analytics dashboard
 
-Narrative Agent coordinates:
+Principal Narrative coordinates:
 1. Planning Agent: Validates against priorities
 2. Coding Agent: Provides technical context and patterns
 3. Design Agent: Supplies brand voice and UX principles
@@ -421,14 +421,14 @@ class AgentCoordinator:
     def coordinate_feature_development(self, feature_spec):
         # Gather relevant context
         context_bundle = {
-            'priorities': self.narrative_agent.get('priorities'),
-            'technical_context': self.narrative_agent.get('technical-context/architecture'),
-            'brand_voice': self.narrative_agent.get('brand-voice'),
-            'customer_pain_points': self.narrative_agent.get('customer-pain-points')
+            'priorities': self.principal_narrative.get('priorities'),
+            'technical_context': self.principal_narrative.get('technical-context/architecture'),
+            'brand_voice': self.principal_narrative.get('brand-voice'),
+            'customer_pain_points': self.principal_narrative.get('customer-pain-points')
         }
 
         # Validate alignment
-        alignment = self.narrative_agent.validate_coherence(
+        alignment = self.principal_narrative.validate_coherence(
             feature_spec,
             against=['priorities', 'customerPainPoints']
         )
@@ -452,7 +452,7 @@ class AgentCoordinator:
 ```
 Task: Choose message queue technology
 
-Narrative Agent coordinates:
+Principal Narrative coordinates:
 1. Retrieves existing technical context
 2. Identifies related past decisions (ADRs)
 3. Provides to architecture agent
@@ -584,7 +584,7 @@ class CoherenceScorer:
    ↓
 8. GIT COMMIT
    ↓
-   Commits to .principalai/applied-narrative/priorities.md
+   Commits to .principalnarrative/applied-narrative/priorities.md
    Message: "Add real-time collaboration as Q1 2026 priority"
    ↓
 9. EMBEDDING UPDATE
@@ -623,7 +623,7 @@ class CoherenceScorer:
    ↓
 4. [Cache Miss] DOCUMENT RETRIEVAL
    ↓
-   Read .principalai/applied-narrative/brand-voice.md
+   Read .principalnarrative/applied-narrative/brand-voice.md
    Parse frontmatter and content
    ↓
 5. SECTION EXTRACTION
@@ -708,7 +708,7 @@ class CoherenceScorer:
 
 ```
 PRIMARY STORAGE (Source of Truth)
-├── .principalai/applied-narrative/
+├── .principalnarrative/applied-narrative/
 │   ├── vision.md                    # Vision, mission, values
 │   ├── priorities.md                # Current priorities & OKRs
 │   ├── brand-voice.md              # Communication guidelines
@@ -735,7 +735,7 @@ CACHE (Performance)
 │   └── sessions/               # Active conversation state
 
 LOGS & ANALYTICS
-├── .principalai/logs/
+├── .principalnarrative/logs/
 │   ├── captures.log            # Context capture events
 │   ├── queries.log             # Agent queries
 │   ├── drift_events.log        # Detected drift
@@ -1109,7 +1109,7 @@ Response 200:
 ```protobuf
 syntax = "proto3";
 
-package narrative_agent;
+package principal_narrative;
 
 service NarrativeAgent {
   // Query organizational context
@@ -1202,7 +1202,7 @@ ws.onmessage = (event) => {
 ### 6.5 Python SDK
 
 ```python
-from narrative_agent import NarrativeAgent
+from principal_narrative import NarrativeAgent
 
 # Initialize client
 agent = NarrativeAgent(
@@ -1362,8 +1362,8 @@ narrative sync
 ## 10. References
 
 ### Internal Documentation
-- Applied Narrative Structure: `.principalai/applied-narrative/README.md`
-- Schema Definition: `.principalai/applied-narrative/.meta/schema.json`
+- Applied Narrative Structure: `.principalnarrative/applied-narrative/README.md`
+- Schema Definition: `.principalnarrative/applied-narrative/.meta/schema.json`
 
 ### External Resources
 - [Anthropic Claude API Docs](https://docs.anthropic.com/)

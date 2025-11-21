@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run the Narrative Agent API
+# Run the Principal Narrative API
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 # Run the API
 echo ""
-echo "Starting Narrative Agent API..."
+echo "Starting Principal Narrative API..."
 echo "API docs available at: http://localhost:8000/docs"
 echo ""
 

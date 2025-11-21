@@ -1,6 +1,6 @@
 # Technical Context
 
-This directory contains technical architecture documentation and context that the Narrative Agent uses to understand the system.
+This directory contains technical architecture documentation and context that the Principal Narrative uses to understand the system.
 
 ## Purpose
 
@@ -209,9 +209,9 @@ Technical context should be treated as **living documentation**:
 4. **Version control**: Use Git history to track evolution
 5. **Link to code**: Reference actual implementations
 
-## For the Narrative Agent
+## For the Principal Narrative
 
-The Narrative Agent uses technical context to:
+The Principal Narrative uses technical context to:
 - Understand system constraints when making suggestions
 - Ensure new code follows established patterns
 - Identify when patterns are violated

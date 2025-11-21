@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test the Narrative Agent API endpoints
+# Test the Principal Narrative API endpoints
 # Run this after starting the API with ./run.sh
 
 BASE_URL="http://localhost:8000"
 
 echo "====================================="
-echo "Narrative Agent API Test Suite"
+echo "Principal Narrative API Test Suite"
 echo "====================================="
 echo ""
 

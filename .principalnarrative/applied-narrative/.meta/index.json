@@ -2,7 +2,7 @@
   "$schema": "./schema.json",
   "indexVersion": "1.0.0",
   "lastUpdated": "2025-11-21",
-  "generatedBy": "Narrative Agent Foundation",
+  "generatedBy": "Principal Narrative Foundation",
   "description": "Index of all Applied Narrative documents with metadata and relationships",
 
   "documents": {
@@ -196,7 +196,7 @@
   },
 
   "notes": [
-    "This index is automatically maintained by the Narrative Agent",
+    "This index is automatically maintained by the Principal Narrative",
     "Manual edits will be preserved but may be overwritten on regeneration",
     "Use tags for cross-document discovery",
     "Update relatedDocuments to maintain the knowledge graph",

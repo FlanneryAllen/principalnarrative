@@ -1,5 +1,5 @@
 """
-Narrative Agent API - FastAPI Application
+Principal Narrative API - FastAPI Application
 
 Provides the Shared Context API for autonomous agents to:
 - Query narrative units
@@ -36,7 +36,7 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="""
-    The Narrative Agent Shared Context API enables autonomous agents to:
+    The Principal Narrative Shared Context API enables autonomous agents to:
 
     - **Query** narrative units (strategy, messaging, naming, proof, etc.)
     - **Validate** claims against proof metrics and constraints
@@ -456,7 +456,7 @@ if static_path.exists():
 
 @app.get("/dashboard")
 async def dashboard():
-    """Serve the Narrative Agent dashboard."""
+    """Serve the Principal Narrative dashboard."""
     dashboard_path = static_path / "dashboard.html"
     if dashboard_path.exists():
         return FileResponse(dashboard_path)

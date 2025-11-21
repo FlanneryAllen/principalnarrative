@@ -17,7 +17,7 @@ relatedDocuments:
 changelog:
   - date: 2025-11-21
     change: Initial template creation
-    author: Narrative Agent Foundation
+    author: Principal Narrative Foundation
 ---
 
 # Customer Pain Points
