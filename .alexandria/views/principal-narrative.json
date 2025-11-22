@@ -2,20 +2,80 @@
   "id": "principal-narrative",
   "version": "1.0.0",
   "name": "Principal Narrative",
-  "description": "Codebase view extracted from documentation",
-  "rows": 1,
-  "cols": 1,
-  "referenceGroups": {},
+  "description": "Complete Principal Narrative API codebase with shared context services",
+  "rows": 2,
+  "cols": 3,
+  "referenceGroups": {
+    "core": {
+      "title": "Core Application",
+      "description": "Main FastAPI application and configuration",
+      "files": [
+        "src/main.py",
+        "src/config.py",
+        "src/models.py",
+        "src/__init__.py"
+      ],
+      "position": { "row": 0, "col": 0 }
+    },
+    "services": {
+      "title": "Services",
+      "description": "Business logic services for narrative, validation, and coherence",
+      "files": [
+        "src/services/__init__.py",
+        "src/services/narrative.py",
+        "src/services/validator.py",
+        "src/services/coherence.py",
+        "src/services/drift_detector.py"
+      ],
+      "position": { "row": 0, "col": 1 }
+    },
+    "cli": {
+      "title": "CLI Tools",
+      "description": "Command-line interface tools",
+      "files": [
+        "src/scanner.py",
+        "run.sh",
+        "test_api.sh"
+      ],
+      "position": { "row": 0, "col": 2 }
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Web dashboard for visualization",
+      "files": [
+        "static/dashboard.html"
+      ],
+      "position": { "row": 1, "col": 0 }
+    },
+    "config": {
+      "title": "Configuration",
+      "description": "Project configuration and dependencies",
+      "files": [
+        "requirements.txt",
+        ".alexandriarc.json",
+        "AGENTS.md"
+      ],
+      "position": { "row": 1, "col": 1 }
+    },
+    "docs": {
+      "title": "Documentation",
+      "description": "Project documentation",
+      "files": [
+        "README.md"
+      ],
+      "position": { "row": 1, "col": 2 }
+    }
+  },
   "overviewPath": "README.md",
-  "category": "docs",
-  "displayOrder": 0,
+  "category": "codebase",
+  "displayOrder": 1,
   "timestamp": "2025-11-21T23:56:44.087Z",
   "metadata": {
     "generationType": "user",
     "ui": {
       "enabled": true,
-      "rows": 1,
-      "cols": 1,
+      "rows": 2,
+      "cols": 3,
       "showCellLabels": true,
       "cellLabelPosition": "top"
     }

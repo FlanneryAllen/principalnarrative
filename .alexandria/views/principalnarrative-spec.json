@@ -1,0 +1,69 @@
+{
+  "id": "principalnarrative-spec",
+  "version": "1.0.0",
+  "name": "Principal Narrative Specification",
+  "description": "System specification and foundation documents",
+  "rows": 2,
+  "cols": 2,
+  "referenceGroups": {
+    "spec": {
+      "title": "System Specification",
+      "description": "Full system specification document",
+      "files": [
+        ".principalnarrative/specs/principalnarrative-spec.md"
+      ],
+      "position": { "row": 0, "col": 0 }
+    },
+    "applied-narrative": {
+      "title": "Applied Narrative Foundation",
+      "description": "Foundation narrative documents",
+      "files": [
+        ".principalnarrative/applied-narrative/README.md",
+        ".principalnarrative/applied-narrative/vision.md",
+        ".principalnarrative/applied-narrative/priorities.md",
+        ".principalnarrative/applied-narrative/brand-voice.md",
+        ".principalnarrative/applied-narrative/customer-pain-points.md"
+      ],
+      "position": { "row": 0, "col": 1 }
+    },
+    "decisions": {
+      "title": "Decisions",
+      "description": "Decision records",
+      "files": [
+        ".principalnarrative/applied-narrative/decisions/README.md"
+      ],
+      "position": { "row": 1, "col": 0 }
+    },
+    "technical-context": {
+      "title": "Technical Context",
+      "description": "Technical architecture documentation",
+      "files": [
+        ".principalnarrative/applied-narrative/technical-context/README.md"
+      ],
+      "position": { "row": 1, "col": 1 }
+    },
+    "meta": {
+      "title": "Metadata",
+      "description": "Index and schema files",
+      "files": [
+        ".principalnarrative/applied-narrative/.meta/index.json",
+        ".principalnarrative/applied-narrative/.meta/schema.json"
+      ],
+      "position": { "row": 1, "col": 2 }
+    }
+  },
+  "overviewPath": ".principalnarrative/specs/principalnarrative-spec.md",
+  "category": "codebase",
+  "displayOrder": 3,
+  "timestamp": "2025-11-21T23:56:44.089Z",
+  "metadata": {
+    "generationType": "user",
+    "ui": {
+      "enabled": true,
+      "rows": 2,
+      "cols": 2,
+      "showCellLabels": true,
+      "cellLabelPosition": "top"
+    }
+  }
+}

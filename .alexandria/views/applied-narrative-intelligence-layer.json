@@ -2,20 +2,114 @@
   "id": "applied-narrative-intelligence-layer",
   "version": "1.0.0",
   "name": "Applied Narrative Intelligence Layer",
-  "description": "Codebase view extracted from documentation",
-  "rows": 1,
-  "cols": 1,
-  "referenceGroups": {},
+  "description": "Complete narrative layer with strategy, messaging, naming, proof, and coherence",
+  "rows": 3,
+  "cols": 3,
+  "referenceGroups": {
+    "strategy": {
+      "title": "Strategy Layer",
+      "description": "Vision, priorities, and architecture principles",
+      "files": [
+        "applied-narrative/strategy/vision.md",
+        "applied-narrative/strategy/priorities.md",
+        "applied-narrative/strategy/architecture-principles.md"
+      ],
+      "position": { "row": 0, "col": 0 }
+    },
+    "messaging": {
+      "title": "Messaging Layer",
+      "description": "Pillars, voice, and value propositions",
+      "files": [
+        "applied-narrative/messaging/pillars.md",
+        "applied-narrative/messaging/voice.md",
+        "applied-narrative/messaging/value-propositions.md"
+      ],
+      "position": { "row": 0, "col": 1 }
+    },
+    "naming": {
+      "title": "Naming Layer",
+      "description": "Terminology and naming conventions",
+      "files": [
+        "applied-narrative/naming/terminology.md",
+        "applied-narrative/naming/api-naming.md",
+        "applied-narrative/naming/ui-patterns.md"
+      ],
+      "position": { "row": 0, "col": 2 }
+    },
+    "marketing": {
+      "title": "Marketing Layer",
+      "description": "Product copy, features, and competitive positioning",
+      "files": [
+        "applied-narrative/marketing/product-copy.md",
+        "applied-narrative/marketing/feature-descriptions.md",
+        "applied-narrative/marketing/release-notes.md",
+        "applied-narrative/marketing/competitive.md"
+      ],
+      "position": { "row": 1, "col": 0 }
+    },
+    "proof": {
+      "title": "Proof Layer",
+      "description": "Statistics, metrics, and evidence",
+      "files": [
+        "applied-narrative/proof/README.md",
+        "applied-narrative/proof/metrics/performance.json",
+        "applied-narrative/proof/adoption-stats/adoption.json",
+        "applied-narrative/proof/roi-stats/roi.json",
+        "applied-narrative/proof/customer-quotes/quotes.md",
+        "applied-narrative/proof/case-studies/template.md"
+      ],
+      "position": { "row": 1, "col": 1 }
+    },
+    "story": {
+      "title": "Story Layer",
+      "description": "Product narrative and explanatory models",
+      "files": [
+        "applied-narrative/story/product-narrative.md",
+        "applied-narrative/story/explanatory-models.md"
+      ],
+      "position": { "row": 1, "col": 2 }
+    },
+    "definitions": {
+      "title": "Definitions",
+      "description": "Glossary and personas",
+      "files": [
+        "applied-narrative/definitions/glossary.md",
+        "applied-narrative/definitions/personas.md"
+      ],
+      "position": { "row": 2, "col": 0 }
+    },
+    "constraints": {
+      "title": "Constraints",
+      "description": "Architectural and business constraints",
+      "files": [
+        "applied-narrative/constraints/architectural.md",
+        "applied-narrative/constraints/business.md"
+      ],
+      "position": { "row": 2, "col": 1 }
+    },
+    "coherence": {
+      "title": "Coherence",
+      "description": "Drift tracking and coherence state",
+      "files": [
+        "applied-narrative/README.md",
+        "applied-narrative/coherence/current.json",
+        "applied-narrative/coherence/history.json",
+        "applied-narrative/.meta/index.json",
+        "applied-narrative/.meta/schema.json"
+      ],
+      "position": { "row": 2, "col": 2 }
+    }
+  },
   "overviewPath": "applied-narrative/README.md",
-  "category": "docs",
-  "displayOrder": 0,
+  "category": "codebase",
+  "displayOrder": 2,
   "timestamp": "2025-11-21T23:56:44.089Z",
   "metadata": {
     "generationType": "user",
     "ui": {
       "enabled": true,
-      "rows": 1,
-      "cols": 1,
+      "rows": 3,
+      "cols": 3,
       "showCellLabels": true,
       "cellLabelPosition": "top"
     }
