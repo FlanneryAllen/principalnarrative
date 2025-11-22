@@ -29,6 +29,7 @@ from .models import (
     DriftStatus,
 )
 from .services import NarrativeService, ValidatorService, CoherenceService, DriftDetector
+from .webhooks import router as webhooks_router
 
 
 # Initialize FastAPI app
@@ -57,6 +58,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include webhooks router
+app.include_router(webhooks_router)
+
 # Initialize services
 narrative_service = NarrativeService()
 validator_service = ValidatorService(narrative_service)
@@ -77,10 +81,15 @@ async def root():
         endpoints=[
             "/context/query",
             "/context/validate",
-            "/context/unit/{file_path}",
             "/coherence",
-            "/coherence/drift",
+            "/coherence/scan",
             "/proof/metrics",
+            "/search",
+            "/synthesize",
+            "/ingest/text",
+            "/agents/register",
+            "/agents/context",
+            "/git/status",
         ]
     )
 
@@ -461,6 +470,418 @@ async def dashboard():
     if dashboard_path.exists():
         return FileResponse(dashboard_path)
     raise HTTPException(status_code=404, detail="Dashboard not found")
+
+
+# ============================================================================
+# Synthesis Endpoints
+# ============================================================================
+
+from .services import (
+    get_llm_service, ContextSynthesizer,
+    get_vector_store, get_ingestion_service,
+    get_git_manager, get_agent_coordinator
+)
+from .services.agent_coordinator import AgentType
+from .services.synthesizer import SynthesisRequest
+
+
+@app.post("/synthesize")
+async def synthesize_context(
+    text: str = Query(..., description="Raw text to synthesize"),
+    source: str = Query("manual", description="Source of text (slack, github, manual)"),
+    target_layer: Optional[str] = Query(None, description="Target layer (strategy, messaging, etc.)"),
+    save: bool = Query(False, description="Save generated documents")
+):
+    """
+    Synthesize narrative documents from raw text.
+
+    Uses LLM to extract context and generate properly formatted narrative documents.
+    """
+    synthesizer = ContextSynthesizer()
+    request = SynthesisRequest(
+        raw_text=text,
+        source=source,
+        target_layer=target_layer
+    )
+
+    if save:
+        outputs = synthesizer.process(request)
+        saved_paths = []
+        for output in outputs:
+            path = synthesizer.save_document(output)
+            saved_paths.append(str(path))
+        return {
+            "generated": len(outputs),
+            "saved_paths": saved_paths
+        }
+    else:
+        preview = synthesizer.preview(request)
+        return preview
+
+
+@app.get("/synthesize/status")
+async def synthesize_status():
+    """Check if LLM synthesis is available."""
+    llm = get_llm_service()
+    return {
+        "llm_available": llm.is_available,
+        "model": llm.model if llm.is_available else None
+    }
+
+
+# ============================================================================
+# Vector Search Endpoints
+# ============================================================================
+
+@app.get("/search")
+async def semantic_search(
+    q: str = Query(..., description="Search query"),
+    layer: Optional[str] = Query(None, description="Filter by layer"),
+    limit: int = Query(5, description="Max results")
+):
+    """
+    Semantic search across narrative documents.
+
+    Returns documents ranked by relevance to the query.
+    """
+    store = get_vector_store()
+
+    if not store.is_available:
+        raise HTTPException(status_code=503, detail="Vector store not available")
+
+    results = store.search(query=q, n_results=limit, layer=layer)
+
+    return {
+        "query": q,
+        "results": [
+            {
+                "path": r.path,
+                "score": r.score,
+                "content": r.content[:500] + "..." if len(r.content) > 500 else r.content,
+                "metadata": r.metadata
+            }
+            for r in results
+        ],
+        "total": len(results)
+    }
+
+
+@app.post("/search/index")
+async def index_documents():
+    """
+    Index all narrative documents for semantic search.
+
+    Run this after adding new documents to enable search.
+    """
+    store = get_vector_store()
+
+    if not store.is_available:
+        raise HTTPException(status_code=503, detail="Vector store not available")
+
+    count = store.index_narrative_layer()
+
+    return {
+        "indexed": count,
+        "message": f"Indexed {count} documents"
+    }
+
+
+@app.get("/search/stats")
+async def search_stats():
+    """Get vector store statistics."""
+    store = get_vector_store()
+    return store.get_stats()
+
+
+# ============================================================================
+# Ingestion Endpoints
+# ============================================================================
+
+@app.post("/ingest/text")
+async def ingest_text(
+    text: str = Query(..., description="Text to ingest"),
+    source: str = Query("manual", description="Source description"),
+    process: bool = Query(True, description="Process through synthesizer"),
+    save: bool = Query(False, description="Save generated documents")
+):
+    """
+    Ingest raw text and optionally synthesize documents.
+
+    Use this to manually add context from meetings, notes, etc.
+    """
+    service = get_ingestion_service()
+    item = service.ingest_text(text, source)
+
+    if process:
+        result = service.process_items([item], auto_save=save)
+        return {
+            "ingested": 1,
+            "processed": result.items_processed,
+            "documents_generated": result.documents_generated,
+            "errors": result.errors
+        }
+
+    return {"ingested": 1, "processed": False}
+
+
+@app.post("/ingest/slack/channel")
+async def ingest_slack_channel(
+    channel_id: str = Query(..., description="Slack channel ID"),
+    limit: int = Query(50, description="Max messages to fetch"),
+    process: bool = Query(True, description="Process through synthesizer")
+):
+    """
+    Ingest context-relevant messages from a Slack channel.
+
+    Requires SLACK_BOT_TOKEN environment variable.
+    """
+    service = get_ingestion_service()
+
+    if not service.slack_client:
+        raise HTTPException(status_code=503, detail="Slack not configured. Set SLACK_BOT_TOKEN.")
+
+    items = service.fetch_slack_channel(channel_id, limit)
+
+    if process and items:
+        result = service.process_items(items)
+        return {
+            "messages_found": len(items),
+            "documents_generated": result.documents_generated,
+            "errors": result.errors
+        }
+
+    return {
+        "messages_found": len(items),
+        "items": [
+            {"content": item.content[:200], "timestamp": item.timestamp.isoformat()}
+            for item in items
+        ]
+    }
+
+
+@app.post("/ingest/github/issue")
+async def ingest_github_issue(
+    repo: str = Query(..., description="Repository (owner/repo)"),
+    issue_number: int = Query(..., description="Issue number"),
+    process: bool = Query(True, description="Process through synthesizer")
+):
+    """
+    Ingest a GitHub issue with comments.
+
+    Requires GITHUB_TOKEN environment variable.
+    """
+    service = get_ingestion_service()
+
+    if not service.github_client:
+        raise HTTPException(status_code=503, detail="GitHub not configured. Set GITHUB_TOKEN.")
+
+    item = service.fetch_github_issue(repo, issue_number)
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    if process:
+        result = service.process_items([item])
+        return {
+            "issue": f"{repo}#{issue_number}",
+            "documents_generated": result.documents_generated
+        }
+
+    return {
+        "issue": f"{repo}#{issue_number}",
+        "content_preview": item.content[:500],
+        "metadata": item.metadata
+    }
+
+
+# ============================================================================
+# Agent Coordination Endpoints
+# ============================================================================
+
+@app.post("/agents/register")
+async def register_agent(
+    agent_type: str = Query(..., description="Agent type (coding, comms, planning, etc.)"),
+    name: str = Query(..., description="Agent name"),
+    capabilities: str = Query("", description="Comma-separated capabilities")
+):
+    """
+    Register an agent with the coordinator.
+
+    Returns an agent_id for subsequent requests.
+    """
+    coordinator = get_agent_coordinator()
+
+    try:
+        agent_type_enum = AgentType(agent_type)
+    except ValueError:
+        agent_type_enum = AgentType.CUSTOM
+
+    caps = [c.strip() for c in capabilities.split(",") if c.strip()]
+
+    registration = coordinator.register_agent(
+        agent_type=agent_type_enum,
+        name=name,
+        capabilities=caps
+    )
+
+    return {
+        "agent_id": registration.agent_id,
+        "name": registration.name,
+        "type": registration.agent_type.value,
+        "registered_at": registration.registered_at.isoformat()
+    }
+
+
+@app.get("/agents/context")
+async def get_agent_context(
+    agent_id: str = Query(..., description="Registered agent ID"),
+    query: str = Query(..., description="Context query"),
+    layers: str = Query("strategy,messaging", description="Comma-separated layers")
+):
+    """
+    Get context for an agent task.
+
+    Returns relevant documents, constraints, and guidance.
+    """
+    coordinator = get_agent_coordinator()
+
+    from .services.agent_coordinator import ContextRequest
+    request = ContextRequest(
+        agent_id=agent_id,
+        query=query,
+        layers=[l.strip() for l in layers.split(",")],
+        include_proof=True,
+        semantic_search=True
+    )
+
+    response = coordinator.request_context(request)
+
+    return {
+        "request_id": response.request_id,
+        "documents": len(response.documents),
+        "semantic_matches": len(response.semantic_matches),
+        "coherence_score": response.coherence_score,
+        "voice_guidance": response.voice_guidance[:500] if response.voice_guidance else None,
+        "warnings": response.warnings
+    }
+
+
+@app.post("/agents/validate")
+async def validate_agent_output(
+    agent_id: str = Query(..., description="Agent ID"),
+    output_type: str = Query(..., description="Output type (code, copy, design)"),
+    content: str = Query(..., description="Content to validate")
+):
+    """
+    Validate agent output against narrative context.
+
+    Checks for forbidden terms, proof backing, coherence.
+    """
+    coordinator = get_agent_coordinator()
+
+    from .services.agent_coordinator import ValidationRequest
+    request = ValidationRequest(
+        agent_id=agent_id,
+        output_type=output_type,
+        content=content,
+        context_used=[]
+    )
+
+    response = coordinator.validate_output(request)
+
+    return {
+        "valid": response.valid,
+        "approved": response.approved,
+        "coherence_score": response.coherence_score,
+        "issues": response.issues,
+        "suggestions": response.suggestions
+    }
+
+
+@app.get("/agents/list")
+async def list_agents():
+    """List all registered agents."""
+    coordinator = get_agent_coordinator()
+    active = coordinator.get_active_agents(timeout_minutes=60)
+
+    return {
+        "total_registered": len(coordinator.registered_agents),
+        "active": len(active),
+        "agents": [
+            {
+                "agent_id": a.agent_id,
+                "name": a.name,
+                "type": a.agent_type.value,
+                "capabilities": a.capabilities,
+                "last_seen": a.last_seen.isoformat()
+            }
+            for a in active
+        ]
+    }
+
+
+# ============================================================================
+# Git Management Endpoints
+# ============================================================================
+
+@app.get("/git/status")
+async def git_status():
+    """Get git repository status."""
+    manager = get_git_manager()
+
+    if not manager.is_git_repo():
+        return {"is_repo": False}
+
+    return {
+        "is_repo": True,
+        "branch": manager.get_current_branch(),
+        "has_changes": manager.has_changes(),
+        "changed_files": manager.get_changed_files(),
+        "pending_queue": manager.get_queue_summary()
+    }
+
+
+@app.get("/git/history")
+async def git_history(limit: int = Query(10, description="Number of commits")):
+    """Get recent commit history."""
+    manager = get_git_manager()
+    return {
+        "commits": manager.get_recent_commits(limit)
+    }
+
+
+@app.post("/git/commit")
+async def git_commit(
+    message: Optional[str] = Query(None, description="Custom commit message")
+):
+    """
+    Commit pending changes to the narrative layer.
+
+    Auto-generates commit message if not provided.
+    """
+    manager = get_git_manager()
+
+    if not manager.pending_changes and not manager.has_changes():
+        return {"success": False, "message": "No changes to commit"}
+
+    # If there are unstaged changes, stage them
+    if manager.has_changes():
+        for file in manager.get_changed_files():
+            from .services.git_manager import ChangeType
+            manager.queue_change(
+                path=manager.repo_path / file,
+                change_type=ChangeType.UPDATE,
+                description="Manual commit"
+            )
+
+    result = manager.commit_pending(message)
+
+    return {
+        "success": result.success,
+        "commit_hash": result.commit_hash,
+        "message": result.message,
+        "files_changed": result.files_changed
+    }
 
 
 # ============================================================================

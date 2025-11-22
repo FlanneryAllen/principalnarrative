@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "name": "Principal Narrative",
   "description": "Complete Principal Narrative API codebase with shared context services",
-  "rows": 2,
+  "rows": 3,
   "cols": 3,
   "referenceGroups": {
     "core": {
@@ -13,13 +13,14 @@
         "src/main.py",
         "src/config.py",
         "src/models.py",
-        "src/__init__.py"
+        "src/__init__.py",
+        "src/webhooks.py"
       ],
       "position": { "row": 0, "col": 0 }
     },
-    "services": {
-      "title": "Services",
-      "description": "Business logic services for narrative, validation, and coherence",
+    "services-core": {
+      "title": "Core Services",
+      "description": "Narrative, validation, and coherence services",
       "files": [
         "src/services/__init__.py",
         "src/services/narrative.py",
@@ -29,6 +30,26 @@
       ],
       "position": { "row": 0, "col": 1 }
     },
+    "services-pipeline": {
+      "title": "Pipeline Services",
+      "description": "LLM, synthesis, and vector search",
+      "files": [
+        "src/services/llm.py",
+        "src/services/synthesizer.py",
+        "src/services/vector_store.py"
+      ],
+      "position": { "row": 0, "col": 2 }
+    },
+    "services-integration": {
+      "title": "Integration Services",
+      "description": "Ingestion, git, and agent coordination",
+      "files": [
+        "src/services/ingestion.py",
+        "src/services/git_manager.py",
+        "src/services/agent_coordinator.py"
+      ],
+      "position": { "row": 1, "col": 0 }
+    },
     "cli": {
       "title": "CLI Tools",
       "description": "Command-line interface tools",
@@ -37,7 +58,7 @@
         "run.sh",
         "test_api.sh"
       ],
-      "position": { "row": 0, "col": 2 }
+      "position": { "row": 1, "col": 1 }
     },
     "dashboard": {
       "title": "Dashboard",
@@ -45,7 +66,7 @@
       "files": [
         "static/dashboard.html"
       ],
-      "position": { "row": 1, "col": 0 }
+      "position": { "row": 1, "col": 2 }
     },
     "config": {
       "title": "Configuration",
@@ -55,7 +76,7 @@
         ".alexandriarc.json",
         "AGENTS.md"
       ],
-      "position": { "row": 1, "col": 1 }
+      "position": { "row": 2, "col": 0 }
     },
     "docs": {
       "title": "Documentation",
@@ -63,7 +84,7 @@
       "files": [
         "README.md"
       ],
-      "position": { "row": 1, "col": 2 }
+      "position": { "row": 2, "col": 1 }
     }
   },
   "overviewPath": "README.md",
@@ -74,7 +95,7 @@
     "generationType": "user",
     "ui": {
       "enabled": true,
-      "rows": 2,
+      "rows": 3,
       "cols": 3,
       "showCellLabels": true,
       "cellLabelPosition": "top"
