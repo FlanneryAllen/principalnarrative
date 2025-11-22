@@ -11,12 +11,23 @@ pydantic-settings>=2.1.0
 # YAML parsing for frontmatter
 pyyaml>=6.0.1
 
-# HTTP client (for future integrations)
+# HTTP client
 httpx>=0.25.0
 
 # Development
 python-multipart>=0.0.6
 
-# Optional: For future embedding support
-# sentence-transformers>=2.2.0
-# chromadb>=0.4.0
+# LLM Integration
+anthropic>=0.39.0
+
+# Vector store for semantic search
+chromadb>=0.4.0
+
+# Slack integration (optional)
+slack-sdk>=3.23.0
+
+# GitHub integration (optional)
+PyGithub>=2.1.0
+
+# Redis for caching (optional)
+# redis>=5.0.0

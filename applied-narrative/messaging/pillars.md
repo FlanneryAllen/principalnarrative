@@ -17,13 +17,13 @@ tags: [messaging, pillars, positioning]
 
 * **Core Message**: CodePilot delivers AI-powered code review in under 120 seconds, catching issues before they become problems.
 * **Supporting Points**:
-  * First review comment in \<120  seconds (p95)
+  * First review comment in \&lt;120  seconds (p95)
   * Analyzes security, performance, style, and logic
   * Learns your team's patterns and preferences
 * **Proof Points**: \[perf-001, perf-002, adopt-001]
 * **Use When**: Speed/efficiency conversations, competitor comparisons, developer productivity discussions
 
-### Pillar 2: Human-AI Collaboration
+### Pillar 2: Human-AI Teamwork
 
 * **Core Message**: CodePilot amplifies your senior developers - it doesn't replace them. AI handles the routine so humans focus on architecture and mentorship.
 * **Supporting Points**:
