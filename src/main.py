@@ -30,6 +30,8 @@ from .models import (
 )
 from .services import NarrativeService, ValidatorService, CoherenceService, DriftDetector
 from .webhooks import router as webhooks_router
+from .auth.routes import router as auth_router
+from .websocket import ws_router
 
 
 # Initialize FastAPI app
@@ -58,8 +60,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include webhooks router
+# Include routers
 app.include_router(webhooks_router)
+app.include_router(auth_router)
+app.include_router(ws_router)
 
 # Initialize services
 narrative_service = NarrativeService()
@@ -79,6 +83,11 @@ async def root():
         version=settings.app_version,
         description="Shared Context API for narrative intelligence",
         endpoints=[
+            "/ws",
+            "/ws/status",
+            "/auth/login",
+            "/auth/me",
+            "/auth/keys",
             "/context/query",
             "/context/validate",
             "/coherence",
@@ -882,6 +891,142 @@ async def git_commit(
         "message": result.message,
         "files_changed": result.files_changed
     }
+
+
+# ============================================================================
+# Evolution Tracking Endpoints
+# ============================================================================
+
+from .services import get_evolution_tracker
+
+
+@app.get("/evolution/timeline/{unit_path:path}")
+async def get_evolution_timeline(unit_path: str):
+    """
+    Get evolution timeline for a narrative unit.
+
+    Shows version history and all changes.
+    """
+    tracker = get_evolution_tracker()
+    timeline = tracker.get_timeline(unit_path)
+
+    if not timeline:
+        return {"unit_path": unit_path, "exists": False, "events": []}
+
+    return {
+        "unit_path": timeline.unit_path,
+        "first_created": timeline.first_created.isoformat(),
+        "last_modified": timeline.last_modified.isoformat(),
+        "total_revisions": timeline.total_revisions,
+        "authors": timeline.primary_authors,
+        "events": [
+            {
+                "id": e.id,
+                "change_type": e.change_type.value,
+                "trigger": e.trigger.value,
+                "timestamp": e.timestamp.isoformat(),
+                "description": e.description,
+                "author": e.author
+            }
+            for e in timeline.events
+        ]
+    }
+
+
+@app.get("/evolution/recent")
+async def get_recent_evolution(
+    limit: int = Query(50, description="Max events to return"),
+    days: int = Query(None, description="Only events from last N days"),
+    trigger: Optional[str] = Query(None, description="Filter by trigger type")
+):
+    """
+    Get recent evolution events across all units.
+    """
+    tracker = get_evolution_tracker()
+
+    since = None
+    if days:
+        from datetime import timedelta
+        since = datetime.utcnow() - timedelta(days=days)
+
+    from .services.evolution import EvolutionTrigger
+    trigger_enum = None
+    if trigger:
+        try:
+            trigger_enum = EvolutionTrigger(trigger)
+        except ValueError:
+            pass
+
+    events = tracker.get_recent_events(
+        limit=limit,
+        since=since,
+        trigger=trigger_enum
+    )
+
+    return {
+        "events": [
+            {
+                "id": e.id,
+                "unit_path": e.unit_path,
+                "change_type": e.change_type.value,
+                "trigger": e.trigger.value,
+                "timestamp": e.timestamp.isoformat(),
+                "description": e.description,
+                "author": e.author
+            }
+            for e in events
+        ],
+        "total": len(events)
+    }
+
+
+@app.get("/evolution/lineage/{unit_path:path}")
+async def get_unit_lineage(unit_path: str):
+    """
+    Get lineage/provenance for a narrative unit.
+
+    Shows the chain of changes and related units.
+    """
+    tracker = get_evolution_tracker()
+    return tracker.get_lineage(unit_path)
+
+
+@app.get("/evolution/shifts/{unit_path:path}")
+async def get_semantic_shifts(
+    unit_path: str,
+    threshold: float = Query(0.3, description="Minimum shift magnitude")
+):
+    """
+    Detect semantic shifts in a unit's history.
+    """
+    tracker = get_evolution_tracker()
+    shifts = tracker.detect_semantic_shifts(unit_path, threshold)
+
+    return {
+        "unit_path": unit_path,
+        "shifts": [
+            {
+                "before_summary": s.before_summary,
+                "after_summary": s.after_summary,
+                "shift_magnitude": s.shift_magnitude,
+                "shift_type": s.shift_type,
+                "detected_at": s.detected_at.isoformat()
+            }
+            for s in shifts
+        ],
+        "total": len(shifts)
+    }
+
+
+@app.get("/evolution/activity")
+async def get_evolution_activity(
+    days: int = Query(7, description="Number of days to summarize")
+):
+    """
+    Get summary of evolution activity.
+    """
+    tracker = get_evolution_tracker()
+    return tracker.get_activity_summary(days)
 
 
 # ============================================================================

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Streamline Technologies Reduced Review Time by 73% - CodePilot Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #0f172a; --accent: #22d3ee; --bg-light: #f8fafc; --text-primary: #1e293b; --text-secondary: #64748b; --white: #ffffff; --border: #e2e8f0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.8; color: var(--text-primary); background: var(--white); }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        nav { padding: 16px 24px; border-bottom: 1px solid var(--border); margin-bottom: 60px; max-width: 1200px; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        article { padding-bottom: 80px; }
+        .post-tag { display: inline-block; padding: 6px 12px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        h1 { font-size: 42px; font-weight: 800; color: var(--secondary); margin-bottom: 24px; line-height: 1.2; }
+        .post-meta { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+        .author-avatar { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .post-content p { margin-bottom: 24px; font-size: 17px; }
+        .post-content h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 48px 0 24px; }
+        .post-content ul { margin: 0 0 24px 24px; }
+        .post-content li { margin-bottom: 12px; font-size: 17px; }
+        .post-content blockquote { border-left: 4px solid var(--primary); padding-left: 24px; margin: 32px 0; font-style: italic; color: var(--text-secondary); font-size: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 40px 0; }
+        .stat-card { background: var(--bg-light); padding: 32px; border-radius: 16px; text-align: center; }
+        .stat-card .value { font-size: 48px; font-weight: 800; color: var(--primary); }
+        .stat-card .label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
+        .company-info { background: var(--bg-light); padding: 32px; border-radius: 16px; margin: 40px 0; }
+        .company-info h4 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+        .company-info ul { list-style: none; margin: 0; }
+        .company-info li { padding: 8px 0; display: flex; gap: 12px; }
+        .company-info li strong { color: var(--text-secondary); min-width: 120px; }
+        .timeline { margin: 40px 0; }
+        .timeline-item { display: flex; gap: 24px; margin-bottom: 32px; }
+        .timeline-marker { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; flex-shrink: 0; }
+        .timeline-content h4 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .timeline-content p { color: var(--text-secondary); }
+        .cta-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin: 48px 0; }
+        .cta-box h3 { font-size: 24px; margin-bottom: 16px; }
+        .cta-box p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-box a { display: inline-block; background: white; color: var(--primary); padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+        footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="../index.html" class="logo"><div class="logo-icon">CP</div>CodePilot</a>
+        <a href="index.html" class="back-link">← Back to Blog</a>
+    </nav>
+
+    <article class="container">
+        <span class="post-tag">Case Study</span>
+        <h1>How Streamline Technologies Reduced Review Time by 73%</h1>
+        <div class="post-meta">
+            <div class="author-avatar">CS</div>
+            <div>
+                <strong>Customer Success Team</strong><br>
+                <span>September 25, 2024 · 7 min read</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            <p>When Jennifer Martinez joined Streamline Technologies as VP of Engineering, she inherited a team with a serious bottleneck: code reviews were taking an average of 3 days to complete. Senior engineers were spending over 6 hours per week reviewing code, and junior developers were stuck waiting for feedback instead of learning and shipping.</p>
+
+            <p>Six months after implementing CodePilot, Streamline had transformed their development workflow. Here's their story.</p>
+
+            <div class="company-info">
+                <h4>About Streamline Technologies</h4>
+                <ul>
+                    <li><strong>Industry:</strong> B2B SaaS (Supply Chain)</li>
+                    <li><strong>Team Size:</strong> 45 engineers</li>
+                    <li><strong>Tech Stack:</strong> TypeScript, Python, PostgreSQL</li>
+                    <li><strong>PRs/Week:</strong> 150-200</li>
+                </ul>
+            </div>
+
+            <h2>The Challenge: Review Bottlenecks Everywhere</h2>
+
+            <p>Before CodePilot, Streamline's review process was typical for a growing engineering organization—and typically painful:</p>
+
+            <ul>
+                <li>Average PR cycle time: <strong>72 hours</strong></li>
+                <li>Senior engineers spent <strong>6+ hours/week</strong> on reviews</li>
+                <li>Junior developers waited <strong>1-2 days</strong> for first feedback</li>
+                <li>Inconsistent review quality across team members</li>
+                <li>Sprint velocity suffered as PRs stacked up</li>
+            </ul>
+
+            <blockquote>
+                "Our senior engineers were becoming full-time reviewers. They'd context-switch a dozen times a day to unblock PRs, and their own feature work kept slipping."
+                <br><br>— Jennifer Martinez, VP of Engineering
+            </blockquote>
+
+            <p>Jennifer tried several approaches: establishing review SLAs, rotating review duty, even hiring dedicated "code review" engineers. Nothing stuck. The fundamental problem remained: not enough reviewer hours for the volume of code being written.</p>
+
+            <h2>The Solution: AI-Augmented Review</h2>
+
+            <p>Jennifer's initial skepticism about AI code review tools was understandable. She'd tried a few before—most were glorified linters that created more noise than signal. But CodePilot's approach was different.</p>
+
+            <blockquote>
+                "What sold me was the explainability. My engineers could actually understand why CodePilot was making suggestions, and they could disagree with it intelligently. It wasn't a black box."
+            </blockquote>
+
+            <p>The rollout happened in three phases:</p>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker">1</div>
+                    <div class="timeline-content">
+                        <h4>Week 1-2: Pilot with one team</h4>
+                        <p>Started with the platform team (8 engineers). Ran CodePilot alongside existing review process to validate quality and build trust.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker">2</div>
+                    <div class="timeline-content">
+                        <h4>Week 3-4: Expand and configure</h4>
+                        <p>Rolled out to all teams. Configured Team Rules to match Streamline's coding standards and architectural patterns.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker">3</div>
+                    <div class="timeline-content">
+                        <h4>Month 2+: Full integration</h4>
+                        <p>CodePilot became the first pass on all PRs. Human reviewers focused on architecture, business logic, and mentorship.</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2>The Results</h2>
+
+            <p>After six months with CodePilot, Streamline's metrics transformed:</p>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="value">73%</div>
+                    <div class="label">Reduction in PR cycle time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">4hrs</div>
+                    <div class="label">Saved per senior dev/week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">47s</div>
+                    <div class="label">Average first review time</div>
+                </div>
+            </div>
+
+            <h2>What Changed</h2>
+
+            <h3>For Senior Engineers</h3>
+            <p>Senior developers went from spending 6+ hours per week on reviews to spending 2 hours on high-value review work. The routine catches—style issues, common bugs, security patterns—were handled by CodePilot. Humans focused on:</p>
+            <ul>
+                <li>Architecture decisions</li>
+                <li>Complex business logic</li>
+                <li>Mentoring junior developers</li>
+                <li>Knowledge transfer conversations</li>
+            </ul>
+
+            <h3>For Junior Developers</h3>
+            <p>The most surprising benefit was for junior developers. Instead of waiting days for feedback, they got instant first-pass review within a minute. And because CodePilot explains its suggestions, every review became a learning opportunity.</p>
+
+            <blockquote>
+                "Our junior devs are learning faster than ever. Every PR teaches them something, and they're not waiting 2 days to find out they made a mistake."
+            </blockquote>
+
+            <h3>For the Business</h3>
+            <p>Sprint velocity increased by 31% as PRs moved through the pipeline faster. The engineering team shipped their Q3 roadmap a month early—the first time they'd beaten a deadline in two years.</p>
+
+            <h2>Key Learnings</h2>
+
+            <p>Jennifer shared several insights from Streamline's CodePilot implementation:</p>
+
+            <ul>
+                <li><strong>Start with trust-building.</strong> Run AI review alongside human review for the first few weeks. Let engineers see the quality before relying on it.</li>
+                <li><strong>Configure Team Rules early.</strong> The faster you encode your team's standards, the more relevant suggestions become.</li>
+                <li><strong>Redefine the reviewer role.</strong> Human reviewers should focus on what humans do best: context, architecture, mentorship. Let AI handle the routine.</li>
+                <li><strong>Measure what matters.</strong> Track cycle time, not just review count. The goal is shipping faster, not reviewing more.</li>
+            </ul>
+
+            <blockquote>
+                "CodePilot gave us back our senior engineers. They were spending half their time on reviews—now they're mentoring juniors and shipping features. Review quality actually went up."
+                <br><br>— Jennifer Martinez, VP of Engineering
+            </blockquote>
+
+            <div class="cta-box">
+                <h3>Ready to transform your code review?</h3>
+                <p>See how CodePilot can help your team ship faster.</p>
+                <a href="../index.html">Start Free Trial</a>
+            </div>
+        </div>
+    </article>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 CodePilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

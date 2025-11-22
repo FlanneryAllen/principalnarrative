@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Introducing Team Learning: AI That Adapts to Your Codebase - CodePilot Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #0f172a; --accent: #22d3ee; --bg-light: #f8fafc; --text-primary: #1e293b; --text-secondary: #64748b; --white: #ffffff; --border: #e2e8f0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.8; color: var(--text-primary); background: var(--white); }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        nav { padding: 16px 24px; border-bottom: 1px solid var(--border); margin-bottom: 60px; max-width: 1200px; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        article { padding-bottom: 80px; }
+        .post-tag { display: inline-block; padding: 6px 12px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        h1 { font-size: 42px; font-weight: 800; color: var(--secondary); margin-bottom: 24px; line-height: 1.2; }
+        .post-meta { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+        .author-avatar { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .post-content p { margin-bottom: 24px; font-size: 17px; }
+        .post-content h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 48px 0 24px; }
+        .post-content h3 { font-size: 22px; font-weight: 700; color: var(--secondary); margin: 36px 0 16px; }
+        .post-content ul { margin: 0 0 24px 24px; }
+        .post-content li { margin-bottom: 12px; font-size: 17px; }
+        .post-content blockquote { border-left: 4px solid var(--primary); padding-left: 24px; margin: 32px 0; font-style: italic; color: var(--text-secondary); }
+        .feature-showcase { background: var(--secondary); color: white; padding: 40px; border-radius: 16px; margin: 40px 0; }
+        .feature-showcase h3 { font-size: 24px; margin-bottom: 24px; }
+        .feature-list { display: grid; gap: 20px; }
+        .feature-item { display: flex; gap: 16px; align-items: flex-start; }
+        .feature-icon { width: 40px; height: 40px; background: rgba(99, 102, 241, 0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .feature-item h4 { font-size: 16px; margin-bottom: 4px; }
+        .feature-item p { font-size: 14px; color: #94a3b8; margin: 0; }
+        .highlight-box { background: var(--bg-light); border-radius: 12px; padding: 24px; margin: 32px 0; }
+        .highlight-box h4 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+        .cta-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin: 48px 0; }
+        .cta-box h3 { font-size: 24px; margin-bottom: 16px; }
+        .cta-box p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-box a { display: inline-block; background: white; color: var(--primary); padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+        footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="../index.html" class="logo"><div class="logo-icon">CP</div>CodePilot</a>
+        <a href="index.html" class="back-link">← Back to Blog</a>
+    </nav>
+
+    <article class="container">
+        <span class="post-tag">Product Update</span>
+        <h1>Introducing Team Learning: AI That Adapts to Your Codebase</h1>
+        <div class="post-meta">
+            <div class="author-avatar">AS</div>
+            <div>
+                <strong>Alex Santos</strong><br>
+                <span>Product Lead · November 15, 2024 · 5 min read</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            <p>Every engineering team is different. You have your own conventions, your own architectural patterns, your own hard-won lessons about what works in your codebase. Generic AI tools ignore all of this, applying one-size-fits-all rules that often miss the mark.</p>
+
+            <p>Today, we're launching <strong>Team Learning</strong>—a new CodePilot feature that learns your team's unique patterns, preferences, and best practices over time. The more you use CodePilot, the smarter it gets about your codebase.</p>
+
+            <div class="feature-showcase">
+                <h3>What Team Learning Does</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">🎯</div>
+                        <div>
+                            <h4>Learns from Feedback</h4>
+                            <p>When you accept or dismiss suggestions, CodePilot adjusts its understanding of your preferences</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📚</div>
+                        <div>
+                            <h4>Captures Team Patterns</h4>
+                            <p>Recognizes coding patterns that are common in your codebase and suggests consistency</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🧠</div>
+                        <div>
+                            <h4>Preserves Knowledge</h4>
+                            <p>Institutional knowledge from senior developers gets encoded and shared with the whole team</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📈</div>
+                        <div>
+                            <h4>Improves Over Time</h4>
+                            <p>Suggestion relevance increases as CodePilot learns more about your codebase</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>How It Works</h2>
+
+            <p>Team Learning operates on a simple feedback loop:</p>
+
+            <h3>1. Observe</h3>
+            <p>CodePilot watches how your team writes code and responds to suggestions. It notes patterns like:</p>
+            <ul>
+                <li>Error handling conventions you consistently use</li>
+                <li>Naming patterns in your codebase</li>
+                <li>Architectural patterns specific to your system</li>
+                <li>Which suggestions you accept vs. dismiss</li>
+            </ul>
+
+            <h3>2. Learn</h3>
+            <p>From these observations, CodePilot builds a model of your team's preferences. This isn't just counting—it understands <em>why</em> patterns matter in context.</p>
+
+            <h3>3. Apply</h3>
+            <p>Future suggestions are informed by this learned context. CodePilot doesn't just flag "this could be different"—it flags "this doesn't match how your team typically handles this situation."</p>
+
+            <h3>4. Refine</h3>
+            <p>As you continue to accept and dismiss suggestions, the model refines. Team Learning is never "done"—it adapts as your codebase and practices evolve.</p>
+
+            <h2>Real Example: Error Handling</h2>
+
+            <p>Let's say your team has a convention: all database queries should be wrapped in a specific error handler that logs to your observability platform and includes request correlation IDs.</p>
+
+            <p>Generic AI tools don't know this. They might suggest adding try/catch blocks, but not your specific pattern.</p>
+
+            <p>With Team Learning, CodePilot notices that:</p>
+
+            <ul>
+                <li>97% of database calls in your codebase use <code>withDbErrorHandler()</code></li>
+                <li>The 3% that don't were flagged in previous reviews</li>
+                <li>Your team consistently accepts suggestions to add this wrapper</li>
+            </ul>
+
+            <p>Now, when a new PR has a raw database call, CodePilot specifically suggests adding <code>withDbErrorHandler()</code>—not just generic error handling.</p>
+
+            <div class="highlight-box">
+                <h4>Before Team Learning</h4>
+                <p>"Consider adding error handling to this database query."</p>
+                <h4 style="margin-top: 16px;">After Team Learning</h4>
+                <p>"This database query should be wrapped in withDbErrorHandler() for consistency with your team's error handling patterns. 97% of similar queries in this codebase use this wrapper."</p>
+            </div>
+
+            <h2>Privacy and Control</h2>
+
+            <p>Team Learning is designed with privacy in mind:</p>
+
+            <ul>
+                <li><strong>Team-scoped:</strong> Learning is specific to your organization. Your patterns are never shared with other customers.</li>
+                <li><strong>Pattern-level only:</strong> We learn patterns and preferences, not your actual code. No source code is stored for learning.</li>
+                <li><strong>You're in control:</strong> View what CodePilot has learned in your Team Settings. Reset or adjust at any time.</li>
+                <li><strong>Self-hosted compatible:</strong> For enterprise customers, Team Learning works entirely within your infrastructure.</li>
+            </ul>
+
+            <h2>Getting Started</h2>
+
+            <p>Team Learning is now available for all Team and Enterprise plans. Here's how to get the most from it:</p>
+
+            <ol>
+                <li><strong>Keep reviewing:</strong> Team Learning improves with use. The more PRs your team reviews with CodePilot, the better it gets.</li>
+                <li><strong>Be consistent with feedback:</strong> Accept suggestions you like, dismiss ones you don't. This feedback trains the model.</li>
+                <li><strong>Check your Team Patterns:</strong> Visit Settings → Team Learning to see what patterns CodePilot has identified.</li>
+                <li><strong>Combine with Team Rules:</strong> For explicit standards, use Team Rules. Team Learning handles the implicit patterns.</li>
+            </ol>
+
+            <blockquote>
+                "CodePilot gave us back our senior engineers. They were spending half their time on reviews—now they're mentoring juniors and shipping features. Review quality actually went up."
+                <br><br>— Jennifer Martinez, VP of Engineering at Streamline Technologies
+            </blockquote>
+
+            <h2>What's Next</h2>
+
+            <p>Team Learning is just the beginning of personalized AI code review. Coming soon:</p>
+
+            <ul>
+                <li><strong>Project-specific learning:</strong> Different patterns for different repos</li>
+                <li><strong>Learning insights:</strong> See how your team's patterns compare to industry benchmarks</li>
+                <li><strong>Pattern sharing:</strong> Export patterns to share across organizations (with your consent)</li>
+            </ul>
+
+            <p>We're excited to see how Team Learning transforms your code review experience. As always, we'd love your feedback—reach out at feedback@codepilot.io.</p>
+
+            <div class="cta-box">
+                <h3>Try Team Learning Today</h3>
+                <p>Available now on Team and Enterprise plans.</p>
+                <a href="../index.html">Start Free Trial</a>
+            </div>
+        </div>
+    </article>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 CodePilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

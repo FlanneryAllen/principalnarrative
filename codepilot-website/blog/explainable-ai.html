@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Explainable AI Matters for Code Review - CodePilot Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #0f172a; --accent: #22d3ee; --bg-light: #f8fafc; --text-primary: #1e293b; --text-secondary: #64748b; --white: #ffffff; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.8; color: var(--text-primary); background: var(--white); }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        nav { padding: 16px 24px; border-bottom: 1px solid var(--border); margin-bottom: 60px; max-width: 1200px; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .back-link:hover { color: var(--primary); }
+        article { padding-bottom: 80px; }
+        .post-tag { display: inline-block; padding: 6px 12px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        h1 { font-size: 42px; font-weight: 800; color: var(--secondary); margin-bottom: 24px; line-height: 1.2; }
+        .post-meta { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+        .author-avatar { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .post-content p { margin-bottom: 24px; font-size: 17px; }
+        .post-content h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 48px 0 24px; }
+        .post-content h3 { font-size: 22px; font-weight: 700; color: var(--secondary); margin: 36px 0 16px; }
+        .post-content ul, .post-content ol { margin: 0 0 24px 24px; }
+        .post-content li { margin-bottom: 12px; font-size: 17px; }
+        .post-content blockquote { border-left: 4px solid var(--primary); padding-left: 24px; margin: 32px 0; font-style: italic; color: var(--text-secondary); }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 32px 0; }
+        .comparison-box { padding: 24px; border-radius: 12px; }
+        .comparison-box.bad { background: #fef2f2; border: 1px solid #fecaca; }
+        .comparison-box.good { background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .comparison-box h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .comparison-box.bad h4 { color: #dc2626; }
+        .comparison-box.good h4 { color: #16a34a; }
+        .comparison-box pre { font-size: 13px; background: rgba(0,0,0,0.05); padding: 12px; border-radius: 8px; overflow-x: auto; }
+        .highlight-box { background: var(--bg-light); border-radius: 12px; padding: 24px; margin: 32px 0; }
+        .highlight-box h4 { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--secondary); }
+        .cta-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin: 48px 0; }
+        .cta-box h3 { font-size: 24px; margin-bottom: 16px; }
+        .cta-box p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-box a { display: inline-block; background: white; color: var(--primary); padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+        footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="../index.html" class="logo"><div class="logo-icon">CP</div>CodePilot</a>
+        <a href="index.html" class="back-link">← Back to Blog</a>
+    </nav>
+
+    <article class="container">
+        <span class="post-tag">Best Practices</span>
+        <h1>Why Explainable AI Matters for Code Review</h1>
+        <div class="post-meta">
+            <div class="author-avatar">EP</div>
+            <div>
+                <strong>Elena Petrov</strong><br>
+                <span>Head of AI · October 15, 2024 · 6 min read</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            <p>We've all used AI tools that confidently tell us what to do without explaining why. Sometimes they're right. Sometimes they're spectacularly wrong. And without understanding the reasoning, we can't tell the difference until it's too late.</p>
+
+            <p>When we built CodePilot, we made a deliberate choice: every suggestion comes with an explanation. This wasn't the easy path—it added complexity to our models and latency to our reviews. But we believe it's the only responsible way to build AI developer tools.</p>
+
+            <h2>The Black Box Problem</h2>
+
+            <p>Most AI code tools operate as black boxes. They take your code as input and produce suggestions as output. What happens in between is a mystery.</p>
+
+            <div class="comparison">
+                <div class="comparison-box bad">
+                    <h4>❌ Black Box AI</h4>
+                    <pre>"Consider refactoring this function."
+
+[Accept] [Dismiss]</pre>
+                </div>
+                <div class="comparison-box good">
+                    <h4>✓ Explainable AI</h4>
+                    <pre>"This function has 4 responsibilities:
+fetching data, transforming it,
+validating, and saving. Consider
+splitting into smaller functions for:
+• Easier testing (mock individual steps)
+• Better reusability (transform logic
+  used elsewhere)
+• Clearer error handling"</pre>
+                </div>
+            </div>
+
+            <p>The black box approach has several problems:</p>
+
+            <h3>1. You Can't Evaluate the Suggestion</h3>
+
+            <p>Without understanding <em>why</em> the AI is making a suggestion, you can't judge whether it applies to your situation. Maybe the AI is pattern-matching on code that looks similar but serves a different purpose. Maybe it's applying a best practice that conflicts with your architectural decisions.</p>
+
+            <h3>2. You Can't Learn from It</h3>
+
+            <p>One of the underappreciated benefits of code review is education. Senior developers don't just say "change this"—they explain their reasoning. Junior developers learn not just what to fix, but how to think about code.</p>
+
+            <p>Black box AI short-circuits this learning. Developers either blindly accept suggestions (learning nothing) or blindly reject them (also learning nothing).</p>
+
+            <h3>3. You Can't Trust It</h3>
+
+            <p>Trust is earned through transparency. When an AI tool consistently explains its reasoning, and that reasoning is sound, developers build confidence in its suggestions. When it's a mystery, every suggestion requires extra validation.</p>
+
+            <blockquote>
+                "I was skeptical about AI review tools - most are just fancy linters. CodePilot is different because it actually explains why it's making suggestions. I can disagree with it intelligently, and sometimes it teaches me something new."
+                <br><br>— Sarah Kim, Staff Engineer at DevOps Dynamics
+            </blockquote>
+
+            <h2>How We Build Explanations</h2>
+
+            <p>Generating good explanations is harder than generating suggestions. Here's our approach:</p>
+
+            <h3>Reasoning Chains</h3>
+
+            <p>For every suggestion, we build a reasoning chain that connects:</p>
+
+            <ol>
+                <li><strong>Observation:</strong> What we noticed in the code</li>
+                <li><strong>Pattern:</strong> What best practice or rule this relates to</li>
+                <li><strong>Impact:</strong> Why this matters (bugs, performance, maintainability)</li>
+                <li><strong>Suggestion:</strong> What we recommend changing</li>
+                <li><strong>Tradeoffs:</strong> When you might NOT want to make this change</li>
+            </ol>
+
+            <div class="highlight-box">
+                <h4>Example Reasoning Chain</h4>
+                <p><strong>Observation:</strong> This async function doesn't handle the case where the API returns an error status.</p>
+                <p><strong>Pattern:</strong> Defensive error handling - always validate API responses before using them.</p>
+                <p><strong>Impact:</strong> If the API returns 500, this code will attempt to parse undefined data, causing a runtime crash.</p>
+                <p><strong>Suggestion:</strong> Add a status check before accessing response.data.</p>
+                <p><strong>Tradeoff:</strong> If you're certain this API never fails (internal service with guarantees), the check adds unnecessary code.</p>
+            </div>
+
+            <h3>Context Awareness</h3>
+
+            <p>Generic explanations aren't useful. "This could cause a null pointer" doesn't help if you've already validated the input three lines up.</p>
+
+            <p>Our explanations are context-aware:</p>
+
+            <ul>
+                <li>We track data flow to understand what's already validated</li>
+                <li>We consider surrounding code patterns in your codebase</li>
+                <li>We reference your team's previous decisions on similar code</li>
+            </ul>
+
+            <h3>Calibrated Confidence</h3>
+
+            <p>Not all suggestions are equally certain. We express confidence levels in our explanations:</p>
+
+            <ul>
+                <li><strong>High confidence:</strong> "This will cause a crash when X is null" (we can prove it)</li>
+                <li><strong>Medium confidence:</strong> "This could cause issues if X is ever null" (possible but not certain)</li>
+                <li><strong>Suggestion:</strong> "Consider handling X differently" (style/preference)</li>
+            </ul>
+
+            <h2>The Impact on Adoption</h2>
+
+            <p>When we A/B tested explainable vs. non-explainable suggestions, the results were dramatic:</p>
+
+            <div class="highlight-box">
+                <h4>Explanation Impact on Developer Behavior</h4>
+                <ul>
+                    <li><strong>Suggestion acceptance rate:</strong> 42% with explanations vs. 18% without</li>
+                    <li><strong>Time to decision:</strong> 8 seconds with explanations vs. 23 seconds without</li>
+                    <li><strong>Developer satisfaction:</strong> 4.6/5 with explanations vs. 3.1/5 without</li>
+                </ul>
+            </div>
+
+            <p>Developers aren't just accepting more suggestions—they're making decisions faster and feeling better about them. Explanations reduce cognitive load by giving developers the context they need to evaluate suggestions quickly.</p>
+
+            <h2>Building Trust Through Transparency</h2>
+
+            <p>The goal of explainable AI isn't just better individual suggestions. It's building a tool that developers trust and want to use.</p>
+
+            <p>When CodePilot explains its reasoning:</p>
+
+            <ul>
+                <li>Developers can <strong>disagree intelligently</strong> when the reasoning doesn't apply</li>
+                <li>Junior developers <strong>learn</strong> from the explanations</li>
+                <li>Teams can <strong>calibrate</strong> their rules based on which explanations resonate</li>
+                <li>Everyone <strong>trusts</strong> the tool more over time</li>
+            </ul>
+
+            <p>Black box AI might be faster to build, but explainable AI is the only way to build tools that developers actually want to use.</p>
+
+            <div class="cta-box">
+                <h3>See explainable AI in action</h3>
+                <p>Every CodePilot suggestion comes with reasoning you can evaluate.</p>
+                <a href="../index.html">Start Free Trial</a>
+            </div>
+        </div>
+    </article>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 CodePilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

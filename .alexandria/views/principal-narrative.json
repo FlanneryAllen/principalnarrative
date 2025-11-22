@@ -1,9 +1,9 @@
 {
   "id": "principal-narrative",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "name": "Principal Narrative",
   "description": "Complete Principal Narrative API codebase with shared context services",
-  "rows": 3,
+  "rows": 4,
   "cols": 3,
   "referenceGroups": {
     "core": {
@@ -14,7 +14,8 @@
         "src/config.py",
         "src/models.py",
         "src/__init__.py",
-        "src/webhooks.py"
+        "src/webhooks.py",
+        "src/websocket.py"
       ],
       "position": { "row": 0, "col": 0 }
     },
@@ -26,7 +27,8 @@
         "src/services/narrative.py",
         "src/services/validator.py",
         "src/services/coherence.py",
-        "src/services/drift_detector.py"
+        "src/services/drift_detector.py",
+        "src/services/evolution.py"
       ],
       "position": { "row": 0, "col": 1 }
     },
@@ -50,23 +52,51 @@
       ],
       "position": { "row": 1, "col": 0 }
     },
-    "cli": {
-      "title": "CLI Tools",
-      "description": "Command-line interface tools",
+    "auth": {
+      "title": "Authentication",
+      "description": "JWT and API key authentication",
       "files": [
+        "src/auth/__init__.py",
+        "src/auth/models.py",
+        "src/auth/jwt_handler.py",
+        "src/auth/api_keys.py",
+        "src/auth/dependencies.py",
+        "src/auth/routes.py"
+      ],
+      "position": { "row": 1, "col": 1 }
+    },
+    "sdk": {
+      "title": "Python SDK",
+      "description": "Client SDK for API access",
+      "files": [
+        "sdk/__init__.py",
+        "sdk/client.py",
+        "sdk/models.py"
+      ],
+      "position": { "row": 1, "col": 2 }
+    },
+    "tests": {
+      "title": "Test Suite",
+      "description": "Pytest test suite",
+      "files": [
+        "tests/__init__.py",
+        "tests/conftest.py",
+        "tests/test_api.py",
+        "tests/test_services.py",
+        "tests/test_auth.py"
+      ],
+      "position": { "row": 2, "col": 0 }
+    },
+    "dashboard": {
+      "title": "Dashboard & CLI",
+      "description": "Web dashboard and CLI tools",
+      "files": [
+        "static/dashboard.html",
         "src/scanner.py",
         "run.sh",
         "test_api.sh"
       ],
-      "position": { "row": 1, "col": 1 }
-    },
-    "dashboard": {
-      "title": "Dashboard",
-      "description": "Web dashboard for visualization",
-      "files": [
-        "static/dashboard.html"
-      ],
-      "position": { "row": 1, "col": 2 }
+      "position": { "row": 2, "col": 1 }
     },
     "config": {
       "title": "Configuration",
@@ -74,28 +104,21 @@
       "files": [
         "requirements.txt",
         ".alexandriarc.json",
-        "AGENTS.md"
-      ],
-      "position": { "row": 2, "col": 0 }
-    },
-    "docs": {
-      "title": "Documentation",
-      "description": "Project documentation",
-      "files": [
+        "AGENTS.md",
         "README.md"
       ],
-      "position": { "row": 2, "col": 1 }
+      "position": { "row": 2, "col": 2 }
     }
   },
   "overviewPath": "README.md",
   "category": "codebase",
   "displayOrder": 1,
-  "timestamp": "2025-11-21T23:56:44.087Z",
+  "timestamp": "2025-11-22T00:30:00.000Z",
   "metadata": {
     "generationType": "user",
     "ui": {
       "enabled": true,
-      "rows": 3,
+      "rows": 4,
       "cols": 3,
       "showCellLabels": true,
       "cellLabelPosition": "top"

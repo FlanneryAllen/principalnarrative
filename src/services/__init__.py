@@ -11,6 +11,7 @@ from .vector_store import VectorStore, get_vector_store
 from .ingestion import IngestionService, get_ingestion_service
 from .git_manager import GitManager, get_git_manager
 from .agent_coordinator import AgentCoordinator, get_agent_coordinator
+from .evolution import EvolutionTracker, get_evolution_tracker
 
 __all__ = [
     # Core services
@@ -34,4 +35,7 @@ __all__ = [
     # Agent coordination
     "AgentCoordinator",
     "get_agent_coordinator",
+    # Evolution tracking
+    "EvolutionTracker",
+    "get_evolution_tracker",
 ]

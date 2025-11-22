@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How We Achieved 47-Second Code Reviews - CodePilot Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #0f172a;
+            --accent: #22d3ee;
+            --bg-light: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.8; color: var(--text-primary); background: var(--white); }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        nav { padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 60px; max-width: 1200px; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .back-link:hover { color: var(--primary); }
+
+        article { padding-bottom: 80px; }
+        .post-tag { display: inline-block; padding: 6px 12px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        h1 { font-size: 42px; font-weight: 800; color: var(--secondary); margin-bottom: 24px; line-height: 1.2; }
+        .post-meta { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+        .author-avatar { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+
+        .post-content p { margin-bottom: 24px; font-size: 17px; color: var(--text-primary); }
+        .post-content h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 48px 0 24px; }
+        .post-content h3 { font-size: 22px; font-weight: 700; color: var(--secondary); margin: 36px 0 16px; }
+        .post-content ul, .post-content ol { margin: 0 0 24px 24px; }
+        .post-content li { margin-bottom: 12px; font-size: 17px; }
+        .post-content blockquote { border-left: 4px solid var(--primary); padding-left: 24px; margin: 32px 0; font-style: italic; color: var(--text-secondary); }
+        .post-content code { background: var(--bg-light); padding: 2px 8px; border-radius: 4px; font-size: 15px; }
+        .post-content pre { background: var(--secondary); color: #e2e8f0; padding: 24px; border-radius: 12px; overflow-x: auto; margin: 24px 0; }
+        .post-content pre code { background: none; padding: 0; color: inherit; }
+
+        .highlight-box { background: var(--bg-light); border-radius: 12px; padding: 24px; margin: 32px 0; }
+        .highlight-box h4 { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--secondary); }
+
+        .cta-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin: 48px 0; }
+        .cta-box h3 { font-size: 24px; margin-bottom: 16px; }
+        .cta-box p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-box a { display: inline-block; background: white; color: var(--primary); padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+
+        footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="../index.html" class="logo">
+            <div class="logo-icon">CP</div>
+            CodePilot
+        </a>
+        <a href="index.html" class="back-link">← Back to Blog</a>
+    </nav>
+
+    <article class="container">
+        <span class="post-tag">Engineering</span>
+        <h1>How We Achieved 47-Second Code Reviews</h1>
+        <div class="post-meta">
+            <div class="author-avatar">MR</div>
+            <div>
+                <strong>Marcus Rodriguez</strong><br>
+                <span>Principal Engineer · October 28, 2024 · 8 min read</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            <p>When we tell developers that CodePilot delivers comprehensive code reviews in under 60 seconds, we often get skeptical looks. "Sure, for a one-line change maybe," they say. But our p95 review time is actually 47 seconds—across all PR sizes. Here's how we built a system that's both fast and thorough.</p>
+
+            <h2>The Problem with Traditional Code Review</h2>
+
+            <p>Before diving into our architecture, let's understand why code review is traditionally slow. In most teams, the review process looks something like this:</p>
+
+            <ol>
+                <li>Developer opens a PR and requests review</li>
+                <li>PR sits in queue while reviewers finish their current work</li>
+                <li>Reviewer context-switches to read the code (15-30 minutes)</li>
+                <li>Reviewer writes feedback, often asking clarifying questions</li>
+                <li>Developer responds, reviewer re-reviews</li>
+                <li>Average total time: 24-72 hours</li>
+            </ol>
+
+            <p>The actual human analysis might only take 20 minutes, but the queueing, context-switching, and back-and-forth multiplies that into days. Our goal wasn't to eliminate human review—it was to eliminate the wait.</p>
+
+            <h2>Our Architecture: Three Phases of Analysis</h2>
+
+            <p>CodePilot's review engine runs in three parallel phases, each optimized for different concerns:</p>
+
+            <h3>Phase 1: Static Analysis (5-10 seconds)</h3>
+
+            <p>The moment a PR webhook arrives, we kick off static analysis. This catches:</p>
+
+            <ul>
+                <li>Syntax errors and type mismatches</li>
+                <li>Style violations against your configured rules</li>
+                <li>Import/dependency issues</li>
+                <li>Basic security patterns (hardcoded secrets, SQL injection patterns)</li>
+            </ul>
+
+            <p>We use a custom-built incremental analyzer that only processes changed files and their immediate dependencies. For a typical PR touching 5-10 files, this completes in under 10 seconds.</p>
+
+            <h3>Phase 2: Semantic Understanding (15-25 seconds)</h3>
+
+            <p>While static analysis runs, we're also building a semantic model of the changes. This is where our AI comes in:</p>
+
+            <div class="highlight-box">
+                <h4>What Semantic Analysis Captures</h4>
+                <ul>
+                    <li>Intent of the change (bug fix, feature, refactor)</li>
+                    <li>Impact on existing behavior</li>
+                    <li>Potential edge cases and error conditions</li>
+                    <li>Performance implications</li>
+                </ul>
+            </div>
+
+            <p>We use a fine-tuned model specifically trained on code review data—not just code completion. This matters because reviewing code requires understanding what <em>should</em> be there, not just predicting what <em>could</em> be there.</p>
+
+            <h3>Phase 3: Contextual Integration (10-15 seconds)</h3>
+
+            <p>The final phase combines static findings with semantic understanding and your team's context:</p>
+
+            <ul>
+                <li>Cross-references against your team's previous decisions</li>
+                <li>Checks consistency with similar code in your codebase</li>
+                <li>Applies team-specific rules you've configured</li>
+                <li>Generates explanations for every suggestion</li>
+            </ul>
+
+            <h2>The Secret Sauce: Parallelization + Caching</h2>
+
+            <p>Running these phases in parallel gets us most of the way to 47 seconds. But two additional optimizations were crucial:</p>
+
+            <h3>Aggressive Caching</h3>
+
+            <p>We maintain a constantly-updated index of your codebase. When a PR comes in, we don't analyze your entire repo—we already know about it. The cache includes:</p>
+
+            <pre><code>{
+  "file_signatures": {...},
+  "dependency_graph": {...},
+  "team_patterns": {...},
+  "historical_feedback": {...}
+}</code></pre>
+
+            <p>This caching layer alone cut our p95 from 90 seconds to 55 seconds.</p>
+
+            <h3>Speculative Execution</h3>
+
+            <p>When a developer pushes to a branch, we start analyzing before the PR is even opened. By the time they click "Create Pull Request," we often have results ready. This technique—borrowed from CPU design—shaved another 8 seconds off typical review times.</p>
+
+            <h2>Accuracy at Speed</h2>
+
+            <p>Speed means nothing if reviews aren't useful. We track several quality metrics:</p>
+
+            <div class="highlight-box">
+                <h4>CodePilot Quality Metrics</h4>
+                <ul>
+                    <li><strong>False positive rate:</strong> 4.8% (suggestions developers dismiss)</li>
+                    <li><strong>True positive rate:</strong> 89% (issues that would have been caught by human review)</li>
+                    <li><strong>Suggestion acceptance:</strong> 42% (Quick Fix suggestions developers accept)</li>
+                </ul>
+            </div>
+
+            <p>We optimize for signal-to-noise ratio. A review that surfaces 3 important issues is more valuable than one that lists 30 nitpicks. Our ranking algorithm prioritizes:</p>
+
+            <ol>
+                <li>Security vulnerabilities (always shown)</li>
+                <li>Logic errors and bugs</li>
+                <li>Performance issues</li>
+                <li>Maintainability concerns</li>
+                <li>Style suggestions (shown if few higher-priority items)</li>
+            </ol>
+
+            <h2>What We Learned</h2>
+
+            <p>Building a system this fast taught us several lessons:</p>
+
+            <blockquote>
+                "The best optimization is eliminating work entirely. We spent more time figuring out what NOT to analyze than optimizing what we do analyze."
+            </blockquote>
+
+            <p><strong>Lesson 1: Incremental beats batch.</strong> Analyzing only changed code and affected dependencies is 10x faster than full-repo analysis.</p>
+
+            <p><strong>Lesson 2: Preparation beats reaction.</strong> Pre-computing what we can (codebase indexing, pattern extraction) means less work at review time.</p>
+
+            <p><strong>Lesson 3: Explanation is non-negotiable.</strong> We could be faster if we just said "change this." But developers need to understand why. The explanation generation adds ~5 seconds but increases acceptance rates by 3x.</p>
+
+            <h2>What's Next</h2>
+
+            <p>We're not done optimizing. Our current focus areas:</p>
+
+            <ul>
+                <li>Streaming results as they're ready (show static analysis while semantic runs)</li>
+                <li>Smarter speculative execution based on commit patterns</li>
+                <li>Team-specific model fine-tuning for even higher relevance</li>
+            </ul>
+
+            <p>Our goal for 2025: p95 under 30 seconds while maintaining quality. We'll share progress as we make it.</p>
+
+            <div class="cta-box">
+                <h3>Experience 47-second reviews yourself</h3>
+                <p>Start a free trial and see how fast code review can be.</p>
+                <a href="../index.html">Start Free Trial</a>
+            </div>
+        </div>
+    </article>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 CodePilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
