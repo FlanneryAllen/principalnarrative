@@ -147,21 +147,22 @@ class WebsiteAnalyzer:
         for quote in soup.find_all('blockquote'):
             quote_text = quote.get_text(strip=True)
 
-            # Try to find author info
+            # Try to find author info - often after "—" in quote
             author_info = None
-            # Look for author in adjacent elements or within quote
-            for elem in quote.find_all(['p', 'span', 'div']):
-                text = elem.get_text(strip=True)
-                if '—' in text or 'VP of' in text or 'Engineer' in text or 'Manager' in text:
-                    author_info = text
-                    break
+            actual_quote = quote_text
 
-            # Parse persona from quote
+            # Check if quote contains attribution (— Name, Role)
+            if '—' in quote_text:
+                parts = quote_text.split('—', 1)
+                actual_quote = parts[0].strip()
+                author_info = parts[1].strip() if len(parts) > 1 else None
+
+            # Parse persona from quote if we have author info
             if author_info:
-                self._parse_persona_from_quote(quote_text, author_info, location)
+                self._parse_persona_from_quote(actual_quote, author_info, location)
 
             self.proof.append(Proof(
-                text=quote_text,
+                text=actual_quote,
                 type="testimonial",
                 source=author_info,
                 location=location,
@@ -171,19 +172,38 @@ class WebsiteAnalyzer:
     def _parse_persona_from_quote(self, quote: str, author_info: str, location: str):
         """Parse persona information from testimonial"""
         # Extract name, role, company from author info
-        # Format: "— Name, Role at Company" or "Name\nRole · Company"
+        # Format: "Name, Role at Company" or "Name - Role at Company"
 
-        parts = re.split(r'[—,\n]', author_info)
-        name = parts[0].strip() if parts else "Unknown"
+        name = "Unknown"
         role = ""
         company = ""
 
-        for part in parts[1:]:
-            if 'at' in part.lower():
-                company = part.split('at')[-1].strip()
-                role = part.split('at')[0].strip()
-            elif any(title in part for title in ['VP', 'Engineer', 'Manager', 'CISO', 'Lead']):
-                role = part.strip()
+        # Try to parse "Name, Role at Company" or "Name - Role at Company"
+        if 'at' in author_info:
+            # Split by 'at' to get company
+            parts = author_info.split('at', 1)
+            name_and_role = parts[0].strip()
+            company = parts[1].strip()
+
+            # Split name and role by comma or dash
+            if ',' in name_and_role:
+                name_parts = name_and_role.split(',', 1)
+                name = name_parts[0].strip()
+                role = name_parts[1].strip() if len(name_parts) > 1 else ""
+            elif '-' in name_and_role:
+                name_parts = name_and_role.split('-', 1)
+                name = name_parts[0].strip()
+                role = name_parts[1].strip() if len(name_parts) > 1 else ""
+            else:
+                name = name_and_role
+        elif ',' in author_info:
+            # Just "Name, Role" without company
+            parts = author_info.split(',', 1)
+            name = parts[0].strip()
+            role = parts[1].strip() if len(parts) > 1 else ""
+        else:
+            # Just name
+            name = author_info.strip()
 
         persona = Persona(
             name=name,
@@ -300,9 +320,40 @@ class WebsiteAnalyzer:
             ]
         }
 
-    def save_report(self, output_path: Path):
-        """Save analysis report to JSON"""
+    def save_report(self, output_path: Path, include_validation: bool = True):
+        """Save analysis report to JSON with optional validation"""
         report = self._generate_report()
+
+        # Add validation if requested
+        if include_validation:
+            try:
+                from .claim_validator import ClaimValidator
+                from .consistency_checker import ConsistencyChecker
+            except ImportError:
+                # Fall back to absolute import when running as script
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent))
+                from claim_validator import ClaimValidator
+                from consistency_checker import ConsistencyChecker
+
+            # Run claim validation
+            validator = ClaimValidator(
+                claims=report['claims'],
+                proof=report['proof'],
+                stats=report['stats']
+            )
+            validation_report = validator.validate_all()
+            report['claim_validation'] = validation_report
+
+            # Run consistency check
+            checker = ConsistencyChecker(
+                claims=report['claims'],
+                proof=report['proof'],
+                stats=report['stats']
+            )
+            consistency_report = checker.check_all()
+            report['consistency'] = consistency_report
 
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
