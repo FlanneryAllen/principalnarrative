@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  narrative-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: principal-narrative-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Required: Add your Anthropic API key
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # Optional: Slack integration
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+
+      # Optional: GitHub integration
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+
+      # Optional: JWT configuration
+      - PN_JWT_SECRET=${PN_JWT_SECRET:-principal-narrative-dev-secret-change-in-production}
+      - PN_TOKEN_EXPIRE_MINUTES=${PN_TOKEN_EXPIRE_MINUTES:-60}
+      - PN_REFRESH_TOKEN_DAYS=${PN_REFRESH_TOKEN_DAYS:-7}
+
+      # Optional: Vector store
+      - CHROMA_PERSIST_DIRECTORY=/app/chroma_db
+    volumes:
+      # Mount applied-narrative for hot-reload during development
+      - ./applied-narrative:/app/applied-narrative:ro
+
+      # Persist logs
+      - ./logs:/app/logs
+
+      # Persist vector store data
+      - chroma_data:/app/chroma_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - narrative-network
+
+  # Optional: Add ChromaDB as separate service for production
+  # chromadb:
+  #   image: chromadb/chroma:latest
+  #   container_name: narrative-chromadb
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - chroma_data:/chroma/chroma
+  #   networks:
+  #     - narrative-network
+
+volumes:
+  chroma_data:
+    driver: local
+
+networks:
+  narrative-network:
+    driver: bridge

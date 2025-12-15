@@ -119,6 +119,104 @@ This repository contains the foundational data structure and specification for t
 2. Populate Applied Narrative templates with actual organizational context
 3. Begin implementation following the phased plan
 
+## Quick Start
+
+### Local Development
+
+1. **Clone the repository**:
+```bash
+git clone https://github.com/FlanneryAllen/principalnarrative.git
+cd principalnarrative
+```
+
+2. **Set up environment**:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+3. **Configure environment variables**:
+```bash
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+```
+
+4. **Run the API**:
+```bash
+./run.sh
+# Or manually:
+uvicorn src.main:app --reload
+```
+
+5. **Access the API**:
+- API Documentation: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
+
+### Docker Deployment
+
+1. **Build and run with Docker Compose**:
+```bash
+docker-compose up -d
+```
+
+2. **Check logs**:
+```bash
+docker-compose logs -f narrative-api
+```
+
+3. **Stop the service**:
+```bash
+docker-compose down
+```
+
+### Production Deployment
+
+See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide including:
+- Structured logging and monitoring
+- Error handling and recovery
+- Performance optimization
+- Security best practices
+
+## API Endpoints
+
+### Core Endpoints
+- `GET /health` - Health check
+- `GET /` - API information
+
+### Context Management
+- `GET /context/query` - Query narrative units
+- `POST /context/validate` - Validate claims against proof
+
+### Coherence & Drift
+- `GET /coherence/score` - Get coherence scores
+- `GET /coherence/drift` - Get drift events
+- `POST /coherence/scan` - Run drift detection
+
+### Proof & Metrics
+- `GET /proof/metrics` - Get verified proof metrics
+- `GET /features` - Get feature registry
+
+See http://localhost:8000/docs for interactive API documentation.
+
+## Architecture
+
+### Components
+- **API Layer**: FastAPI with REST endpoints
+- **Services**: Narrative reading, validation, coherence, drift detection
+- **Storage**: Git-native Applied Narrative + ChromaDB for vectors
+- **Integrations**: Slack, GitHub webhooks
+- **Monitoring**: Structured logging with file and console output
+
+### Key Features
+- ✅ Complete API with 40+ endpoints
+- ✅ Structured logging and monitoring
+- ✅ Docker containerization
+- ✅ CI/CD with GitHub Actions
+- ✅ Real-time drift detection
+- ✅ Proof-backed claim validation
+- ✅ Semantic search (requires Anthropic API key)
+
 ## Philosophy
 
 **"Context is everything."**
