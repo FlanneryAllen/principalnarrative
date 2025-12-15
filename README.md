@@ -212,6 +212,19 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 - `GET /drift/analytics/types` - Drift type distribution
 - `GET /drift-dashboard` - Interactive drift visualization dashboard
 
+### Multi-Repository Support ⭐ New!
+- `POST /multi-repo/register` - Register a repository
+- `GET /multi-repo/repositories` - List all registered repositories
+- `GET /multi-repo/repositories/{name}` - Get repository details
+- `POST /multi-repo/scan` - Scan all repositories for drift
+- `GET /multi-repo/organization/summary` - Get organization-wide summary
+- `GET /multi-repo/organization/top-drift` - Get top drift repositories
+- `POST /multi-repo/sync-central` - Sync central Applied Narrative
+- `GET /multi-repo/sync-status` - Get sync status
+- `GET /multi-repo/conflicts` - Check for narrative conflicts
+- `POST /multi-repo/heartbeat/{repo_name}` - Record repository heartbeat
+- `GET /multi-repo-dashboard` - Organization dashboard
+
 ### Proof & Metrics
 - `GET /proof/metrics` - Get verified proof metrics
 - `GET /features` - Get feature registry
@@ -239,6 +252,7 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 - `GET /batch` - Batch URL analysis dashboard ⭐ New!
 - `GET /trends` - Historical trends dashboard ⭐ New!
 - `GET /drift-dashboard` - Drift analytics visualization ⭐ New!
+- `GET /multi-repo-dashboard` - Organization multi-repo dashboard ⭐ New!
 - `GET /website/health` - Website analysis service health check
 
 See http://localhost:8000/docs for interactive API documentation.
@@ -316,6 +330,14 @@ See http://localhost:8000/docs for interactive API documentation.
   - Document heatmap showing problem areas
   - Resolution rate tracking
   - Auto-refresh dashboard with real-time metrics
+- ✅ **Multi-Repository Support** ⭐ New!
+  - Central Applied Narrative shared across repos
+  - Repository registry for org-wide tracking
+  - Cross-repo drift detection and coherence monitoring
+  - Organization dashboard with aggregated metrics
+  - Flexible modes (standalone, central, hybrid)
+  - Automatic syncing from central narrative
+  - Conflict detection and resolution policies
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -387,6 +409,7 @@ pip install -r requirements.txt
 - **AI-Powered Conflict Resolution**: [AI_CONFLICT_RESOLUTION.md](AI_CONFLICT_RESOLUTION.md) ⭐ New!
 - **Drift Alert System**: [DRIFT_ALERTS.md](DRIFT_ALERTS.md) ⭐ New!
 - **Drift Analytics Dashboard**: [DRIFT_DASHBOARD.md](DRIFT_DASHBOARD.md) ⭐ New!
+- **Multi-Repository Support**: [MULTI_REPO.md](MULTI_REPO.md) ⭐ New!
 - **Competitive Analysis**: [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md)
 - **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md)
 - **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)

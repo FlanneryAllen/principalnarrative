@@ -35,6 +35,9 @@ from .services import NarrativeService, ValidatorService, CoherenceService, Drif
 from .services.ai_conflict_resolver import AIConflictResolver
 from .services.alert_service import AlertService, AlertRule
 from .services.drift_analytics import DriftAnalytics
+from .services.repository_registry import RepositoryRegistry, RepositoryConfig, RepositoryType, NarrativeMode
+from .services.central_narrative_resolver import CentralNarrativeResolver
+from .services.cross_repo_drift_scanner import CrossRepoDriftScanner
 from .webhooks import router as webhooks_router
 from .auth.routes import router as auth_router
 from .websocket import ws_router
@@ -116,6 +119,11 @@ validator_service = ValidatorService(narrative_service)
 coherence_service = CoherenceService(narrative_service)
 alert_service = AlertService()
 drift_analytics = DriftAnalytics()
+
+# Multi-repo services
+repository_registry = RepositoryRegistry()
+central_narrative_resolver = CentralNarrativeResolver()
+cross_repo_scanner = CrossRepoDriftScanner(repository_registry, central_narrative_resolver)
 
 
 # Application lifecycle events
@@ -892,6 +900,310 @@ async def drift_dashboard():
 
     if not dashboard_path.exists():
         raise HTTPException(status_code=404, detail="Dashboard not found. Run setup to create it.")
+
+    return FileResponse(dashboard_path)
+
+
+# ============================================================================
+# Multi-Repository Endpoints
+# ============================================================================
+
+@app.post("/multi-repo/register")
+async def register_repository(repo_data: Dict[str, Any]):
+    """
+    Register a repository in the organization registry.
+
+    **Request Body:**
+    ```json
+    {
+        "name": "my-service",
+        "type": "service",
+        "mode": "central",
+        "description": "My microservice",
+        "owner_team": "platform",
+        "owner_contact": "platform@example.com",
+        "central_repo_url": "https://github.com/org/applied-narrative.git",
+        "tags": ["backend", "python"]
+    }
+    ```
+
+    **Repository Types:** service, library, frontend, mobile, docs, monorepo, other
+    **Narrative Modes:** standalone, central, hybrid
+    """
+    try:
+        config = RepositoryConfig(
+            name=repo_data["name"],
+            type=RepositoryType(repo_data["type"]),
+            mode=NarrativeMode(repo_data["mode"]),
+            description=repo_data.get("description"),
+            owner_team=repo_data.get("owner_team"),
+            owner_contact=repo_data.get("owner_contact"),
+            central_repo_url=repo_data.get("central_repo_url"),
+            central_repo_branch=repo_data.get("central_repo_branch", "main"),
+            local_narrative_path=repo_data.get("local_narrative_path", ".principalnarrative/applied-narrative"),
+            drift_detection_enabled=repo_data.get("drift_detection_enabled", True),
+            check_against_central=repo_data.get("check_against_central", True),
+            report_to_org=repo_data.get("report_to_org", True),
+            tags=repo_data.get("tags", [])
+        )
+
+        success = repository_registry.register_repository(config)
+
+        if success:
+            return {"message": f"Repository {config.name} registered successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Repository already registered")
+
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid value: {e}")
+
+
+@app.get("/multi-repo/repositories")
+async def list_repositories(
+    type: Optional[str] = Query(None, description="Filter by repository type"),
+    mode: Optional[str] = Query(None, description="Filter by narrative mode"),
+    tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)"),
+    status: Optional[str] = Query("active", description="Filter by status")
+):
+    """
+    List all registered repositories.
+
+    **Query Parameters:**
+    - `type`: Filter by repository type (service, library, frontend, etc.)
+    - `mode`: Filter by narrative mode (standalone, central, hybrid)
+    - `tags`: Comma-separated tags to filter by
+    - `status`: Filter by status (active, inactive, archived)
+    """
+    repo_type = RepositoryType(type) if type else None
+    repo_mode = NarrativeMode(mode) if mode else None
+    tag_list = [t.strip() for t in tags.split(",")] if tags else None
+
+    repositories = repository_registry.list_repositories(
+        repo_type=repo_type,
+        mode=repo_mode,
+        tags=tag_list,
+        status=status
+    )
+
+    return {
+        "total": len(repositories),
+        "repositories": [
+            {
+                "name": r.config.name,
+                "type": r.config.type.value,
+                "mode": r.config.mode.value,
+                "description": r.config.description,
+                "owner_team": r.config.owner_team,
+                "drift_detection_enabled": r.config.drift_detection_enabled,
+                "tags": r.config.tags,
+                "status": r.status,
+                "registered_at": r.registered_at.isoformat(),
+                "last_heartbeat": r.last_heartbeat.isoformat() if r.last_heartbeat else None,
+                "metrics": {
+                    "total_drift": r.metrics.total_drift,
+                    "coherence_score": r.metrics.coherence_score,
+                    "drift_trend_7d": r.metrics.drift_trend_7d
+                } if r.metrics else None
+            }
+            for r in repositories
+        ]
+    }
+
+
+@app.get("/multi-repo/repositories/{repo_name}")
+async def get_repository(repo_name: str):
+    """Get details for a specific repository."""
+    registration = repository_registry.get_repository(repo_name)
+
+    if not registration:
+        raise HTTPException(status_code=404, detail=f"Repository {repo_name} not found")
+
+    return {
+        "name": registration.config.name,
+        "type": registration.config.type.value,
+        "mode": registration.config.mode.value,
+        "description": registration.config.description,
+        "owner": {
+            "team": registration.config.owner_team,
+            "contact": registration.config.owner_contact
+        },
+        "central_repository": {
+            "url": registration.config.central_repo_url,
+            "branch": registration.config.central_repo_branch
+        } if registration.config.central_repo_url else None,
+        "drift_detection": {
+            "enabled": registration.config.drift_detection_enabled,
+            "check_against_central": registration.config.check_against_central,
+            "report_to_org": registration.config.report_to_org
+        },
+        "tags": registration.config.tags,
+        "status": registration.status,
+        "registered_at": registration.registered_at.isoformat(),
+        "last_updated": registration.last_updated.isoformat(),
+        "last_heartbeat": registration.last_heartbeat.isoformat() if registration.last_heartbeat else None,
+        "metrics": {
+            "total_drift": registration.metrics.total_drift,
+            "drift_by_severity": registration.metrics.drift_by_severity,
+            "drift_by_type": registration.metrics.drift_by_type,
+            "coherence_score": registration.metrics.coherence_score,
+            "last_scan": registration.metrics.last_scan.isoformat(),
+            "drift_trend_7d": registration.metrics.drift_trend_7d,
+            "resolution_rate": registration.metrics.resolution_rate
+        } if registration.metrics else None
+    }
+
+
+@app.post("/multi-repo/scan")
+async def scan_all_repositories(
+    format: str = Query("json", description="Response format: json or markdown")
+):
+    """
+    Scan all registered repositories for drift.
+
+    Checks each repository against:
+    - Central Applied Narrative (if configured)
+    - Internal coherence
+    - Cross-repo consistency
+
+    Returns aggregated drift data for all repositories.
+    """
+    results = cross_repo_scanner.scan_all_repositories()
+
+    if format == "markdown":
+        return {
+            "format": "markdown",
+            "content": cross_repo_scanner.export_scan_results(results, format="markdown")
+        }
+
+    return {
+        "scan_date": datetime.now().isoformat(),
+        "total_repositories": len(results),
+        "repositories": {
+            repo_name: [
+                {
+                    "id": e.id,
+                    "type": e.type.value,
+                    "severity": e.severity.value,
+                    "source": e.source_unit,
+                    "target": e.target_unit,
+                    "description": e.description,
+                    "resolution": e.suggested_resolution
+                }
+                for e in events
+            ]
+            for repo_name, events in results.items()
+        },
+        "summary": {
+            "total_drift_events": sum(len(events) for events in results.values()),
+            "repositories_with_drift": len([r for r in results.values() if r]),
+            "drift_free_repositories": len([r for r in results.values() if not r])
+        }
+    }
+
+
+@app.get("/multi-repo/organization/summary")
+async def get_organization_summary():
+    """
+    Get organization-wide summary including:
+    - Total repositories
+    - Aggregated drift metrics
+    - Top problematic repositories
+    - Breakdown by type and mode
+    """
+    registry_summary = repository_registry.get_organization_summary()
+    drift_summary = cross_repo_scanner.get_organization_drift_summary()
+
+    return {
+        **registry_summary,
+        "drift_summary": drift_summary
+    }
+
+
+@app.get("/multi-repo/organization/top-drift")
+async def get_top_drift_repositories(
+    limit: int = Query(10, description="Number of repositories to return")
+):
+    """Get repositories with the most drift."""
+    return {
+        "top_drift_repositories": repository_registry.get_top_drift_repositories(limit)
+    }
+
+
+@app.post("/multi-repo/sync-central")
+async def sync_central_narrative(force: bool = Query(False, description="Force sync even if not needed")):
+    """
+    Sync central Applied Narrative from Git.
+
+    Pulls latest changes from the central narrative repository
+    configured in .narrative-config.json
+    """
+    if not central_narrative_resolver.is_central_mode():
+        raise HTTPException(
+            status_code=400,
+            detail="Not in central mode. Check .narrative-config.json configuration."
+        )
+
+    success = central_narrative_resolver.sync_central_narrative(force=force)
+
+    if success:
+        return {
+            "message": "Central narrative synced successfully",
+            "status": central_narrative_resolver.get_sync_status()
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to sync central narrative")
+
+
+@app.get("/multi-repo/sync-status")
+async def get_sync_status():
+    """Get status of central narrative sync."""
+    return central_narrative_resolver.get_sync_status()
+
+
+@app.get("/multi-repo/conflicts")
+async def check_narrative_conflicts():
+    """
+    Check for conflicts between central and local narratives.
+
+    Returns list of documents that differ between central and local.
+    """
+    conflicts = central_narrative_resolver.check_for_conflicts()
+
+    return {
+        "total_conflicts": len(conflicts),
+        "conflicts": conflicts
+    }
+
+
+@app.post("/multi-repo/heartbeat/{repo_name}")
+async def repository_heartbeat(repo_name: str):
+    """
+    Record heartbeat from a repository.
+
+    Repositories should call this periodically to indicate they're active.
+    """
+    repository_registry.heartbeat(repo_name)
+
+    return {"message": f"Heartbeat recorded for {repo_name}"}
+
+
+@app.get("/multi-repo-dashboard")
+async def multi_repo_dashboard():
+    """
+    Serve the organization-wide multi-repository dashboard.
+
+    Interactive dashboard showing:
+    - All registered repositories
+    - Organization-wide drift metrics
+    - Cross-repo coherence tracking
+    - Top problematic repositories
+    """
+    dashboard_path = Path("static/multi-repo-dashboard.html")
+
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found")
 
     return FileResponse(dashboard_path)
 

@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://principalnarrative.dev/schemas/narrative-config.json",
+  "title": "Principal Narrative Repository Configuration",
+  "description": "Configuration for repositories using the Principal Narrative system",
+  "type": "object",
+  "required": ["version", "repository", "narrative"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URL to this schema"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration schema version"
+    },
+    "repository": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["service", "library", "frontend", "mobile", "docs", "monorepo", "other"],
+          "description": "Type of repository"
+        },
+        "description": {
+          "type": "string",
+          "description": "Repository description"
+        },
+        "owner": {
+          "type": "object",
+          "properties": {
+            "team": {
+              "type": "string",
+              "description": "Owning team"
+            },
+            "contact": {
+              "type": "string",
+              "format": "email",
+              "description": "Contact email"
+            }
+          }
+        }
+      }
+    },
+    "narrative": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["standalone", "central", "hybrid"],
+          "description": "Narrative mode: standalone (local only), central (reference org narrative), hybrid (both)"
+        },
+        "central_repository": {
+          "type": "object",
+          "description": "Configuration for central Applied Narrative repository",
+          "required": ["url"],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Git repository URL for central narrative"
+            },
+            "branch": {
+              "type": "string",
+              "default": "main",
+              "description": "Branch to use"
+            },
+            "path": {
+              "type": "string",
+              "default": ".principalnarrative/applied-narrative",
+              "description": "Path to Applied Narrative within repo"
+            },
+            "sync_interval": {
+              "type": "string",
+              "enum": ["manual", "hourly", "daily", "weekly"],
+              "default": "daily",
+              "description": "How often to sync from central"
+            },
+            "auto_pull": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically pull updates from central"
+            }
+          }
+        },
+        "local_narrative": {
+          "type": "object",
+          "description": "Local narrative configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable local narrative docs"
+            },
+            "path": {
+              "type": "string",
+              "default": ".principalnarrative/applied-narrative",
+              "description": "Path to local narrative"
+            },
+            "extends_central": {
+              "type": "boolean",
+              "default": true,
+              "description": "Local narrative extends central (not replaces)"
+            },
+            "allow_overrides": {
+              "type": "boolean",
+              "default": true,
+              "description": "Allow local docs to override central"
+            }
+          }
+        },
+        "override_policy": {
+          "type": "string",
+          "enum": ["local_wins", "central_wins", "merge", "error"],
+          "default": "local_wins",
+          "description": "Policy when local and central conflict"
+        }
+      }
+    },
+    "drift_detection": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable drift detection"
+        },
+        "check_against_central": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for drift from central narrative"
+        },
+        "local_only": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only check local drift, ignore central"
+        },
+        "scan_schedule": {
+          "type": "string",
+          "description": "Cron expression for scheduled scans"
+        },
+        "auto_report_to_org": {
+          "type": "boolean",
+          "default": true,
+          "description": "Report drift to org-level dashboard"
+        },
+        "severity_threshold": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "default": "medium",
+          "description": "Minimum severity to report"
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "central_api": {
+          "type": "object",
+          "description": "Central narrative API integration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Central API URL"
+            },
+            "api_key_env": {
+              "type": "string",
+              "description": "Environment variable containing API key"
+            },
+            "report_drift": {
+              "type": "boolean",
+              "default": true,
+              "description": "Report drift to central API"
+            },
+            "report_analytics": {
+              "type": "boolean",
+              "default": true,
+              "description": "Report analytics to central API"
+            }
+          }
+        },
+        "slack": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "webhook_url_env": {
+              "type": "string",
+              "description": "Environment variable containing Slack webhook"
+            },
+            "notify_on_drift": {
+              "type": "boolean",
+              "default": true
+            },
+            "channels": {
+              "type": "object",
+              "properties": {
+                "drift_alerts": {
+                  "type": "string",
+                  "description": "Channel for drift alerts"
+                },
+                "resolutions": {
+                  "type": "string",
+                  "description": "Channel for resolution notifications"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "properties": {
+        "track_local": {
+          "type": "boolean",
+          "default": true,
+          "description": "Track analytics locally"
+        },
+        "report_to_central": {
+          "type": "boolean",
+          "default": false,
+          "description": "Report analytics to central system"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "default": 90,
+          "description": "Days to retain analytics data"
+        },
+        "aggregate_with_org": {
+          "type": "boolean",
+          "default": false,
+          "description": "Aggregate analytics with org-level data"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorizing this repository"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "config_version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

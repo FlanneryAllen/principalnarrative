@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Narrative Dashboard - Principal Narrative</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .header-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #4f46e5;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .repo-list {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .repo-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .repo-item:hover {
+            background: #f3f4f6;
+            transform: translateX(4px);
+        }
+
+        .repo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .repo-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .repo-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .repo-badge.service { background: #dbeafe; color: #1e40af; }
+        .repo-badge.library { background: #d1fae5; color: #065f46; }
+        .repo-badge.frontend { background: #fce7f3; color: #9f1239; }
+        .repo-badge.mobile { background: #fef3c7; color: #92400e; }
+
+        .repo-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .repo-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .drift-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .drift-high { background: #fee2e2; color: #991b1b; }
+        .drift-medium { background: #fef3c7; color: #92400e; }
+        .drift-low { background: #dbeafe; color: #1e40af; }
+        .drift-none { background: #d1fae5; color: #065f46; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .last-update {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 Organization Narrative Dashboard</h1>
+            <p>Monitor drift, coherence, and alignment across all repositories</p>
+            <div class="header-actions">
+                <button class="btn" onclick="loadDashboard()">🔄 Refresh Data</button>
+                <button class="btn btn-secondary" onclick="syncCentral()">🔄 Sync Central Narrative</button>
+                <button class="btn btn-secondary" onclick="scanAllRepos()">🔍 Scan All Repositories</button>
+            </div>
+            <div class="last-update" id="lastUpdate"></div>
+        </div>
+
+        <div id="loading" class="loading">Loading organization data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Repositories</div>
+                    <div class="stat-value" id="totalRepos">0</div>
+                    <div class="stat-subtitle" id="activeRepos"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Total Drift Events</div>
+                    <div class="stat-value" id="totalDrift">0</div>
+                    <div class="stat-subtitle" id="driftRepos"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Avg Coherence Score</div>
+                    <div class="stat-value" id="avgCoherence">0</div>
+                    <div class="stat-subtitle">0-100 scale</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Using Central Narrative</div>
+                    <div class="stat-value" id="centralRepos">0</div>
+                    <div class="stat-subtitle" id="centralPct"></div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <!-- Drift by Severity -->
+                <div class="chart-card">
+                    <div class="chart-title">Organization-Wide Drift by Severity</div>
+                    <div class="chart-container">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Repos by Type -->
+                <div class="chart-card">
+                    <div class="chart-title">Repositories by Type</div>
+                    <div class="chart-container">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Drift by Type -->
+                <div class="chart-card">
+                    <div class="chart-title">Drift by Type</div>
+                    <div class="chart-container">
+                        <canvas id="driftTypeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Repos by Mode -->
+                <div class="chart-card">
+                    <div class="chart-title">Narrative Mode Distribution</div>
+                    <div class="chart-container">
+                        <canvas id="modeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Drift Repositories -->
+            <div class="repo-list">
+                <div class="chart-title">Most Problematic Repositories</div>
+                <div id="topReposList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        async function loadDashboard() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const dashboard = document.getElementById('dashboard');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            dashboard.style.display = 'none';
+
+            try {
+                // Fetch organization summary
+                const summary = await fetch('/multi-repo/organization/summary').then(r => r.json());
+                const topDrift = await fetch('/multi-repo/organization/top-drift?limit=10').then(r => r.json());
+
+                // Update stats
+                updateStats(summary);
+
+                // Update charts
+                updateSeverityChart(summary.drift_summary.drift_by_severity);
+                updateTypeChart(summary.repositories_by_type);
+                updateDriftTypeChart(summary.drift_summary.drift_by_type);
+                updateModeChart(summary.repositories_by_mode);
+
+                // Update top repos list
+                updateTopReposList(topDrift.top_drift_repositories);
+
+                // Show dashboard
+                loading.style.display = 'none';
+                dashboard.style.display = 'block';
+
+                // Update timestamp
+                document.getElementById('lastUpdate').textContent =
+                    `Last updated: ${new Date().toLocaleString()}`;
+
+            } catch (err) {
+                console.error('Dashboard error:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = `Failed to load dashboard: ${err.message}. Make sure repositories are registered.`;
+            }
+        }
+
+        function updateStats(summary) {
+            document.getElementById('totalRepos').textContent = summary.total_repositories;
+            document.getElementById('activeRepos').textContent = `${summary.active_repositories} active`;
+
+            const totalDrift = summary.drift_summary.total_drift_events || 0;
+            document.getElementById('totalDrift').textContent = totalDrift;
+            document.getElementById('driftRepos').textContent =
+                `${summary.drift_summary.repositories_with_drift || 0} repos with drift`;
+
+            const avgCoherence = summary.average_coherence_score || 0;
+            document.getElementById('avgCoherence').textContent = avgCoherence;
+
+            const centralRepos = (summary.repositories_by_mode.central || 0) +
+                                (summary.repositories_by_mode.hybrid || 0);
+            document.getElementById('centralRepos').textContent = centralRepos;
+
+            const centralPct = summary.active_repositories > 0 ?
+                ((centralRepos / summary.active_repositories) * 100).toFixed(1) : 0;
+            document.getElementById('centralPct').textContent = `${centralPct}% of total`;
+        }
+
+        function updateSeverityChart(severity) {
+            const ctx = document.getElementById('severityChart').getContext('2d');
+
+            if (charts.severity) {
+                charts.severity.destroy();
+            }
+
+            charts.severity = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        data: [
+                            severity.critical || 0,
+                            severity.high || 0,
+                            severity.medium || 0,
+                            severity.low || 0
+                        ],
+                        backgroundColor: ['#dc2626', '#ea580c', '#ca8a04', '#2563eb']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTypeChart(byType) {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+
+            if (charts.type) {
+                charts.type.destroy();
+            }
+
+            const labels = Object.keys(byType);
+            const data = Object.values(byType);
+
+            charts.type = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                    datasets: [{
+                        label: 'Repositories',
+                        data: data,
+                        backgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDriftTypeChart(byType) {
+            const ctx = document.getElementById('driftTypeChart').getContext('2d');
+
+            if (charts.driftType) {
+                charts.driftType.destroy();
+            }
+
+            const labels = Object.keys(byType);
+            const data = Object.values(byType);
+
+            charts.driftType = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                    datasets: [{
+                        label: 'Drift Events',
+                        data: data,
+                        backgroundColor: '#ea580c'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateModeChart(byMode) {
+            const ctx = document.getElementById('modeChart').getContext('2d');
+
+            if (charts.mode) {
+                charts.mode.destroy();
+            }
+
+            charts.mode = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Standalone', 'Central', 'Hybrid'],
+                    datasets: [{
+                        data: [
+                            byMode.standalone || 0,
+                            byMode.central || 0,
+                            byMode.hybrid || 0
+                        ],
+                        backgroundColor: ['#6b7280', '#6366f1', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopReposList(repos) {
+            const list = document.getElementById('topReposList');
+
+            if (!repos || repos.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No repositories registered yet.</p>';
+                return;
+            }
+
+            list.innerHTML = repos.map(repo => {
+                const driftClass = repo.total_drift >= 10 ? 'drift-high' :
+                                  repo.total_drift >= 5 ? 'drift-medium' :
+                                  repo.total_drift > 0 ? 'drift-low' : 'drift-none';
+
+                const driftLabel = repo.total_drift === 0 ? 'No Drift' : `${repo.total_drift} events`;
+
+                return `
+                    <div class="repo-item">
+                        <div class="repo-header">
+                            <div class="repo-name">${repo.name}</div>
+                            <div class="repo-badge ${repo.type}">${repo.type}</div>
+                        </div>
+                        <div class="repo-stats">
+                            <div class="repo-stat">
+                                <span class="drift-badge ${driftClass}">${driftLabel}</span>
+                            </div>
+                            <div class="repo-stat">
+                                🎯 Coherence: ${repo.coherence_score}
+                            </div>
+                            <div class="repo-stat">
+                                📈 Trend: ${repo.trend_7d}
+                            </div>
+                            ${repo.owner_team ? `<div class="repo-stat">👥 ${repo.owner_team}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function syncCentral() {
+            try {
+                const result = await fetch('/multi-repo/sync-central', { method: 'POST' }).then(r => r.json());
+                alert('Central narrative synced successfully!');
+                loadDashboard();
+            } catch (err) {
+                alert(`Failed to sync: ${err.message}`);
+            }
+        }
+
+        async function scanAllRepos() {
+            try {
+                const result = await fetch('/multi-repo/scan', { method: 'POST' }).then(r => r.json());
+                alert(`Scan complete! Found ${result.summary.total_drift_events} drift events across ${result.total_repositories} repositories.`);
+                loadDashboard();
+            } catch (err) {
+                alert(`Failed to scan: ${err.message}`);
+            }
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadDashboard, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
