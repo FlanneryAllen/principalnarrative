@@ -343,6 +343,44 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .input-toggle {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .toggle-btn {
+            padding: 0.5rem 1.5rem;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .toggle-btn:hover:not(.active) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .input-wrapper {
+            margin: 1rem 0;
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -359,11 +397,40 @@
 
         <div class="upload-section" id="uploadSection">
             <h3>Analyze a Website</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 1rem;">Enter the local path to a website directory</p>
-            <input type="text" id="websitePath" class="path-input"
-                   placeholder="/path/to/website"
-                   value="/Users/julieallen/Desktop/codepilot-example-website">
-            <br>
+
+            <div class="input-toggle">
+                <button class="toggle-btn active" id="urlBtn" onclick="toggleInputMode('url')">
+                    🌐 URL
+                </button>
+                <button class="toggle-btn" id="pathBtn" onclick="toggleInputMode('path')">
+                    📁 Local Path
+                </button>
+            </div>
+
+            <div class="input-wrapper" id="urlInput">
+                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    Enter any website URL to analyze
+                </p>
+                <input type="text" id="websiteUrl" class="path-input"
+                       placeholder="https://example.com"
+                       value="https://example.com">
+                <div class="input-hint">
+                    💡 The analyzer will download up to 20 pages from the site
+                </div>
+            </div>
+
+            <div class="input-wrapper" id="pathInput" style="display: none;">
+                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    Enter local directory path
+                </p>
+                <input type="text" id="websitePath" class="path-input"
+                       placeholder="/path/to/website"
+                       value="/Users/julieallen/Desktop/codepilot-example-website">
+                <div class="input-hint">
+                    💡 Directory should contain HTML files
+                </div>
+            </div>
+
             <button class="analyze-btn" onclick="analyzeWebsite()">🔍 Analyze Website</button>
         </div>
 
@@ -457,10 +524,28 @@
     </div>
 
     <script>
+        let currentMode = 'url';
+
+        function toggleInputMode(mode) {
+            currentMode = mode;
+
+            // Toggle button styles
+            document.getElementById('urlBtn').classList.toggle('active', mode === 'url');
+            document.getElementById('pathBtn').classList.toggle('active', mode === 'path');
+
+            // Toggle input visibility
+            document.getElementById('urlInput').style.display = mode === 'url' ? 'block' : 'none';
+            document.getElementById('pathInput').style.display = mode === 'path' ? 'block' : 'none';
+        }
+
         async function analyzeWebsite() {
-            const path = document.getElementById('websitePath').value;
+            // Get path based on current mode
+            const path = currentMode === 'url'
+                ? document.getElementById('websiteUrl').value
+                : document.getElementById('websitePath').value;
+
             if (!path) {
-                alert('Please enter a website path');
+                alert('Please enter a ' + (currentMode === 'url' ? 'URL' : 'path'));
                 return;
             }
 
@@ -469,12 +554,18 @@
             document.getElementById('loading').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
 
+            // Update loading message
+            const loadingMsg = currentMode === 'url'
+                ? 'Downloading and analyzing website...'
+                : 'Analyzing website narrative structure...';
+            document.querySelector('#loading p').textContent = loadingMsg;
+
             try {
                 // Call API
                 const response = await fetch('/website/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: path, generate_report: true })
+                    body: JSON.stringify({ path: path, generate_report: true, max_pages: 20 })
                 });
 
                 if (!response.ok) {

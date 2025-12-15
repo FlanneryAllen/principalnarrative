@@ -13,6 +13,7 @@ import subprocess
 
 from src.services.website_analyzer import WebsiteAnalyzer
 from src.services.report_generator import ReportGenerator
+from src.services.url_fetcher import URLFetcher
 
 router = APIRouter(prefix="/website", tags=["Website Analysis"])
 
@@ -21,6 +22,7 @@ class WebsiteAnalysisRequest(BaseModel):
     """Request to analyze a website"""
     path: str  # Local file path or URL
     generate_report: bool = True
+    max_pages: int = 20  # Max pages to download for URLs
 
 
 class WebsiteAnalysisResponse(BaseModel):
@@ -39,6 +41,10 @@ async def analyze_website(request: WebsiteAnalysisRequest):
     """
     Analyze a website's narrative structure
 
+    Accepts either:
+    - Local file path (e.g., /path/to/website)
+    - URL (e.g., https://example.com)
+
     Extracts:
     - Value propositions and claims
     - Proof points (stats, testimonials)
@@ -47,33 +53,50 @@ async def analyze_website(request: WebsiteAnalysisRequest):
     - Messaging consistency
     """
 
-    website_path = Path(request.path)
+    # Check if path is a URL or local path
+    is_url = request.path.startswith(('http://', 'https://'))
+    fetcher = None
+    website_path = None
 
-    if not website_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Website path not found: {request.path}"
+    try:
+        if is_url:
+            # Fetch website from URL
+            print(f"🌐 Analyzing URL: {request.path}")
+            fetcher = URLFetcher(max_pages=request.max_pages)
+            website_path = fetcher.fetch_website(request.path)
+        else:
+            # Use local path
+            website_path = Path(request.path)
+            if not website_path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Website path not found: {request.path}"
+                )
+
+        # Run analysis
+        analyzer = WebsiteAnalyzer(website_path)
+        analysis = analyzer.analyze()
+
+        # Generate markdown report if requested
+        markdown_report = None
+        if request.generate_report:
+            generator = ReportGenerator(analysis)
+            markdown_report = generator.generate_markdown()
+
+        return WebsiteAnalysisResponse(
+            summary=analysis['summary'],
+            claims=analysis['claims'],
+            proof=analysis['proof'],
+            personas=analysis['personas'],
+            stats=analysis['stats'],
+            narrative_units=analysis['narrative_units'],
+            markdown_report=markdown_report
         )
 
-    # Run analysis
-    analyzer = WebsiteAnalyzer(website_path)
-    analysis = analyzer.analyze()
-
-    # Generate markdown report if requested
-    markdown_report = None
-    if request.generate_report:
-        generator = ReportGenerator(analysis)
-        markdown_report = generator.generate_markdown()
-
-    return WebsiteAnalysisResponse(
-        summary=analysis['summary'],
-        claims=analysis['claims'],
-        proof=analysis['proof'],
-        personas=analysis['personas'],
-        stats=analysis['stats'],
-        narrative_units=analysis['narrative_units'],
-        markdown_report=markdown_report
-    )
+    finally:
+        # Clean up temp directory if URL was fetched
+        if fetcher:
+            fetcher.cleanup()
 
 
 @router.get("/health")
