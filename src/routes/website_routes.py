@@ -18,6 +18,10 @@ from src.services.js_fetcher import JSFetcher
 from src.services.ai_narrative_analyzer import AINavrativeAnalyzer, to_dict
 from src.services.competitive_analyzer import CompetitiveAnalyzer, to_dict as comp_to_dict
 from src.services.pdf_generator import PDFGenerator
+from src.services.cache_service import get_cache_service
+from src.services.history_service import get_history_service
+from src.services.batch_analyzer import get_batch_analyzer, BatchJobStatus, BatchResult
+import asyncio
 
 router = APIRouter(prefix="/website", tags=["Website Analysis"])
 
@@ -28,6 +32,7 @@ class WebsiteAnalysisRequest(BaseModel):
     generate_report: bool = True
     max_pages: int = 20  # Max pages to download for URLs
     render_js: bool = False  # Use JavaScript rendering (Playwright)
+    force_refresh: bool = False  # Bypass cache and run fresh analysis
 
 
 class WebsiteAnalysisResponse(BaseModel):
@@ -39,6 +44,7 @@ class WebsiteAnalysisResponse(BaseModel):
     stats: Dict
     narrative_units: list
     markdown_report: Optional[str] = None
+    cache_metadata: Optional[Dict] = None  # Cache info (if from cache)
 
 
 class AIAnalysisResponse(BaseModel):
@@ -52,6 +58,7 @@ class AIAnalysisResponse(BaseModel):
     summary: Dict
     # Also include base analysis
     base_analysis: Optional[WebsiteAnalysisResponse] = None
+    cache_metadata: Optional[Dict] = None  # Cache info (if from cache)
 
 
 class CompetitiveSiteRequest(BaseModel):
@@ -76,6 +83,35 @@ class CompetitiveAnalysisResponse(BaseModel):
     summary: Dict
 
 
+class BatchAnalysisRequest(BaseModel):
+    """Request for batch URL analysis"""
+    urls: list  # List of URLs to analyze
+    analysis_type: str = 'standard'  # 'standard' or 'ai'
+    max_pages: int = 20
+    render_js: bool = False
+
+
+class BatchJobStatusResponse(BaseModel):
+    """Response with batch job status"""
+    job_id: str
+    status: str
+    total_urls: int
+    completed_urls: int
+    failed_urls: int
+    progress_percent: float
+    created_at: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class BatchResultsResponse(BaseModel):
+    """Response with batch analysis results"""
+    job_id: str
+    results: list  # List of BatchResult dicts
+    summary: Dict
+
+
 @router.post("/analyze", response_model=WebsiteAnalysisResponse)
 async def analyze_website(request: WebsiteAnalysisRequest):
     """
@@ -91,10 +127,42 @@ async def analyze_website(request: WebsiteAnalysisRequest):
     - Customer personas
     - Narrative units (problem → solution → proof)
     - Messaging consistency
+
+    Results are cached for 24 hours. Use force_refresh=true to bypass cache.
     """
 
-    # Check if path is a URL or local path
+    cache_service = get_cache_service()
+    history_service = get_history_service()
     is_url = request.path.startswith(('http://', 'https://'))
+
+    # Check cache first (unless force_refresh)
+    if not request.force_refresh:
+        cached_result = cache_service.get_cached_result(
+            request.path,
+            'standard',
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
+        if cached_result:
+            print(f"💾 Cache hit for {request.path}")
+            markdown_report = None
+            if request.generate_report:
+                generator = ReportGenerator(cached_result)
+                markdown_report = generator.generate_markdown()
+
+            return WebsiteAnalysisResponse(
+                summary=cached_result['summary'],
+                claims=cached_result['claims'],
+                proof=cached_result['proof'],
+                personas=cached_result['personas'],
+                stats=cached_result['stats'],
+                narrative_units=cached_result['narrative_units'],
+                markdown_report=markdown_report,
+                cache_metadata=cached_result.get('_cache_metadata')
+            )
+
+    # Not in cache or force refresh - run analysis
     fetcher = None
     website_path = None
 
@@ -126,6 +194,24 @@ async def analyze_website(request: WebsiteAnalysisRequest):
         analyzer = WebsiteAnalyzer(website_path)
         analysis = analyzer.analyze()
 
+        # Save to cache
+        cache_service.save_result(
+            request.path,
+            'standard',
+            analysis,
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
+        # Save to history
+        history_service.save_snapshot(
+            request.path,
+            'standard',
+            analysis,
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
         # Generate markdown report if requested
         markdown_report = None
         if request.generate_report:
@@ -139,7 +225,8 @@ async def analyze_website(request: WebsiteAnalysisRequest):
             personas=analysis['personas'],
             stats=analysis['stats'],
             narrative_units=analysis['narrative_units'],
-            markdown_report=markdown_report
+            markdown_report=markdown_report,
+            cache_metadata=None  # Fresh analysis, no cache metadata
         )
 
     finally:
@@ -165,10 +252,38 @@ async def analyze_website_ai(request: WebsiteAnalysisRequest):
     Accepts either:
     - Local file path (e.g., /path/to/website)
     - URL (e.g., https://example.com)
+
+    Results are cached for 24 hours. Use force_refresh=true to bypass cache.
     """
 
-    # Check if path is a URL or local path
+    cache_service = get_cache_service()
+    history_service = get_history_service()
     is_url = request.path.startswith(('http://', 'https://'))
+
+    # Check cache first (unless force_refresh)
+    if not request.force_refresh:
+        cached_result = cache_service.get_cached_result(
+            request.path,
+            'ai',
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
+        if cached_result:
+            print(f"💾 Cache hit for AI analysis: {request.path}")
+            return AIAnalysisResponse(
+                ai_claims=cached_result['ai_claims'],
+                narrative_gaps=cached_result['narrative_gaps'],
+                tone_analysis=cached_result['tone_analysis'],
+                value_prop_scores=cached_result['value_prop_scores'],
+                recommendations=cached_result['recommendations'],
+                overall_narrative_score=cached_result['overall_narrative_score'],
+                summary=cached_result['summary'],
+                base_analysis=None,
+                cache_metadata=cached_result.get('_cache_metadata')
+            )
+
+    # Not in cache or force refresh - run analysis
     fetcher = None
     website_path = None
 
@@ -204,6 +319,25 @@ async def analyze_website_ai(request: WebsiteAnalysisRequest):
         # Convert dataclasses to dicts
         result_dict = to_dict(ai_result)
 
+        # Save to cache
+        cache_service.save_result(
+            request.path,
+            'ai',
+            result_dict,
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
+        # Save to history
+        history_service.save_snapshot(
+            request.path,
+            'ai',
+            result_dict,
+            max_pages=request.max_pages,
+            render_js=request.render_js,
+            pages_analyzed=result_dict['summary'].get('total_pages', 0)
+        )
+
         # Optionally include base analysis
         base_analysis = None
         if request.generate_report:
@@ -225,7 +359,8 @@ async def analyze_website_ai(request: WebsiteAnalysisRequest):
             recommendations=result_dict['recommendations'],
             overall_narrative_score=result_dict['overall_narrative_score'],
             summary=result_dict['summary'],
-            base_analysis=base_analysis
+            base_analysis=base_analysis,
+            cache_metadata=None  # Fresh analysis
         )
 
     except RuntimeError as e:
@@ -468,9 +603,227 @@ async def export_competitive_pdf(request: CompetitiveAnalysisRequest):
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
 
+@router.post("/batch/analyze", response_model=BatchJobStatusResponse)
+async def start_batch_analysis(request: BatchAnalysisRequest):
+    """
+    Start batch analysis of multiple URLs
+
+    Accepts 2-100 URLs and analyzes them in parallel.
+    Returns job_id for tracking progress.
+
+    Results are cached and saved to historical tracking.
+    Use GET /website/batch/status/{job_id} to check progress.
+    """
+    if not request.urls or len(request.urls) < 2:
+        raise HTTPException(status_code=400, detail="Minimum 2 URLs required")
+
+    if len(request.urls) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 URLs allowed")
+
+    batch_analyzer = get_batch_analyzer()
+
+    # Create job
+    job_id = batch_analyzer.create_job(request.urls, request.analysis_type)
+
+    # Start analysis in background
+    asyncio.create_task(
+        batch_analyzer.run_batch_analysis(
+            job_id,
+            request.urls,
+            request.analysis_type,
+            request.max_pages,
+            request.render_js
+        )
+    )
+
+    # Return initial status
+    status = batch_analyzer.get_job_status(job_id)
+
+    return BatchJobStatusResponse(
+        job_id=status.job_id,
+        status=status.status,
+        total_urls=status.total_urls,
+        completed_urls=status.completed_urls,
+        failed_urls=status.failed_urls,
+        progress_percent=status.progress_percent,
+        created_at=status.created_at.isoformat(),
+        started_at=status.started_at.isoformat() if status.started_at else None,
+        completed_at=status.completed_at.isoformat() if status.completed_at else None,
+        error_message=status.error_message
+    )
+
+
+@router.get("/batch/status/{job_id}", response_model=BatchJobStatusResponse)
+async def get_batch_status(job_id: str):
+    """Get status of a batch analysis job"""
+    batch_analyzer = get_batch_analyzer()
+    status = batch_analyzer.get_job_status(job_id)
+
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+
+    return BatchJobStatusResponse(
+        job_id=status.job_id,
+        status=status.status,
+        total_urls=status.total_urls,
+        completed_urls=status.completed_urls,
+        failed_urls=status.failed_urls,
+        progress_percent=status.progress_percent,
+        created_at=status.created_at.isoformat(),
+        started_at=status.started_at.isoformat() if status.started_at else None,
+        completed_at=status.completed_at.isoformat() if status.completed_at else None,
+        error_message=status.error_message
+    )
+
+
+@router.get("/batch/results/{job_id}", response_model=BatchResultsResponse)
+async def get_batch_results(job_id: str):
+    """Get results from a completed batch analysis"""
+    batch_analyzer = get_batch_analyzer()
+
+    # Check if job exists
+    status = batch_analyzer.get_job_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+
+    # Get results
+    results = batch_analyzer.get_batch_results(job_id)
+
+    # Convert BatchResult objects to dicts
+    results_dicts = []
+    for r in results:
+        results_dicts.append({
+            'url': r.url,
+            'status': r.status,
+            'total_claims': r.total_claims,
+            'total_proof': r.total_proof,
+            'total_personas': r.total_personas,
+            'proof_ratio': r.proof_ratio,
+            'overall_score': r.overall_score,
+            'cached': r.cached,
+            'analyzed_at': r.analyzed_at.isoformat(),
+            'error_message': r.error_message
+        })
+
+    # Calculate summary
+    successful = [r for r in results if r.status == 'success']
+    summary = {
+        'total_urls': len(results),
+        'successful': len(successful),
+        'failed': len([r for r in results if r.status == 'failed']),
+        'from_cache': len([r for r in results if r.cached]),
+        'avg_claims': sum(r.total_claims for r in successful) / len(successful) if successful else 0,
+        'avg_proof': sum(r.total_proof for r in successful) / len(successful) if successful else 0,
+        'avg_score': sum(r.overall_score for r in successful) / len(successful) if successful else 0
+    }
+
+    return BatchResultsResponse(
+        job_id=job_id,
+        results=results_dicts,
+        summary=summary
+    )
+
+
+@router.get("/batch/export-csv/{job_id}")
+async def export_batch_csv(job_id: str):
+    """Export batch results as CSV"""
+    batch_analyzer = get_batch_analyzer()
+
+    # Check if job exists
+    status = batch_analyzer.get_job_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+
+    # Generate CSV
+    csv_content = batch_analyzer.export_results_csv(job_id)
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="batch_results_{job_id}.csv"'}
+    )
+
+
+@router.get("/history/recent")
+async def get_recent_analyses(limit: int = 20):
+    """Get list of recently analyzed websites"""
+    history_service = get_history_service()
+    recent = history_service.get_recent_analyses(limit)
+    return {"recent_analyses": recent}
+
+
+@router.get("/history/snapshots/{url:path}")
+async def get_url_snapshots(url: str, analysis_type: str = 'standard', limit: int = 30):
+    """Get historical snapshots for a URL"""
+    history_service = get_history_service()
+    snapshots = history_service.get_snapshots(url, analysis_type, limit)
+
+    # Convert to dicts
+    snapshots_dicts = []
+    for snap in snapshots:
+        snapshots_dicts.append({
+            'id': snap.id,
+            'url': snap.url,
+            'snapshot_date': snap.snapshot_date.isoformat(),
+            'total_claims': snap.total_claims,
+            'total_proof': snap.total_proof,
+            'total_personas': snap.total_personas,
+            'proof_ratio': snap.proof_ratio,
+            'consistency_score': snap.consistency_score,
+            'overall_score': snap.overall_score
+        })
+
+    return {"snapshots": snapshots_dicts}
+
+
+@router.get("/history/trends/{url:path}")
+async def get_url_trends(url: str, analysis_type: str = 'standard', days: int = 30):
+    """Get trend analysis for a URL"""
+    history_service = get_history_service()
+    trends = history_service.analyze_trends(url, analysis_type, days)
+
+    if not trends:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Not enough historical data for {url}. Need at least 2 snapshots."
+        )
+
+    # Convert snapshots to dicts
+    snapshots_dicts = []
+    for snap in trends.snapshots:
+        snapshots_dicts.append({
+            'id': snap.id,
+            'url': snap.url,
+            'snapshot_date': snap.snapshot_date.isoformat(),
+            'total_claims': snap.total_claims,
+            'total_proof': snap.total_proof,
+            'total_personas': snap.total_personas,
+            'proof_ratio': snap.proof_ratio,
+            'consistency_score': snap.consistency_score,
+            'overall_score': snap.overall_score
+        })
+
+    return {
+        "url": trends.url,
+        "snapshots": snapshots_dicts,
+        "total_snapshots": trends.total_snapshots,
+        "date_range_days": trends.date_range_days,
+        "claims_trend": trends.claims_trend,
+        "proof_trend": trends.proof_trend,
+        "score_trend": trends.score_trend,
+        "claims_change": trends.claims_change,
+        "proof_change": trends.proof_change,
+        "score_change": trends.score_change,
+        "insights": trends.insights
+    }
+
+
 @router.get("/health")
 async def health_check():
     """Health check for website analysis service"""
+    cache_service = get_cache_service()
+    cache_stats = cache_service.get_cache_stats()
+
     return {
         "status": "healthy",
         "service": "website_analysis",
@@ -482,6 +835,11 @@ async def health_check():
             "report_generation",
             "ai_enhanced_analysis",
             "competitive_analysis",
-            "pdf_export"
-        ]
+            "pdf_export",
+            "batch_analysis",
+            "result_caching",
+            "historical_tracking",
+            "trend_analysis"
+        ],
+        "cache": cache_stats
     }

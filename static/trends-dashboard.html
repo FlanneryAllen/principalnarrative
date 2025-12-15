@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Trends - Principal Narrative</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .selection-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .trends-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .trends-section.active {
+            display: block;
+        }
+
+        .trend-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .trend-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .trend-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .trend-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .trend-indicator {
+            font-size: 18px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .trend-increasing {
+            color: #10b981;
+            background: #d1fae5;
+        }
+
+        .trend-decreasing {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .trend-stable {
+            color: #6b7280;
+            background: #f3f4f6;
+        }
+
+        .insights-box {
+            background: #f0f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .insights-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .insight-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .chart-container {
+            margin-top: 30px;
+            height: 400px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .url-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .url-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+
+        .url-item:hover {
+            background: #f8f9fa;
+        }
+
+        .url-item:last-child {
+            border-bottom: none;
+        }
+
+        .url-item.selected {
+            background: #e0e7ff;
+            font-weight: 600;
+        }
+
+        .url-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Historical Trend Analysis</h1>
+            <p class="subtitle">Track narrative changes over time and identify drift patterns</p>
+        </div>
+
+        <div class="selection-section">
+            <label>Recently Analyzed Websites:</label>
+            <div id="urlList" class="url-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px;">Loading recent analyses...</p>
+                </div>
+            </div>
+
+            <label for="daysRange">Time Range:</label>
+            <select id="daysRange">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+
+            <label for="analysisType">Analysis Type:</label>
+            <select id="analysisType">
+                <option value="standard">Standard Analysis</option>
+                <option value="ai">AI-Enhanced</option>
+            </select>
+
+            <button onclick="loadTrends()" id="loadBtn" disabled>
+                📊 Load Trends
+            </button>
+        </div>
+
+        <div class="trends-section" id="trendsSection">
+            <h2 id="trendTitle">Trend Analysis</h2>
+
+            <div class="trend-indicators">
+                <div class="trend-card">
+                    <div class="trend-label">Claims</div>
+                    <div class="trend-value" id="claimsChange">0</div>
+                    <div class="trend-indicator" id="claimsTrend">-</div>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-label">Proof Points</div>
+                    <div class="trend-value" id="proofChange">0</div>
+                    <div class="trend-indicator" id="proofTrend">-</div>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-label">Overall Score</div>
+                    <div class="trend-value" id="scoreChange">0</div>
+                    <div class="trend-indicator" id="scoreTrend">-</div>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-label">Snapshots</div>
+                    <div class="trend-value" id="totalSnapshots">0</div>
+                    <div style="font-size: 14px; color: #666;">over <span id="dateRange">-</span> days</div>
+                </div>
+            </div>
+
+            <div class="insights-box">
+                <div class="insights-title">💡 Key Insights</div>
+                <div id="insightsList"></div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="trendsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedUrl = null;
+        let trendsChart = null;
+
+        // Load recent analyses on page load
+        async function loadRecentAnalyses() {
+            try {
+                const response = await fetch('/website/history/recent?limit=20');
+                if (!response.ok) throw new Error('Failed to load recent analyses');
+
+                const data = await response.json();
+                const urlList = document.getElementById('urlList');
+
+                if (data.recent_analyses.length === 0) {
+                    urlList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>No analyzed websites yet.</p>
+                            <p style="font-size: 14px; margin-top: 10px;">
+                                Analyze some websites first to see trends!
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                urlList.innerHTML = '';
+                data.recent_analyses.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'url-item';
+                    div.onclick = () => selectUrl(item.url, div);
+
+                    const lastAnalyzed = new Date(item.last_analyzed);
+                    const timeAgo = getTimeAgo(lastAnalyzed);
+
+                    div.innerHTML = `
+                        <div>${item.url}</div>
+                        <div class="url-info">
+                            ${item.analysis_type} • Last analyzed ${timeAgo}
+                        </div>
+                    `;
+
+                    urlList.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error('Error loading recent analyses:', error);
+                document.getElementById('urlList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Error loading analyses</p>
+                    </div>
+                `;
+            }
+        }
+
+        function selectUrl(url, element) {
+            selectedUrl = url;
+
+            // Update selection UI
+            document.querySelectorAll('.url-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            element.classList.add('selected');
+
+            // Enable load button
+            document.getElementById('loadBtn').disabled = false;
+        }
+
+        async function loadTrends() {
+            if (!selectedUrl) return;
+
+            const days = parseInt(document.getElementById('daysRange').value);
+            const analysisType = document.getElementById('analysisType').value;
+
+            try {
+                const url = encodeURIComponent(selectedUrl);
+                const response = await fetch(
+                    `/website/history/trends/${url}?analysis_type=${analysisType}&days=${days}`
+                );
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        alert('Not enough historical data for this URL. Analyze it at least twice to see trends.');
+                        return;
+                    }
+                    throw new Error('Failed to load trends');
+                }
+
+                const trends = await response.json();
+                displayTrends(trends);
+
+            } catch (error) {
+                console.error('Error loading trends:', error);
+                alert('Failed to load trends: ' + error.message);
+            }
+        }
+
+        function displayTrends(trends) {
+            // Show trends section
+            document.getElementById('trendsSection').classList.add('active');
+
+            // Update title
+            document.getElementById('trendTitle').textContent = `Trends for ${trends.url}`;
+
+            // Update trend indicators
+            document.getElementById('claimsChange').textContent =
+                (trends.claims_change >= 0 ? '+' : '') + trends.claims_change;
+            document.getElementById('proofChange').textContent =
+                (trends.proof_change >= 0 ? '+' : '') + trends.proof_change;
+            document.getElementById('scoreChange').textContent =
+                (trends.score_change >= 0 ? '+' : '') + trends.score_change.toFixed(1);
+
+            // Update trend badges
+            updateTrendBadge('claimsTrend', trends.claims_trend);
+            updateTrendBadge('proofTrend', trends.proof_trend);
+            updateTrendBadge('scoreTrend', trends.score_trend);
+
+            // Update snapshot info
+            document.getElementById('totalSnapshots').textContent = trends.total_snapshots;
+            document.getElementById('dateRange').textContent = trends.date_range_days;
+
+            // Update insights
+            const insightsList = document.getElementById('insightsList');
+            insightsList.innerHTML = '';
+            trends.insights.forEach(insight => {
+                const div = document.createElement('div');
+                div.className = 'insight-item';
+                div.textContent = insight;
+                insightsList.appendChild(div);
+            });
+
+            // Create chart
+            createTrendsChart(trends.snapshots);
+        }
+
+        function updateTrendBadge(elementId, trend) {
+            const badge = document.getElementById(elementId);
+            badge.className = `trend-indicator trend-${trend}`;
+
+            let icon = '→';
+            if (trend === 'increasing') icon = '↗';
+            else if (trend === 'decreasing') icon = '↘';
+
+            badge.textContent = `${icon} ${trend}`;
+        }
+
+        function createTrendsChart(snapshots) {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+
+            // Destroy existing chart
+            if (trendsChart) {
+                trendsChart.destroy();
+            }
+
+            const labels = snapshots.map(s => {
+                const date = new Date(s.snapshot_date);
+                return date.toLocaleDateString();
+            });
+
+            const claims = snapshots.map(s => s.total_claims);
+            const proof = snapshots.map(s => s.total_proof);
+            const scores = snapshots.map(s => s.overall_score);
+
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Overall Score',
+                            data: scores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Claims',
+                            data: claims,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Proof Points',
+                            data: proof,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            yAxisID: 'y',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Narrative Metrics Over Time'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Score'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return 'just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Load recent analyses on page load
+        loadRecentAnalyses();
+    </script>
+</body>
+</html>

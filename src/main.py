@@ -191,6 +191,26 @@ async def competitive_dashboard():
     return FileResponse(dashboard_path)
 
 
+@app.get("/batch")
+async def batch_dashboard():
+    """Serve the batch URL analysis dashboard."""
+    from pathlib import Path
+    dashboard_path = Path(__file__).parent.parent / "static" / "batch-dashboard.html"
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Batch dashboard not found")
+    return FileResponse(dashboard_path)
+
+
+@app.get("/trends")
+async def trends_dashboard():
+    """Serve the historical trends analysis dashboard."""
+    from pathlib import Path
+    dashboard_path = Path(__file__).parent.parent / "static" / "trends-dashboard.html"
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Trends dashboard not found")
+    return FileResponse(dashboard_path)
+
+
 # ============================================================================
 # Context Query Endpoints
 # ============================================================================

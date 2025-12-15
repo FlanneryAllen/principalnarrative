@@ -201,12 +201,25 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 - `POST /website/analyze` - Analyze website narrative structure
 - `POST /website/analyze-ai` - AI-enhanced narrative analysis
 - `POST /website/compare` - Competitive analysis (2-5 sites)
-- `POST /website/export-pdf` - Export standard analysis as PDF ⭐ New!
-- `POST /website/export-ai-pdf` - Export AI analysis as PDF ⭐ New!
-- `POST /website/export-competitive-pdf` - Export competitive analysis as PDF ⭐ New!
-- `GET /website/health` - Website analysis service health check
+- `POST /website/export-pdf` - Export standard analysis as PDF
+- `POST /website/export-ai-pdf` - Export AI analysis as PDF
+- `POST /website/export-competitive-pdf` - Export competitive analysis as PDF
+
+### Batch & Historical Analysis ⭐ New!
+- `POST /website/batch/analyze` - Batch analyze 2-100 URLs
+- `GET /website/batch/status/{job_id}` - Get batch job status
+- `GET /website/batch/results/{job_id}` - Get batch results
+- `GET /website/batch/export-csv/{job_id}` - Export batch results as CSV
+- `GET /website/history/recent` - List recently analyzed URLs
+- `GET /website/history/snapshots/{url}` - Get historical snapshots
+- `GET /website/history/trends/{url}` - Get trend analysis
+
+### Dashboards
 - `GET /dashboard` - Interactive visual dashboard
 - `GET /competitive` - Competitive analysis dashboard
+- `GET /batch` - Batch URL analysis dashboard ⭐ New!
+- `GET /trends` - Historical trends dashboard ⭐ New!
+- `GET /website/health` - Website analysis service health check
 
 See http://localhost:8000/docs for interactive API documentation.
 
@@ -220,7 +233,7 @@ See http://localhost:8000/docs for interactive API documentation.
 - **Monitoring**: Structured logging with file and console output
 
 ### Key Features
-- ✅ Complete API with 40+ endpoints
+- ✅ Complete API with 50+ endpoints
 - ✅ Structured logging and monitoring
 - ✅ Docker containerization
 - ✅ CI/CD with GitHub Actions
@@ -240,11 +253,23 @@ See http://localhost:8000/docs for interactive API documentation.
   - Strengths analysis
   - Visual charts and rankings
   - Actionable opportunities
-- ✅ **PDF Report Export** ⭐ New!
+- ✅ **PDF Report Export**
   - Professional branded PDF reports
   - Charts and visualizations embedded
   - One-click download from dashboards
   - Shareable with stakeholders
+- ✅ **Result Caching & Historical Tracking** ⭐ New!
+  - 24-hour automatic caching (reduces API costs)
+  - Unlimited historical snapshots
+  - Automatic trend detection (increasing/decreasing/stable)
+  - Narrative drift alerts
+  - Visual trend dashboards
+- ✅ **Batch URL Analysis** ⭐ New!
+  - Analyze 2-100 websites simultaneously
+  - Parallel processing (5-10 concurrent)
+  - Real-time progress tracking
+  - CSV export for external analysis
+  - Intelligent cache integration
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -311,7 +336,8 @@ pip install -r requirements.txt
 ```
 
 ### Documentation
-- **Competitive Analysis**: [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md) ⭐ New!
+- **Caching & Historical Tracking**: [CACHING_AND_HISTORY.md](CACHING_AND_HISTORY.md) ⭐ New!
+- **Competitive Analysis**: [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md)
 - **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md)
 - **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)
 - **Live URL Analysis**: [URL_ANALYSIS.md](URL_ANALYSIS.md)

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch URL Analysis - Principal Narrative</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .input-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 40px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-cached {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .chart-container {
+            margin-top: 30px;
+            height: 300px;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .url-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Batch URL Analysis</h1>
+            <p class="subtitle">Analyze multiple websites simultaneously with intelligent caching and progress tracking</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="input-section">
+            <label for="urlsTextarea">
+                Enter URLs (one per line, 2-100 URLs):
+            </label>
+            <textarea
+                id="urlsTextarea"
+                placeholder="https://example.com&#10;https://competitor1.com&#10;https://competitor2.com&#10;..."></textarea>
+
+            <div class="url-preview" id="urlPreview">
+                0 URLs entered
+            </div>
+
+            <div class="options">
+                <div>
+                    <label for="analysisType">Analysis Type:</label>
+                    <select id="analysisType">
+                        <option value="standard">Standard Analysis (Fast)</option>
+                        <option value="ai">AI-Enhanced (Slower, requires API key)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="maxPages">Max Pages per Site:</label>
+                    <select id="maxPages">
+                        <option value="5">5 pages (Quick)</option>
+                        <option value="10" selected>10 pages (Recommended)</option>
+                        <option value="20">20 pages (Thorough)</option>
+                    </select>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="renderJs">
+                    <label for="renderJs">🎭 Render JavaScript (SPAs)</label>
+                </div>
+            </div>
+
+            <p class="info-text">
+                💡 Results are automatically cached for 24 hours and saved to historical tracking
+            </p>
+
+            <div class="button-group">
+                <button onclick="startBatchAnalysis()" id="analyzeBtn">
+                    🚀 Start Batch Analysis
+                </button>
+                <button onclick="clearInput()" style="background: #6c757d;">
+                    🗑️ Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h2>⏳ Analysis in Progress</h2>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%;">
+                    0%
+                </div>
+            </div>
+
+            <div class="progress-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalUrls">0</div>
+                    <div class="stat-label">Total URLs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completedUrls">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="failedUrls">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cachedUrls">-</div>
+                    <div class="stat-label">From Cache</div>
+                </div>
+            </div>
+
+            <p class="info-text" style="margin-top: 20px;">
+                Job ID: <strong id="jobId">-</strong>
+            </p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <h2>📊 Results</h2>
+
+            <div class="progress-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="avgClaims">0</div>
+                    <div class="stat-label">Avg Claims</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgProof">0</div>
+                    <div class="stat-label">Avg Proof</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgScore">0</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="successRate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="resultsChart"></canvas>
+            </div>
+
+            <div class="button-group" style="margin-top: 20px;">
+                <button onclick="downloadCSV()">
+                    📥 Download CSV
+                </button>
+                <button onclick="resetAnalysis()" style="background: #6c757d;">
+                    🔄 New Analysis
+                </button>
+            </div>
+
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status</th>
+                        <th>Claims</th>
+                        <th>Proof</th>
+                        <th>Personas</th>
+                        <th>Score</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let pollInterval = null;
+        let resultsChart = null;
+
+        // Update URL preview
+        document.getElementById('urlsTextarea').addEventListener('input', function() {
+            const urls = getUrls();
+            const preview = document.getElementById('urlPreview');
+            preview.textContent = `${urls.length} URL${urls.length !== 1 ? 's' : ''} entered`;
+        });
+
+        function getUrls() {
+            const textarea = document.getElementById('urlsTextarea');
+            return textarea.value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            setTimeout(() => errorDiv.classList.remove('active'), 5000);
+        }
+
+        async function startBatchAnalysis() {
+            const urls = getUrls();
+
+            if (urls.length < 2) {
+                showError('Please enter at least 2 URLs');
+                return;
+            }
+
+            if (urls.length > 100) {
+                showError('Maximum 100 URLs allowed');
+                return;
+            }
+
+            const analysisType = document.getElementById('analysisType').value;
+            const maxPages = parseInt(document.getElementById('maxPages').value);
+            const renderJs = document.getElementById('renderJs').checked;
+
+            // Disable analyze button
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ Starting...';
+
+            try {
+                const response = await fetch('/website/batch/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        urls,
+                        analysis_type: analysisType,
+                        max_pages: maxPages,
+                        render_js: renderJs
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Analysis failed');
+                }
+
+                const data = await response.json();
+                currentJobId = data.job_id;
+
+                // Show progress section
+                document.getElementById('progressSection').classList.add('active');
+                document.getElementById('resultsSection').classList.remove('active');
+                document.getElementById('jobId').textContent = currentJobId;
+
+                // Start polling for progress
+                startPolling();
+
+            } catch (error) {
+                showError(error.message);
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🚀 Start Batch Analysis';
+            }
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(checkProgress, 2000);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        async function checkProgress() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/website/batch/status/${currentJobId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get status');
+                }
+
+                const status = await response.json();
+
+                // Update progress bar
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = `${status.progress_percent}%`;
+                progressBar.textContent = `${Math.round(status.progress_percent)}%`;
+
+                // Update stats
+                document.getElementById('totalUrls').textContent = status.total_urls;
+                document.getElementById('completedUrls').textContent = status.completed_urls;
+                document.getElementById('failedUrls').textContent = status.failed_urls;
+
+                // Check if completed
+                if (status.status === 'completed') {
+                    stopPolling();
+                    await loadResults();
+                }
+
+            } catch (error) {
+                console.error('Polling error:', error);
+                stopPolling();
+                showError('Failed to get progress update');
+            }
+        }
+
+        async function loadResults() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/website/batch/results/${currentJobId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get results');
+                }
+
+                const data = await response.json();
+
+                // Update summary stats
+                document.getElementById('avgClaims').textContent = Math.round(data.summary.avg_claims);
+                document.getElementById('avgProof').textContent = Math.round(data.summary.avg_proof);
+                document.getElementById('avgScore').textContent = Math.round(data.summary.avg_score);
+                document.getElementById('cachedUrls').textContent = data.summary.from_cache;
+
+                const successRate = (data.summary.successful / data.summary.total_urls * 100);
+                document.getElementById('successRate').textContent = `${Math.round(successRate)}%`;
+
+                // Populate table
+                const tbody = document.getElementById('resultsTableBody');
+                tbody.innerHTML = '';
+
+                data.results.forEach(result => {
+                    const row = tbody.insertRow();
+
+                    // URL
+                    const urlCell = row.insertCell();
+                    urlCell.textContent = result.url;
+                    urlCell.style.maxWidth = '300px';
+                    urlCell.style.overflow = 'hidden';
+                    urlCell.style.textOverflow = 'ellipsis';
+                    urlCell.title = result.url;
+
+                    // Status
+                    const statusCell = row.insertCell();
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = `status-badge status-${result.status}`;
+                    statusBadge.textContent = result.status.toUpperCase();
+                    statusCell.appendChild(statusBadge);
+
+                    // Claims
+                    row.insertCell().textContent = result.total_claims || '-';
+
+                    // Proof
+                    row.insertCell().textContent = result.total_proof || '-';
+
+                    // Personas
+                    row.insertCell().textContent = result.total_personas || '-';
+
+                    // Score
+                    row.insertCell().textContent = result.overall_score ? `${Math.round(result.overall_score)}` : '-';
+
+                    // Source
+                    const sourceCell = row.insertCell();
+                    const sourceBadge = document.createElement('span');
+                    sourceBadge.className = `status-badge ${result.cached ? 'status-cached' : 'status-success'}`;
+                    sourceBadge.textContent = result.cached ? 'CACHED' : 'FRESH';
+                    sourceCell.appendChild(sourceBadge);
+                });
+
+                // Create chart
+                createChart(data.results);
+
+                // Show results section
+                document.getElementById('resultsSection').classList.add('active');
+                document.getElementById('progressSection').classList.remove('active');
+
+                // Re-enable analyze button
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🚀 Start Batch Analysis';
+
+            } catch (error) {
+                console.error('Results error:', error);
+                showError('Failed to load results');
+            }
+        }
+
+        function createChart(results) {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+
+            // Destroy existing chart
+            if (resultsChart) {
+                resultsChart.destroy();
+            }
+
+            // Get successful results
+            const successful = results.filter(r => r.status === 'success');
+
+            // Sort by score
+            successful.sort((a, b) => b.overall_score - a.overall_score);
+
+            // Take top 10
+            const top10 = successful.slice(0, 10);
+
+            const labels = top10.map(r => {
+                const url = r.url.replace(/^https?:\/\//, '').split('/')[0];
+                return url.length > 20 ? url.substring(0, 20) + '...' : url;
+            });
+
+            const scores = top10.map(r => r.overall_score);
+            const claims = top10.map(r => r.total_claims);
+            const proof = top10.map(r => r.total_proof);
+
+            resultsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Overall Score',
+                            data: scores,
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        },
+                        {
+                            label: 'Claims',
+                            data: claims,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        },
+                        {
+                            label: 'Proof Points',
+                            data: proof,
+                            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 10 Sites by Overall Score'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function downloadCSV() {
+            if (!currentJobId) return;
+
+            try {
+                window.location.href = `/website/batch/export-csv/${currentJobId}`;
+            } catch (error) {
+                showError('Failed to download CSV');
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('urlsTextarea').value = '';
+            document.getElementById('urlPreview').textContent = '0 URLs entered';
+        }
+
+        function resetAnalysis() {
+            currentJobId = null;
+            stopPolling();
+            document.getElementById('progressSection').classList.remove('active');
+            document.getElementById('resultsSection').classList.remove('active');
+            clearInput();
+        }
+    </script>
+</body>
+</html>
