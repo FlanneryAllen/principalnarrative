@@ -50,6 +50,7 @@ htmlcov/
 # Logs
 *.log
 logs/
+narrative-api.log
 
 # Database
 *.db

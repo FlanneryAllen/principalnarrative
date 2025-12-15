@@ -13,6 +13,8 @@ Detects 7 types of drift:
 import re
 import json
 from datetime import datetime, timedelta
+from ..logging_config import get_logger
+
 from typing import Optional
 from pathlib import Path
 import uuid
@@ -25,6 +27,9 @@ from ..models import (
     DriftStatus,
 )
 from .narrative import NarrativeService
+
+
+logger = get_logger("services.drift_detector")
 
 
 class DriftDetector:
@@ -40,8 +45,8 @@ class DriftDetector:
         """Run a complete drift scan across all layers."""
         self.detected_drifts = []
 
-        print("Starting drift detection scan...")
-        print("-" * 50)
+        logger.info("Starting drift detection scan...")
+        logger.info("-" * 50)
 
         # Run all detectors
         self._detect_naming_drift()
@@ -51,8 +56,8 @@ class DriftDetector:
         self._detect_messaging_drift()
         self._detect_stale_content()
 
-        print("-" * 50)
-        print(f"Scan complete. Found {len(self.detected_drifts)} drift events.")
+        logger.info("-" * 50)
+        logger.info(f"Scan complete. Found {len(self.detected_drifts)} drift events.")
 
         return self.detected_drifts
 
@@ -86,12 +91,12 @@ class DriftDetector:
 
     def _detect_naming_drift(self) -> list[DriftEvent]:
         """Detect naming violations across all content."""
-        print("Scanning for naming drift...")
+        logger.info("Scanning for naming drift...")
         events = []
 
         forbidden_terms = self.narrative.get_forbidden_terms()
         if not forbidden_terms:
-            print("  No forbidden terms defined, skipping.")
+            logger.debug("  No forbidden terms defined, skipping.")
             return events
 
         all_units = self.narrative.get_all_units()
@@ -121,9 +126,9 @@ class DriftDetector:
                         suggested_resolution=f"Replace '{term}' with '{term_info.get('alternative', 'approved alternative')}'"
                     )
                     events.append(event)
-                    print(f"  [NAMING] {unit.file_path}: '{term}' found")
+                    logger.debug(f"  [NAMING] {unit.file_path}: '{term}' found")
 
-        print(f"  Found {len(events)} naming drift events.")
+        logger.info(f"  Found {len(events)} naming drift events.")
         return events
 
     # =========================================================================
@@ -132,7 +137,7 @@ class DriftDetector:
 
     def _detect_proof_drift(self) -> list[DriftEvent]:
         """Detect claims that don't match proof metrics."""
-        print("Scanning for proof drift...")
+        logger.info("Scanning for proof drift...")
         events = []
 
         metrics = self.narrative.get_proof_metrics()
@@ -193,7 +198,7 @@ class DriftDetector:
                                             suggested_resolution=f"Re-verify metric {metric.get('id')} before continuing to use this claim"
                                         )
                                         events.append(event)
-                                        print(f"  [PROOF-STALE] {unit.file_path}: {num} is stale")
+                                        logger.debug(f"  [PROOF-STALE] {unit.file_path}: {num} is stale")
                                 except ValueError:
                                     pass
                             break
@@ -212,9 +217,9 @@ class DriftDetector:
                             suggested_resolution="Add a verified metric to the proof layer or remove/adjust the claim"
                         )
                         events.append(event)
-                        print(f"  [PROOF-MISSING] {unit.file_path}: {num} unverified")
+                        logger.debug(f"  [PROOF-MISSING] {unit.file_path}: {num} unverified")
 
-        print(f"  Found {len(events)} proof drift events.")
+        logger.info(f"  Found {len(events)} proof drift events.")
         return events
 
     # =========================================================================
@@ -223,12 +228,12 @@ class DriftDetector:
 
     def _detect_promise_delivery_drift(self) -> list[DriftEvent]:
         """Detect when marketing claims features that aren't shipped."""
-        print("Scanning for promise-delivery drift...")
+        logger.info("Scanning for promise-delivery drift...")
         events = []
 
         features = self.narrative.get_feature_registry()
         if not features:
-            print("  No feature registry found, skipping.")
+            logger.debug("  No feature registry found, skipping.")
             return events
 
         # Build feature status map
@@ -276,7 +281,7 @@ class DriftDetector:
                                 suggested_resolution=f"Remove reference to '{feature_name}' or clearly mark as 'coming soon'"
                             )
                             events.append(event)
-                            print(f"  [PROMISE>DELIVERY] {unit.file_path}: '{feature_name}' claimed but Planned")
+                            logger.debug(f"  [PROMISE>DELIVERY] {unit.file_path}: '{feature_name}' claimed but Planned")
 
                         elif status == 'beta':
                             # Check if "beta" or "coming" qualifier exists
@@ -291,9 +296,9 @@ class DriftDetector:
                                     suggested_resolution="Add 'beta' or 'coming soon' qualifier, or wait for GA release"
                                 )
                                 events.append(event)
-                                print(f"  [PROMISE>DELIVERY] {unit.file_path}: '{feature_name}' needs Beta qualifier")
+                                logger.debug(f"  [PROMISE>DELIVERY] {unit.file_path}: '{feature_name}' needs Beta qualifier")
 
-        print(f"  Found {len(events)} promise-delivery drift events.")
+        logger.info(f"  Found {len(events)} promise-delivery drift events.")
         return events
 
     # =========================================================================
@@ -302,7 +307,7 @@ class DriftDetector:
 
     def _detect_opportunity_silence_drift(self) -> list[DriftEvent]:
         """Detect shipped features that aren't being marketed."""
-        print("Scanning for opportunity-silence drift...")
+        logger.info("Scanning for opportunity-silence drift...")
         events = []
 
         features = self.narrative.get_feature_registry()
@@ -324,7 +329,7 @@ class DriftDetector:
                     suggested_resolution=f"Consider activating marketing for '{name}' or document why it's intentionally not promoted"
                 )
                 events.append(event)
-                print(f"  [OPPORTUNITY] '{name}' shipped but not marketed")
+                logger.debug(f"  [OPPORTUNITY] '{name}' shipped but not marketed")
 
         # Check for strong proof not reflected in messaging
         metrics = self.narrative.get_proof_metrics()
@@ -349,9 +354,9 @@ class DriftDetector:
                         suggested_resolution="Consider highlighting this improvement in messaging pillars or marketing content"
                     )
                     events.append(event)
-                    print(f"  [OPPORTUNITY] Metric '{metric.get('name')}' improvement not in messaging")
+                    logger.debug(f"  [OPPORTUNITY] Metric '{metric.get('name')}' improvement not in messaging")
 
-        print(f"  Found {len(events)} opportunity-silence drift events.")
+        logger.info(f"  Found {len(events)} opportunity-silence drift events.")
         return events
 
     # =========================================================================
@@ -360,7 +365,7 @@ class DriftDetector:
 
     def _detect_messaging_drift(self) -> list[DriftEvent]:
         """Detect violations of messaging guidelines."""
-        print("Scanning for messaging drift...")
+        logger.info("Scanning for messaging drift...")
         events = []
 
         # Hyperbolic terms to flag (from voice.md "We Are Not")
@@ -400,7 +405,7 @@ class DriftDetector:
                         suggested_resolution=f"Replace '{term}' with '{alternative}' or specific provable claim"
                     )
                     events.append(event)
-                    print(f"  [MESSAGING] {unit.file_path}: hyperbolic '{term}'")
+                    logger.debug(f"  [MESSAGING] {unit.file_path}: hyperbolic '{term}'")
 
             # Check replace patterns
             for pattern, alternative in replace_patterns:
@@ -414,9 +419,9 @@ class DriftDetector:
                         suggested_resolution=f"Reframe using: '{alternative}'"
                     )
                     events.append(event)
-                    print(f"  [MESSAGING] {unit.file_path}: 'replace humans' language")
+                    logger.debug(f"  [MESSAGING] {unit.file_path}: 'replace humans' language")
 
-        print(f"  Found {len(events)} messaging drift events.")
+        logger.info(f"  Found {len(events)} messaging drift events.")
         return events
 
     # =========================================================================
@@ -425,7 +430,7 @@ class DriftDetector:
 
     def _detect_stale_content(self) -> list[DriftEvent]:
         """Detect content that hasn't been updated recently."""
-        print("Scanning for stale content...")
+        logger.info("Scanning for stale content...")
         events = []
 
         stale_threshold_days = 90
@@ -461,12 +466,12 @@ class DriftDetector:
                         suggested_resolution=f"Review and update this document or confirm it's still accurate"
                     )
                     events.append(event)
-                    print(f"  [STALE] {unit.file_path}: {days_old} days old")
+                    logger.debug(f"  [STALE] {unit.file_path}: {days_old} days old")
 
             except Exception:
                 continue
 
-        print(f"  Found {len(events)} stale content events.")
+        logger.info(f"  Found {len(events)} stale content events.")
         return events
 
     # =========================================================================

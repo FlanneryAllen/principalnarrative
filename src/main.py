@@ -6,7 +6,9 @@ Provides the Shared Context API for autonomous agents to:
 - Validate claims against proof and constraints
 - Get coherence scores and drift events
 """
-from fastapi import FastAPI, HTTPException, Query
+import logging
+import time
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -14,6 +16,7 @@ from typing import Optional
 from pathlib import Path
 
 from .config import settings
+from .logging_config import setup_logging, get_logger
 from .models import (
     APIInfo,
     QueryRequest,
@@ -34,6 +37,10 @@ from .auth.routes import router as auth_router
 from .websocket import ws_router
 
 
+# Initialize logging
+setup_logging(log_level="INFO", log_file="logs/narrative-api.log")
+logger = get_logger("main")
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.app_name,
@@ -50,6 +57,39 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+
+# Request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming requests and their response times."""
+    start_time = time.time()
+
+    # Log request
+    logger.info(f"Request: {request.method} {request.url.path}")
+
+    try:
+        response = await call_next(request)
+
+        # Calculate duration
+        duration = time.time() - start_time
+
+        # Log response
+        logger.info(
+            f"Response: {request.method} {request.url.path} - "
+            f"Status: {response.status_code} - Duration: {duration:.3f}s"
+        )
+
+        return response
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(
+            f"Request failed: {request.method} {request.url.path} - "
+            f"Error: {str(e)} - Duration: {duration:.3f}s",
+            exc_info=True
+        )
+        raise
+
 
 # Add CORS middleware
 app.add_middleware(
@@ -69,6 +109,21 @@ app.include_router(ws_router)
 narrative_service = NarrativeService()
 validator_service = ValidatorService(narrative_service)
 coherence_service = CoherenceService(narrative_service)
+
+
+# Application lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    """Log application startup."""
+    logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+    logger.info(f"Narrative base path: {settings.narrative_base_path}")
+    logger.info("Application startup complete")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log application shutdown."""
+    logger.info("Shutting down Principal Narrative API")
 
 
 # ============================================================================

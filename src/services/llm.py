@@ -13,11 +13,16 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 
+from ..logging_config import get_logger
+
+logger = get_logger("services.llm")
+
 try:
     import anthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
+    logger.warning("Anthropic library not available - LLM features will be disabled")
 
 
 class ExtractionType(str, Enum):
@@ -177,7 +182,7 @@ Return JSON with all context items found."""
             return results
 
         except Exception as e:
-            print(f"LLM extraction error: {e}")
+            logger.error(f"LLM extraction error: {e}", exc_info=True)
             return []
 
     def synthesize_narrative(
@@ -264,7 +269,7 @@ Return JSON with the complete document."""
             )
 
         except Exception as e:
-            print(f"LLM synthesis error: {e}")
+            logger.error(f"LLM synthesis error: {e}", exc_info=True)
             return None
 
     def classify_content(self, text: str) -> Dict[str, float]:
@@ -310,7 +315,7 @@ Only include categories with scores > 0.1"""
             return json.loads(content)
 
         except Exception as e:
-            print(f"LLM classification error: {e}")
+            logger.error(f"LLM classification error: {e}", exc_info=True)
             return {}
 
     def check_coherence(
@@ -377,7 +382,7 @@ Analyze and return JSON."""
             return json.loads(content)
 
         except Exception as e:
-            print(f"LLM coherence check error: {e}")
+            logger.error(f"LLM coherence check error: {e}", exc_info=True)
             return {"is_coherent": True, "confidence": 0.0, "issues": [], "suggestions": []}
 
     def generate_drift_analysis(
@@ -440,7 +445,7 @@ Return JSON analysis."""
             return json.loads(content)
 
         except Exception as e:
-            print(f"LLM drift analysis error: {e}")
+            logger.error(f"LLM drift analysis error: {e}", exc_info=True)
             return {"analysis": str(e), "severity": "unknown"}
 
 

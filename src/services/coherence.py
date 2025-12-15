@@ -18,6 +18,9 @@ from ..models import (
     HealthStatus
 )
 from .narrative import NarrativeService
+from ..logging_config import get_logger
+
+logger = get_logger("services.coherence")
 
 
 class CoherenceService:
@@ -38,7 +41,7 @@ class CoherenceService:
             data = json.loads(coherence_path.read_text(encoding='utf-8'))
             return self._parse_coherence_data(data)
         except Exception as e:
-            print(f"Error reading coherence data: {e}")
+            logger.error(f"Error reading coherence data: {e}", exc_info=True)
             return self._default_coherence_response()
 
     def _parse_coherence_data(self, data: dict[str, Any]) -> CoherenceResponse:
@@ -72,7 +75,7 @@ class CoherenceService:
                     status=DriftStatus(event_data.get('status', 'open'))
                 ))
             except Exception as e:
-                print(f"Error parsing drift event: {e}")
+                logger.error(f"Error parsing drift event: {e}", exc_info=True)
                 continue
 
         # Parse health summary
@@ -321,5 +324,5 @@ class CoherenceService:
 
             return True
         except Exception as e:
-            print(f"Error saving coherence: {e}")
+            logger.error(f"Error saving coherence: {e}", exc_info=True)
             return False

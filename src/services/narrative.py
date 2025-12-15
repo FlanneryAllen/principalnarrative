@@ -10,6 +10,9 @@ import yaml
 
 from ..config import settings
 from ..models import NarrativeType, NarrativeUnit, QueryRequest
+from ..logging_config import get_logger
+
+logger = get_logger("services.narrative")
 
 
 class NarrativeService:
@@ -75,7 +78,7 @@ class NarrativeService:
                 frontmatter=frontmatter
             )
         except Exception as e:
-            print(f"Error reading {file_path}: {e}")
+            logger.error(f"Error reading markdown file {file_path}: {e}", exc_info=True)
             return None
 
     def _read_json_file(self, file_path: Path) -> Optional[NarrativeUnit]:
@@ -106,7 +109,7 @@ class NarrativeService:
                 frontmatter=data
             )
         except Exception as e:
-            print(f"Error reading {file_path}: {e}")
+            logger.error(f"Error reading JSON file {file_path}: {e}", exc_info=True)
             return None
 
     def _infer_type_from_path(self, file_path: Path) -> NarrativeType:

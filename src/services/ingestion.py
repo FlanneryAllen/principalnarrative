@@ -10,6 +10,8 @@ Supports:
 import os
 import re
 from datetime import datetime
+from ..logging_config import get_logger
+
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -28,6 +30,9 @@ except ImportError:
     GITHUB_AVAILABLE = False
 
 from .synthesizer import ContextSynthesizer, SynthesisRequest
+
+
+logger = get_logger("services.ingestion")
 
 
 class SourceType(str, Enum):
@@ -157,7 +162,7 @@ class IngestionService:
                     ))
 
         except SlackApiError as e:
-            print(f"Slack API error: {e}")
+            logger.error(f"Slack API error: {e}", exc_info=True)
 
         return items
 
@@ -200,7 +205,7 @@ class IngestionService:
                 ))
 
         except SlackApiError as e:
-            print(f"Slack API error: {e}")
+            logger.error(f"Slack API error: {e}", exc_info=True)
 
         return items
 
@@ -256,7 +261,7 @@ class IngestionService:
             )
 
         except Exception as e:
-            print(f"GitHub API error: {e}")
+            logger.error(f"GitHub API error: {e}", exc_info=True)
             return None
 
     def fetch_github_pr(
@@ -299,7 +304,7 @@ class IngestionService:
             )
 
         except Exception as e:
-            print(f"GitHub API error: {e}")
+            logger.error(f"GitHub API error: {e}", exc_info=True)
             return None
 
     def fetch_github_discussion(

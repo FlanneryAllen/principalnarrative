@@ -9,6 +9,8 @@ Provides:
 import os
 import hashlib
 from pathlib import Path
+from ..logging_config import get_logger
+
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
@@ -20,6 +22,8 @@ except ImportError:
     CHROMADB_AVAILABLE = False
 
 from ..config import settings
+
+logger = get_logger("services.vector_store")
 
 
 @dataclass
@@ -72,7 +76,7 @@ class VectorStore:
             )
 
         except Exception as e:
-            print(f"ChromaDB initialization error: {e}")
+            logger.error(f"ChromaDB initialization error: {e}", exc_info=True)
             self.client = None
             self.collection = None
 
@@ -216,7 +220,7 @@ class VectorStore:
             return search_results
 
         except Exception as e:
-            print(f"Search error: {e}")
+            logger.error(f"Search error: {e}", exc_info=True)
             return []
 
     def search_similar(
@@ -274,7 +278,7 @@ class VectorStore:
             return search_results[:n_results]
 
         except Exception as e:
-            print(f"Similar search error: {e}")
+            logger.error(f"Similar search error: {e}", exc_info=True)
             return []
 
     def delete_document(self, path: str) -> bool:
@@ -287,7 +291,7 @@ class VectorStore:
             self.collection.delete(ids=[doc_id])
             return True
         except Exception as e:
-            print(f"Delete error: {e}")
+            logger.error(f"Delete error: {e}", exc_info=True)
             return False
 
     def get_stats(self) -> Dict[str, Any]:
@@ -375,7 +379,7 @@ class VectorStore:
             )
             return True
         except Exception as e:
-            print(f"Reset error: {e}")
+            logger.error(f"Reset error: {e}", exc_info=True)
             return False
 
 
