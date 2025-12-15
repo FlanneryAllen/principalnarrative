@@ -171,6 +171,16 @@ async def health_check():
     }
 
 
+@app.get("/dashboard")
+async def dashboard():
+    """Serve the website narrative analysis dashboard."""
+    from pathlib import Path
+    dashboard_path = Path(__file__).parent.parent / "static" / "website-dashboard.html"
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return FileResponse(dashboard_path)
+
+
 # ============================================================================
 # Context Query Endpoints
 # ============================================================================
