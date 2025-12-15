@@ -14,6 +14,7 @@ import subprocess
 from src.services.website_analyzer import WebsiteAnalyzer
 from src.services.report_generator import ReportGenerator
 from src.services.url_fetcher import URLFetcher
+from src.services.js_fetcher import JSFetcher
 
 router = APIRouter(prefix="/website", tags=["Website Analysis"])
 
@@ -23,6 +24,7 @@ class WebsiteAnalysisRequest(BaseModel):
     path: str  # Local file path or URL
     generate_report: bool = True
     max_pages: int = 20  # Max pages to download for URLs
+    render_js: bool = False  # Use JavaScript rendering (Playwright)
 
 
 class WebsiteAnalysisResponse(BaseModel):
@@ -62,8 +64,17 @@ async def analyze_website(request: WebsiteAnalysisRequest):
         if is_url:
             # Fetch website from URL
             print(f"🌐 Analyzing URL: {request.path}")
-            fetcher = URLFetcher(max_pages=request.max_pages)
-            website_path = fetcher.fetch_website(request.path)
+
+            if request.render_js:
+                # Use JavaScript rendering for SPAs
+                print(f"  🎭 Using Playwright for JavaScript rendering")
+                js_fetcher = JSFetcher(max_pages=request.max_pages, headless=True)
+                website_path = js_fetcher.fetch_website_sync(request.path)
+                fetcher = js_fetcher  # For cleanup
+            else:
+                # Standard HTTP fetch
+                fetcher = URLFetcher(max_pages=request.max_pages)
+                website_path = fetcher.fetch_website(request.path)
         else:
             # Use local path
             website_path = Path(request.path)

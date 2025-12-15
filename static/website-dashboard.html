@@ -414,6 +414,14 @@
                 <input type="text" id="websiteUrl" class="path-input"
                        placeholder="https://example.com"
                        value="https://example.com">
+
+                <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <input type="checkbox" id="renderJs" style="width: auto; cursor: pointer;">
+                    <label for="renderJs" style="cursor: pointer; font-size: 0.875rem;">
+                        🎭 Render JavaScript (for React/Vue/Angular sites)
+                    </label>
+                </div>
+
                 <div class="input-hint">
                     💡 The analyzer will download up to 20 pages from the site
                 </div>
@@ -549,15 +557,23 @@
                 return;
             }
 
+            // Get render JS option
+            const renderJs = currentMode === 'url' && document.getElementById('renderJs').checked;
+
             // Show loading
             document.getElementById('uploadSection').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
 
             // Update loading message
-            const loadingMsg = currentMode === 'url'
+            let loadingMsg = currentMode === 'url'
                 ? 'Downloading and analyzing website...'
                 : 'Analyzing website narrative structure...';
+
+            if (renderJs) {
+                loadingMsg = '🎭 Rendering JavaScript and analyzing (this may take longer)...';
+            }
+
             document.querySelector('#loading p').textContent = loadingMsg;
 
             try {
@@ -565,7 +581,12 @@
                 const response = await fetch('/website/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: path, generate_report: true, max_pages: 20 })
+                    body: JSON.stringify({
+                        path: path,
+                        generate_report: true,
+                        max_pages: 20,
+                        render_js: renderJs
+                    })
                 });
 
                 if (!response.ok) {

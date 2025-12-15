@@ -17,6 +17,9 @@ httpx>=0.25.0
 # HTML parsing
 beautifulsoup4>=4.12.0
 
+# JavaScript rendering for SPAs
+playwright>=1.40.0
+
 # Development
 python-multipart>=0.0.6
 

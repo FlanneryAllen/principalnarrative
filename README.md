@@ -197,6 +197,11 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 - `GET /proof/metrics` - Get verified proof metrics
 - `GET /features` - Get feature registry
 
+### Website Analysis
+- `POST /website/analyze` - Analyze website narrative structure
+- `GET /website/health` - Website analysis service health check
+- `GET /dashboard` - Interactive visual dashboard
+
 See http://localhost:8000/docs for interactive API documentation.
 
 ## Architecture
@@ -216,6 +221,49 @@ See http://localhost:8000/docs for interactive API documentation.
 - ✅ Real-time drift detection
 - ✅ Proof-backed claim validation
 - ✅ Semantic search (requires Anthropic API key)
+- ✅ Website narrative analysis
+- ✅ Live URL scraping
+- ✅ JavaScript rendering for SPAs (React, Vue, Angular)
+
+## Website Narrative Analysis
+
+Analyze any website's narrative structure - from local files or live URLs.
+
+### Features
+- **Claims & Proof Extraction**: Identify value propositions and supporting evidence
+- **Persona Detection**: Extract customer testimonials and personas
+- **Consistency Scoring**: 0-100 score analyzing messaging alignment
+- **Live URL Analysis**: Download and analyze any public website
+- **JavaScript Rendering**: Support for React, Vue, Angular SPAs via Playwright
+- **Visual Dashboard**: Interactive UI with charts, gauges, and insights
+
+### Quick Start
+
+1. **Start the dashboard**:
+   ```bash
+   ./run_dashboard.sh
+   ```
+
+2. **Open**: http://localhost:8000/dashboard
+
+3. **Analyze a website**:
+   - Toggle between "📁 Local Path" or "🌐 URL" mode
+   - For SPAs, check "🎭 Render JavaScript"
+   - Click "🔍 Analyze Website"
+
+### Setup JavaScript Rendering
+
+For modern SPAs (React, Vue, Angular):
+
+```bash
+pip install -r requirements.txt
+./setup_playwright.sh  # Installs Chromium (~300MB)
+```
+
+### Documentation
+- **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)
+- **Live URL Analysis**: [URL_ANALYSIS.md](URL_ANALYSIS.md)
+- **JavaScript Rendering**: [JS_RENDERING.md](JS_RENDERING.md)
 
 ## Philosophy
 
