@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional, Any
+from datetime import date, datetime
 import yaml
 
 from ..config import settings
@@ -17,6 +18,16 @@ class NarrativeService:
     def __init__(self, base_path: Optional[Path] = None):
         self.base_path = base_path or settings.narrative_base_path
 
+    def _convert_dates_to_strings(self, value: Any) -> Any:
+        """Convert datetime/date objects to strings recursively."""
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        elif isinstance(value, dict):
+            return {k: self._convert_dates_to_strings(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self._convert_dates_to_strings(v) for v in value]
+        return value
+
     def _parse_frontmatter(self, content: str) -> tuple[dict[str, Any], str]:
         """Parse YAML frontmatter from markdown content."""
         frontmatter = {}
@@ -27,6 +38,8 @@ class NarrativeService:
         if match:
             try:
                 frontmatter = yaml.safe_load(match.group(1)) or {}
+                # Convert any datetime objects to strings
+                frontmatter = self._convert_dates_to_strings(frontmatter)
             except yaml.YAMLError:
                 frontmatter = {}
             body = match.group(2)
