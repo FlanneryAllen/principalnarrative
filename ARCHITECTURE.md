@@ -4,141 +4,82 @@
 
 The Principal Narrative system is a multi-layered application for analyzing website narratives with AI-enhanced insights, batch processing, and historical tracking.
 
-## Architecture Diagram
+## Architecture Overview
 
-```mermaid
-graph TB
-    %% Users & Clients
-    User[👤 User / API Client]
+### System Flow
 
-    %% Dashboards
-    DashMain[📱 Main Dashboard<br/>/dashboard]
-    DashComp[📱 Competitive Dashboard<br/>/competitive]
-    DashBatch[📱 Batch Dashboard<br/>/batch]
-    DashTrends[📱 Trends Dashboard<br/>/trends]
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                          CLIENT LAYER                               │
+│  👤 User  →  📱 Dashboards (Main | Competitive | Batch | Trends)    │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                          API LAYER (FastAPI)                        │
+│  🔌 Website Router                                                  │
+│    ├─ POST /analyze          (Standard analysis)                    │
+│    ├─ POST /analyze-ai       (AI-enhanced)                          │
+│    ├─ POST /compare          (Competitive)                          │
+│    ├─ POST /batch/analyze    (Batch processing)                     │
+│    └─ GET /history/trends    (Historical trends)                    │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                         SERVICE LAYER                               │
+│  Core Analyzers:                                                    │
+│    • WebsiteAnalyzer      (Foundation - claims, proof, personas)    │
+│    • AIAnalyzer           (Claude-enhanced analysis)                │
+│    • CompetitiveAnalyzer  (Multi-site comparison)                   │
+│    • BatchAnalyzer        (Parallel processing)                     │
+│                                                                      │
+│  Supporting Services:                                               │
+│    • CacheService         (24hr TTL, SHA256 keys)                   │
+│    • HistoryService       (Permanent snapshots)                     │
+│    • URLFetcher           (HTTP fetching)                           │
+│    • JSFetcher            (Playwright for SPAs)                     │
+│    • PDFGenerator         (Report export)                           │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │
+                          ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA LAYER (SQLite)                         │
+│  📊 Database Tables:                                                │
+│    • analysis_cache       (24hr cached results)                     │
+│    • analysis_history     (permanent snapshots)                     │
+│    • batch_jobs           (job tracking)                            │
+│    • batch_results        (individual results)                      │
+└─────────────────────────────────────────────────────────────────────┘
 
-    %% API Layer
-    API[🔀 Main API<br/>FastAPI]
-    Router[🔀 Website Router<br/>/website]
+                    External Dependencies
+                    ─────────────────────
+                    🌐 Claude API (Anthropic)
+                    🎭 Playwright (Browser automation)
+```
 
-    %% Endpoints
-    EP1[🔌 POST /analyze]
-    EP2[🔌 POST /analyze-ai]
-    EP3[🔌 POST /compare]
-    EP4[🔌 POST /batch/analyze]
-    EP5[🔌 GET /history/trends]
+### Service Dependencies
 
-    %% Services
-    WebAnalyzer[🔍 WebsiteAnalyzer<br/>Core Analysis]
-    AIAnalyzer[🔍 AIAnalyzer<br/>Claude Enhanced]
-    CompAnalyzer[🔍 CompetitiveAnalyzer<br/>Multi-site]
-    BatchAnalyzer[🚀 BatchAnalyzer<br/>Parallel Processing]
+```
+AIAnalyzer
+    ├─→ WebsiteAnalyzer (base analysis)
+    └─→ Claude API (AI enhancement)
 
-    Cache[💾 CacheService<br/>24hr Cache]
-    History[📊 HistoryService<br/>Snapshots & Trends]
+CompetitiveAnalyzer
+    └─→ WebsiteAnalyzer (per site)
 
-    URLFetch[📥 URLFetcher<br/>HTTP Fetcher]
-    JSFetch[📥 JSFetcher<br/>Playwright SPA]
-    PDFGen[📄 PDFGenerator<br/>Report Export]
+BatchAnalyzer
+    ├─→ WebsiteAnalyzer (parallel)
+    └─→ CacheService (check cache)
 
-    %% Data Layer
-    DB[(🗄️ SQLite Database)]
-    T1[(📋 analysis_cache)]
-    T2[(📋 analysis_history)]
-    T3[(📋 batch_jobs)]
-    T4[(📋 batch_results)]
+WebsiteAnalyzer
+    ├─→ URLFetcher (static sites)
+    ├─→ JSFetcher (SPAs)
+    ├─→ CacheService (save results)
+    └─→ HistoryService (save snapshots)
 
-    %% External
-    Claude[🌐 Claude API<br/>Anthropic]
-    Playwright[🎭 Playwright<br/>Browser]
-
-    %% User Interactions
-    User --> DashMain
-    User --> DashComp
-    User --> DashBatch
-    User --> DashTrends
-    User --> API
-
-    %% Dashboard to API
-    DashMain --> Router
-    DashComp --> Router
-    DashBatch --> Router
-    DashTrends --> Router
-
-    %% API Routing
-    API --> Router
-    Router --> EP1
-    Router --> EP2
-    Router --> EP3
-    Router --> EP4
-    Router --> EP5
-
-    %% Endpoint to Service
-    EP1 -.cache check.-> Cache
-    EP1 --> WebAnalyzer
-
-    EP2 -.cache check.-> Cache
-    EP2 --> AIAnalyzer
-
-    EP3 --> CompAnalyzer
-
-    EP4 -.async.-> BatchAnalyzer
-
-    EP5 --> History
-
-    %% Service Dependencies
-    AIAnalyzer --> WebAnalyzer
-    AIAnalyzer --> Claude
-    CompAnalyzer --> WebAnalyzer
-    BatchAnalyzer -.parallel.-> WebAnalyzer
-    BatchAnalyzer -.cache check.-> Cache
-
-    %% Fetchers
-    WebAnalyzer --> URLFetch
-    WebAnalyzer --> JSFetch
-    JSFetch --> Playwright
-
-    %% Save Results
-    WebAnalyzer --> Cache
-    WebAnalyzer --> History
-    AIAnalyzer --> Cache
-    AIAnalyzer --> History
-    BatchAnalyzer --> History
-
-    %% PDF Generation
-    PDFGen --> EP1
-
-    %% Database Connections
-    Cache <--> DB
-    History <--> DB
-
-    DB --> T1
-    DB --> T2
-    DB --> T3
-    DB --> T4
-
-    %% Styling
-    classDef dashboard fill:#22d3ee,stroke:#0891b2,color:#000
-    classDef api fill:#6366f1,stroke:#4f46e5,color:#fff
-    classDef service fill:#10b981,stroke:#059669,color:#fff
-    classDef cache fill:#0ea5e9,stroke:#0284c7,color:#fff
-    classDef batch fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    classDef history fill:#f59e0b,stroke:#d97706,color:#000
-    classDef db fill:#64748b,stroke:#475569,color:#fff
-    classDef external fill:#ef4444,stroke:#dc2626,color:#fff
-    classDef fetcher fill:#06b6d4,stroke:#0891b2,color:#fff
-    classDef generator fill:#84cc16,stroke:#65a30d,color:#000
-
-    class DashMain,DashComp,DashBatch,DashTrends dashboard
-    class API,Router,EP1,EP2,EP3,EP4,EP5 api
-    class WebAnalyzer,AIAnalyzer,CompAnalyzer service
-    class Cache cache
-    class BatchAnalyzer batch
-    class History history
-    class DB,T1,T2,T3,T4 db
-    class Claude,Playwright external
-    class URLFetch,JSFetch fetcher
-    class PDFGen generator
+JSFetcher
+    └─→ Playwright (browser rendering)
 ```
 
 ## Layer Breakdown

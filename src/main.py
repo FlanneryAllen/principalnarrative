@@ -32,6 +32,9 @@ from .models import (
     DriftStatus,
 )
 from .services import NarrativeService, ValidatorService, CoherenceService, DriftDetector
+from .services.ai_conflict_resolver import AIConflictResolver
+from .services.alert_service import AlertService, AlertRule
+from .services.drift_analytics import DriftAnalytics
 from .webhooks import router as webhooks_router
 from .auth.routes import router as auth_router
 from .websocket import ws_router
@@ -111,6 +114,8 @@ app.include_router(website_router)
 narrative_service = NarrativeService()
 validator_service = ValidatorService(narrative_service)
 coherence_service = CoherenceService(narrative_service)
+alert_service = AlertService()
+drift_analytics = DriftAnalytics()
 
 
 # Application lifecycle events
@@ -401,7 +406,8 @@ async def compute_coherence():
 @app.post("/coherence/scan")
 async def run_drift_scan(
     save: bool = Query(False, description="Save results to coherence/current.json"),
-    min_severity: Optional[DriftSeverity] = Query(None, description="Filter by minimum severity")
+    min_severity: Optional[DriftSeverity] = Query(None, description="Filter by minimum severity"),
+    include_semantic: bool = Query(True, description="Include semantic drift detection using embeddings")
 ):
     """
     Run a full drift detection scan across all narrative layers.
@@ -412,13 +418,21 @@ async def run_drift_scan(
     - **Promise-Delivery**: Marketing claims for unshipped features
     - **Opportunity-Silence**: Shipped features not being marketed
     - **Messaging**: Voice/tone guideline violations
-    - **Semantic**: Stale or contradictory content
+    - **Semantic**: Stale or contradictory content (including embedding-based detection)
     - **Strategic**: Misalignment with strategy
+
+    **Semantic Drift Detection (when enabled):**
+    - Cross-document contradictions using embeddings
+    - Documentation-to-codebase misalignment
+    - Technology stack inconsistencies
 
     Returns all detected drift events with suggested resolutions.
     """
     detector = DriftDetector(narrative_service)
-    events = detector.run_full_scan()
+    events = detector.run_full_scan(include_semantic=include_semantic)
+
+    # Record snapshot for analytics (before filtering)
+    drift_analytics.record_snapshot(events)
 
     # Filter by severity if specified
     if min_severity:
@@ -459,6 +473,427 @@ async def run_drift_scan(
         ],
         "saved": save
     }
+
+
+@app.post("/coherence/resolve")
+async def resolve_drift_with_ai(
+    min_severity: Optional[DriftSeverity] = Query(None, description="Only resolve drifts above this severity"),
+    format: str = Query("json", description="Response format: json or markdown"),
+    include_context: bool = Query(False, description="Include file context for better recommendations")
+):
+    """
+    🤖 AI-Powered Drift Resolution (Requires ANTHROPIC_API_KEY)
+
+    Uses Claude AI to analyze detected drift and generate **specific, actionable fix recommendations**.
+
+    **Provides:**
+    - Exact code changes (with before/after snippets)
+    - Documentation updates (with specific text)
+    - Priority ranking by business impact
+    - Effort estimates ("5 min", "1 hour", etc.)
+    - Quick wins (easy fixes with high value)
+    - Step-by-step resolution plans
+
+    **Example Use Cases:**
+    - **Doc-Code Drift**: "Update architecture.md line 42 to replace 'PostgreSQL' with 'SQLite'"
+    - **Contradictions**: "Reconcile strategy/vision.md and marketing/website.md by..."
+    - **Missing Docs**: "Add FastAPI to technical-context/stack.md with this snippet..."
+
+    **Returns:**
+    - JSON: Structured recommendations with all fields
+    - Markdown: Human-readable resolution plan (ready to save as file)
+
+    **Note:** Requires ANTHROPIC_API_KEY environment variable.
+    """
+    # Run drift scan first
+    detector = DriftDetector(narrative_service)
+    events = detector.run_full_scan(include_semantic=True)
+
+    # Filter by severity if specified
+    if min_severity:
+        severity_order = [DriftSeverity.LOW, DriftSeverity.MEDIUM, DriftSeverity.HIGH, DriftSeverity.CRITICAL]
+        min_index = severity_order.index(min_severity)
+        events = [e for e in events if severity_order.index(e.severity) >= min_index]
+
+    if not events:
+        return {
+            "total_drifts": 0,
+            "message": "No drift detected. All clear!",
+            "recommendations": []
+        }
+
+    # Generate AI-powered resolution plan
+    resolver = AIConflictResolver()
+
+    if not resolver.is_available:
+        raise HTTPException(
+            status_code=503,
+            detail="AI conflict resolver unavailable. Please set ANTHROPIC_API_KEY environment variable."
+        )
+
+    logger.info(f"Generating AI resolution plan for {len(events)} drift events...")
+    plan = resolver.resolve_drift_events(events)
+
+    # Return in requested format
+    if format == "markdown":
+        return {
+            "format": "markdown",
+            "content": resolver.export_resolution_plan(plan, format="markdown")
+        }
+    else:
+        return {
+            "total_drifts": plan.total_drifts,
+            "estimated_total_effort": plan.estimated_total_effort,
+            "summary": plan.summary,
+            "quick_wins_count": len(plan.quick_wins),
+            "quick_wins": plan.quick_wins,
+            "priority_order": plan.priority_order,
+            "recommendations": [
+                {
+                    "drift_event_id": rec.drift_event_id,
+                    "priority": rec.priority,
+                    "business_impact": rec.business_impact,
+                    "resolution_type": rec.resolution_type,
+                    "specific_action": rec.specific_action,
+                    "before_snippet": rec.before_snippet,
+                    "after_snippet": rec.after_snippet,
+                    "file_path": rec.file_path,
+                    "line_numbers": rec.line_numbers,
+                    "estimated_effort": rec.estimated_effort,
+                    "rationale": rec.rationale
+                }
+                for rec in plan.recommendations
+            ]
+        }
+
+
+# ============================================================================
+# Alert Endpoints
+# ============================================================================
+
+@app.get("/alerts/rules")
+async def get_alert_rules():
+    """
+    Get all configured alert rules.
+
+    Returns list of alert rules with their configuration (channels, thresholds, etc.)
+    """
+    rules = alert_service.get_rules()
+    return {
+        "total": len(rules),
+        "rules": [
+            {
+                "id": r.id,
+                "name": r.name,
+                "enabled": r.enabled,
+                "min_severity": r.min_severity.value,
+                "drift_types": r.drift_types,
+                "channels": r.channels,
+                "has_slack": bool(r.slack_webhook),
+                "has_email": bool(r.email_recipients),
+                "has_webhook": bool(r.webhook_url),
+                "cooldown_hours": r.cooldown_hours
+            }
+            for r in rules
+        ]
+    }
+
+
+@app.post("/alerts/rules")
+async def create_alert_rule(rule_data: Dict[str, Any]):
+    """
+    Create a new alert rule.
+
+    **Request Body:**
+    ```json
+    {
+        "id": "my-custom-rule",
+        "name": "Custom Alert Rule",
+        "enabled": true,
+        "min_severity": "high",
+        "drift_types": ["semantic", "proof"],
+        "channels": ["slack", "email"],
+        "slack_webhook": "https://hooks.slack.com/...",
+        "email_recipients": ["team@company.com"],
+        "cooldown_hours": 12
+    }
+    ```
+    """
+    try:
+        rule = AlertRule(
+            id=rule_data["id"],
+            name=rule_data["name"],
+            enabled=rule_data.get("enabled", True),
+            min_severity=DriftSeverity(rule_data["min_severity"]),
+            drift_types=rule_data.get("drift_types", []),
+            channels=rule_data["channels"],
+            slack_webhook=rule_data.get("slack_webhook"),
+            email_recipients=rule_data.get("email_recipients"),
+            webhook_url=rule_data.get("webhook_url"),
+            cooldown_hours=rule_data.get("cooldown_hours", 24)
+        )
+
+        success = alert_service.add_rule(rule)
+
+        if success:
+            return {"message": "Alert rule created successfully", "rule_id": rule.id}
+        else:
+            raise HTTPException(status_code=400, detail="Rule with this ID already exists")
+
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid value: {e}")
+
+
+@app.put("/alerts/rules/{rule_id}")
+async def update_alert_rule(rule_id: str, updates: Dict[str, Any]):
+    """
+    Update an existing alert rule.
+
+    **Example:**
+    ```json
+    {
+        "enabled": false,
+        "min_severity": "critical"
+    }
+    ```
+    """
+    success = alert_service.update_rule(rule_id, updates)
+
+    if success:
+        return {"message": "Alert rule updated successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Alert rule not found")
+
+
+@app.delete("/alerts/rules/{rule_id}")
+async def delete_alert_rule(rule_id: str):
+    """Delete an alert rule."""
+    success = alert_service.delete_rule(rule_id)
+    return {"message": "Alert rule deleted successfully" if success else "Rule not found"}
+
+
+@app.post("/alerts/test")
+async def test_alert(
+    channel: str = Query(..., description="Channel to test: slack, email, or webhook"),
+    rule_id: Optional[str] = Query(None, description="Rule ID to use for testing")
+):
+    """
+    Send a test alert to verify configuration.
+
+    Sends a mock drift event to the specified channel using configured credentials.
+    """
+    # Create mock drift event
+    from uuid import uuid4
+    mock_event = DriftEvent(
+        id=f"test-{uuid4().hex[:8]}",
+        type=DriftType.SEMANTIC,
+        severity=DriftSeverity.MEDIUM,
+        detected_at=datetime.now(),
+        source_unit="test/example.md",
+        target_unit="test/target.md",
+        description="This is a test alert. If you're seeing this, your alert configuration is working!",
+        suggested_resolution="No action needed - this is a test",
+        status=DriftStatus.OPEN
+    )
+
+    # Find rule or use first matching channel
+    rule = None
+    if rule_id:
+        rule = next((r for r in alert_service.get_rules() if r.id == rule_id), None)
+    else:
+        rule = next((r for r in alert_service.get_rules() if channel in r.channels), None)
+
+    if not rule:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No alert rule configured for channel '{channel}'"
+        )
+
+    # Send test alert
+    stats = alert_service.send_drift_alerts([mock_event], context={"test": True})
+
+    return {
+        "message": "Test alert sent",
+        "channel": channel,
+        "rule_id": rule.id,
+        "stats": stats
+    }
+
+
+@app.post("/alerts/send")
+async def send_drift_alerts_now(
+    min_severity: Optional[DriftSeverity] = Query(None, description="Minimum severity to alert on")
+):
+    """
+    Manually trigger drift alerts for current detected drift.
+
+    Useful for:
+    - Testing alert configuration
+    - Sending immediate notifications
+    - Manual drift reports
+    """
+    # Run drift scan
+    detector = DriftDetector(narrative_service)
+    events = detector.run_full_scan(include_semantic=True)
+
+    # Filter by severity
+    if min_severity:
+        severity_order = [DriftSeverity.LOW, DriftSeverity.MEDIUM, DriftSeverity.HIGH, DriftSeverity.CRITICAL]
+        min_index = severity_order.index(min_severity)
+        events = [e for e in events if severity_order.index(e.severity) >= min_index]
+
+    if not events:
+        return {
+            "message": "No drift detected, no alerts sent",
+            "events_found": 0,
+            "alerts_sent": 0
+        }
+
+    # Send alerts
+    stats = alert_service.send_drift_alerts(events)
+
+    return {
+        "message": f"Sent {stats['total']} alerts for {len(events)} drift events",
+        "events_found": len(events),
+        "alerts_sent": stats['total'],
+        "by_channel": {
+            "slack": stats.get('slack', 0),
+            "email": stats.get('email', 0),
+            "webhook": stats.get('webhook', 0)
+        }
+    }
+
+
+@app.get("/alerts/history")
+async def get_alert_history(limit: int = Query(50, description="Number of records to return")):
+    """
+    Get recent alert history.
+
+    Shows which alerts were sent, to which channels, and whether they succeeded.
+    """
+    history = alert_service.get_history(limit=limit)
+
+    return {
+        "total": len(history),
+        "history": [
+            {
+                "alert_id": h.alert_id,
+                "rule_id": h.rule_id,
+                "drift_event_id": h.drift_event_id,
+                "channel": h.channel,
+                "sent_at": h.sent_at.isoformat(),
+                "success": h.success,
+                "error": h.error_message
+            }
+            for h in history
+        ]
+    }
+
+
+# ============================================================================
+# Drift Analytics & Dashboard Endpoints
+# ============================================================================
+
+@app.get("/drift/analytics/summary")
+async def get_drift_summary():
+    """
+    Get drift analytics dashboard summary.
+
+    Returns current drift state, trends, and key metrics for dashboard overview.
+    """
+    summary = drift_analytics.get_dashboard_summary()
+    return summary
+
+
+@app.get("/drift/analytics/trends")
+async def get_drift_trends(period: str = Query("30d", description="Period: 7d, 30d, or 90d")):
+    """
+    Get drift trend analysis for a time period.
+
+    Shows whether drift is increasing, decreasing, or stable over time.
+    """
+    trend = drift_analytics.get_trend(period)
+
+    return {
+        "period": trend.period,
+        "start_date": trend.start_date.isoformat(),
+        "end_date": trend.end_date.isoformat(),
+        "total_change": trend.total_change,
+        "trend_direction": trend.trend_direction,
+        "severity_trends": trend.severity_trends,
+        "most_problematic_docs": trend.most_problematic_docs,
+        "resolution_rate": trend.resolution_rate
+    }
+
+
+@app.get("/drift/analytics/timeseries")
+async def get_drift_timeseries(days: int = Query(30, description="Number of days of history")):
+    """
+    Get time-series data for drift trend charts.
+
+    Returns daily drift counts broken down by severity.
+    """
+    timeseries = drift_analytics.get_time_series(days=days)
+
+    return {
+        "days": days,
+        "data_points": len(timeseries),
+        "data": timeseries
+    }
+
+
+@app.get("/drift/analytics/heatmap")
+async def get_drift_heatmap():
+    """
+    Get heatmap showing which documents have the most drift.
+
+    Useful for identifying problem areas in your documentation.
+    """
+    heatmap = drift_analytics.get_heatmap()
+    return heatmap
+
+
+@app.get("/drift/analytics/severity")
+async def get_severity_breakdown():
+    """
+    Get current severity breakdown with historical comparison.
+
+    Shows how severity distribution has changed over time.
+    """
+    breakdown = drift_analytics.get_severity_breakdown()
+    return breakdown
+
+
+@app.get("/drift/analytics/types")
+async def get_type_breakdown():
+    """
+    Get breakdown of drift by type.
+
+    Shows which types of drift are most common.
+    """
+    breakdown = drift_analytics.get_type_breakdown()
+    return breakdown
+
+
+@app.get("/drift-dashboard")
+async def drift_dashboard():
+    """
+    Serve the drift analytics dashboard HTML page.
+
+    Interactive dashboard with charts showing:
+    - Drift trends over time
+    - Severity breakdown
+    - Document heatmap
+    - Resolution progress
+    """
+    dashboard_path = Path("static/drift-dashboard.html")
+
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Dashboard not found. Run setup to create it.")
+
+    return FileResponse(dashboard_path)
 
 
 # ============================================================================

@@ -191,7 +191,26 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 ### Coherence & Drift
 - `GET /coherence/score` - Get coherence scores
 - `GET /coherence/drift` - Get drift events
-- `POST /coherence/scan` - Run drift detection
+- `POST /coherence/scan` - Run drift detection (pattern-based + semantic)
+- `POST /coherence/resolve` - 🤖 AI-powered drift resolution ⭐ New!
+
+### Drift Alerts ⭐ New!
+- `GET /alerts/rules` - Get configured alert rules
+- `POST /alerts/rules` - Create new alert rule
+- `PUT /alerts/rules/{id}` - Update alert rule
+- `DELETE /alerts/rules/{id}` - Delete alert rule
+- `POST /alerts/test` - Send test alert
+- `POST /alerts/send` - Manually trigger drift alerts
+- `GET /alerts/history` - Get alert history
+
+### Drift Analytics ⭐ New!
+- `GET /drift/analytics/summary` - Dashboard overview metrics
+- `GET /drift/analytics/trends?period=30d` - Trend analysis (7d/30d/90d)
+- `GET /drift/analytics/timeseries?days=30` - Time-series chart data
+- `GET /drift/analytics/heatmap` - Document-level drift heatmap
+- `GET /drift/analytics/severity` - Severity breakdown with history
+- `GET /drift/analytics/types` - Drift type distribution
+- `GET /drift-dashboard` - Interactive drift visualization dashboard
 
 ### Proof & Metrics
 - `GET /proof/metrics` - Get verified proof metrics
@@ -219,6 +238,7 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 - `GET /competitive` - Competitive analysis dashboard
 - `GET /batch` - Batch URL analysis dashboard ⭐ New!
 - `GET /trends` - Historical trends dashboard ⭐ New!
+- `GET /drift-dashboard` - Drift analytics visualization ⭐ New!
 - `GET /website/health` - Website analysis service health check
 
 See http://localhost:8000/docs for interactive API documentation.
@@ -270,6 +290,32 @@ See http://localhost:8000/docs for interactive API documentation.
   - Real-time progress tracking
   - CSV export for external analysis
   - Intelligent cache integration
+- ✅ **Semantic Drift Detection** ⭐ New!
+  - Embedding-based contradiction detection
+  - Documentation-to-codebase alignment checking
+  - Technology stack misalignment detection
+  - Cross-document inconsistency analysis
+- ✅ **AI-Powered Conflict Resolution** ⭐ New!
+  - Claude AI analyzes drift and generates specific fixes
+  - Exact code/doc changes with before/after snippets
+  - Priority ranking by business impact
+  - Effort estimates (5 min, 1 hour, 1 day)
+  - Quick wins identification
+  - Exportable resolution plans (JSON/Markdown)
+- ✅ **Drift Alert System** ⭐ New!
+  - Automated Slack notifications when drift is detected
+  - HTML email alerts with color-coded severity
+  - Custom webhook support (Teams, Discord, etc.)
+  - Configurable rules (thresholds, channels, cooldowns)
+  - Alert history tracking
+  - Test mode for verification
+- ✅ **Drift Analytics Dashboard** ⭐ New!
+  - Historical drift tracking with automatic snapshots
+  - Trend analysis (7-day, 30-day, 90-day)
+  - Interactive charts (trend lines, severity breakdown, type distribution)
+  - Document heatmap showing problem areas
+  - Resolution rate tracking
+  - Auto-refresh dashboard with real-time metrics
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -336,7 +382,11 @@ pip install -r requirements.txt
 ```
 
 ### Documentation
-- **Caching & Historical Tracking**: [CACHING_AND_HISTORY.md](CACHING_AND_HISTORY.md) ⭐ New!
+- **Caching & Historical Tracking**: [CACHING_AND_HISTORY.md](CACHING_AND_HISTORY.md)
+- **Semantic Drift Detection**: [SEMANTIC_DRIFT.md](SEMANTIC_DRIFT.md) ⭐ New!
+- **AI-Powered Conflict Resolution**: [AI_CONFLICT_RESOLUTION.md](AI_CONFLICT_RESOLUTION.md) ⭐ New!
+- **Drift Alert System**: [DRIFT_ALERTS.md](DRIFT_ALERTS.md) ⭐ New!
+- **Drift Analytics Dashboard**: [DRIFT_DASHBOARD.md](DRIFT_DASHBOARD.md) ⭐ New!
 - **Competitive Analysis**: [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md)
 - **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md)
 - **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)

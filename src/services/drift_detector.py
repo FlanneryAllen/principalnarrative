@@ -27,6 +27,7 @@ from ..models import (
     DriftStatus,
 )
 from .narrative import NarrativeService
+from .semantic_drift_detector import SemanticDriftDetector
 
 
 logger = get_logger("services.drift_detector")
@@ -40,21 +41,37 @@ class DriftDetector:
     def __init__(self, narrative_service: Optional[NarrativeService] = None):
         self.narrative = narrative_service or NarrativeService()
         self.detected_drifts: list[DriftEvent] = []
+        self.semantic_detector = SemanticDriftDetector(narrative_service=self.narrative)
 
-    def run_full_scan(self) -> list[DriftEvent]:
-        """Run a complete drift scan across all layers."""
+    def run_full_scan(self, include_semantic: bool = True) -> list[DriftEvent]:
+        """
+        Run a complete drift scan across all layers.
+
+        Args:
+            include_semantic: If True, includes semantic drift detection using embeddings
+        """
         self.detected_drifts = []
 
         logger.info("Starting drift detection scan...")
         logger.info("-" * 50)
 
-        # Run all detectors
+        # Run pattern-based detectors
         self._detect_naming_drift()
         self._detect_proof_drift()
         self._detect_promise_delivery_drift()
         self._detect_opportunity_silence_drift()
         self._detect_messaging_drift()
         self._detect_stale_content()
+
+        # Run semantic drift detection (embedding-based)
+        if include_semantic:
+            logger.info("Running semantic drift detection (embedding-based)...")
+            try:
+                semantic_drifts = self.semantic_detector.run_semantic_scan()
+                self.detected_drifts.extend(semantic_drifts)
+                logger.info(f"  Found {len(semantic_drifts)} semantic drift events")
+            except Exception as e:
+                logger.error(f"Semantic drift detection failed: {e}", exc_info=True)
 
         logger.info("-" * 50)
         logger.info(f"Scan complete. Found {len(self.detected_drifts)} drift events.")

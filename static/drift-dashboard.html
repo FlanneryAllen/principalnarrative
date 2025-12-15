@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drift Analytics Dashboard - Principal Narrative</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-trend {
+            font-size: 14px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend-up { color: #dc2626; }
+        .trend-down { color: #059669; }
+        .trend-stable { color: #6b7280; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .heatmap-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .heatmap-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+        }
+
+        .heatmap-path {
+            flex: 1;
+            font-size: 14px;
+            color: #1f2937;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .heatmap-count {
+            font-size: 18px;
+            font-weight: 700;
+            color: #6366f1;
+            margin-right: 15px;
+        }
+
+        .heatmap-bar {
+            height: 8px;
+            background: #6366f1;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #4f46e5;
+        }
+
+        .last-update {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Drift Analytics Dashboard</h1>
+            <p>Monitor drift trends, identify problem areas, and track resolution progress</p>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh Data</button>
+            <div class="last-update" id="lastUpdate"></div>
+        </div>
+
+        <div id="loading" class="loading">Loading dashboard data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Current Drift Events</div>
+                    <div class="stat-value" id="currentDrift">0</div>
+                    <div class="stat-trend" id="trend7d"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">30-Day Trend</div>
+                    <div class="stat-value" id="trend30d"></div>
+                    <div class="stat-trend" id="trend30dChange"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Resolution Rate</div>
+                    <div class="stat-value" id="resolutionRate">0%</div>
+                    <div class="stat-trend trend-down">↑ Better</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Total Snapshots</div>
+                    <div class="stat-value" id="totalSnapshots">0</div>
+                    <div class="stat-trend trend-stable">Historical data</div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <!-- Drift Trend Chart -->
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-title">Drift Trend Over Time</div>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Severity Breakdown -->
+                <div class="chart-card">
+                    <div class="chart-title">Severity Breakdown</div>
+                    <div class="chart-container">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Drift Type Distribution -->
+                <div class="chart-card">
+                    <div class="chart-title">Drift Types</div>
+                    <div class="chart-container">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Document Heatmap -->
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-title">Document Heatmap (Most Problematic Files)</div>
+                    <div class="heatmap-container" id="heatmap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        async function loadDashboard() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const dashboard = document.getElementById('dashboard');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            dashboard.style.display = 'none';
+
+            try {
+                // Fetch all data in parallel
+                const [summary, timeseries, heatmap, types] = await Promise.all([
+                    fetch('/drift/analytics/summary').then(r => r.json()),
+                    fetch('/drift/analytics/timeseries?days=30').then(r => r.json()),
+                    fetch('/drift/analytics/heatmap').then(r => r.json()),
+                    fetch('/drift/analytics/types').then(r => r.json())
+                ]);
+
+                // Update stats
+                updateStats(summary);
+
+                // Update charts
+                updateTrendChart(timeseries.data);
+                updateSeverityChart(summary.severity_breakdown);
+                updateTypeChart(types.types);
+                updateHeatmap(heatmap.documents, heatmap.max_drift);
+
+                // Show dashboard
+                loading.style.display = 'none';
+                dashboard.style.display = 'block';
+
+                // Update timestamp
+                document.getElementById('lastUpdate').textContent =
+                    `Last updated: ${new Date().toLocaleString()}`;
+
+            } catch (err) {
+                console.error('Dashboard error:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = `Failed to load dashboard: ${err.message}. Make sure the API is running and you've run at least one drift scan.`;
+            }
+        }
+
+        function updateStats(summary) {
+            document.getElementById('currentDrift').textContent = summary.current_drift;
+
+            // 7-day trend
+            const trend7d = summary.trend_7d;
+            const trend7dEl = document.getElementById('trend7d');
+            const trendEmoji = trend7d.direction === 'increasing' ? '↑' :
+                              trend7d.direction === 'decreasing' ? '↓' : '→';
+            const trendClass = trend7d.direction === 'increasing' ? 'trend-up' :
+                              trend7d.direction === 'decreasing' ? 'trend-down' : 'trend-stable';
+            trend7dEl.innerHTML = `<span class="${trendClass}">${trendEmoji} ${trend7d.change > 0 ? '+' : ''}${trend7d.change} this week</span>`;
+
+            // 30-day trend
+            const trend30d = summary.trend_30d;
+            document.getElementById('trend30d').textContent = trend30d.direction.toUpperCase();
+            const trend30dEl = document.getElementById('trend30dChange');
+            const trend30dClass = trend30d.direction === 'increasing' ? 'trend-up' :
+                                 trend30d.direction === 'decreasing' ? 'trend-down' : 'trend-stable';
+            trend30dEl.innerHTML = `<span class="${trend30dClass}">${trend30d.change > 0 ? '+' : ''}${trend30d.change} this month</span>`;
+
+            document.getElementById('resolutionRate').textContent = `${summary.resolution_rate.toFixed(1)}%`;
+            document.getElementById('totalSnapshots').textContent = summary.total_snapshots;
+        }
+
+        function updateTrendChart(data) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+
+            if (charts.trend) {
+                charts.trend.destroy();
+            }
+
+            charts.trend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Critical',
+                            data: data.map(d => d.critical),
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'High',
+                            data: data.map(d => d.high),
+                            borderColor: '#ea580c',
+                            backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Medium',
+                            data: data.map(d => d.medium),
+                            borderColor: '#ca8a04',
+                            backgroundColor: 'rgba(202, 138, 4, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Low',
+                            data: data.map(d => d.low),
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSeverityChart(severity) {
+            const ctx = document.getElementById('severityChart').getContext('2d');
+
+            if (charts.severity) {
+                charts.severity.destroy();
+            }
+
+            charts.severity = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        data: [
+                            severity.critical || 0,
+                            severity.high || 0,
+                            severity.medium || 0,
+                            severity.low || 0
+                        ],
+                        backgroundColor: ['#dc2626', '#ea580c', '#ca8a04', '#2563eb']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTypeChart(types) {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+
+            if (charts.type) {
+                charts.type.destroy();
+            }
+
+            charts.type = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: types.map(t => t.type),
+                    datasets: [{
+                        label: 'Count',
+                        data: types.map(t => t.count),
+                        backgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateHeatmap(documents, maxDrift) {
+            const heatmap = document.getElementById('heatmap');
+
+            if (!documents || documents.length === 0) {
+                heatmap.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">No data available. Run a drift scan to generate heatmap.</p>';
+                return;
+            }
+
+            heatmap.innerHTML = documents.map(doc => `
+                <div class="heatmap-item">
+                    <div class="heatmap-count">${doc.drift_count}</div>
+                    <div style="flex: 1;">
+                        <div class="heatmap-path">${doc.path}</div>
+                        <div class="heatmap-bar" style="width: ${(doc.drift_count / maxDrift) * 100}%; margin-top: 8px;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadDashboard, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
