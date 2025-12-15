@@ -422,6 +422,22 @@
         </div>
 
         <div id="results" class="results">
+            <!-- Export Button -->
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <button onclick="downloadPDF()" style="
+                    padding: 0.75rem 1.5rem;
+                    background: linear-gradient(135deg, #6366f1, #4f46e5);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 1rem;
+                ">
+                    📄 Download PDF Report
+                </button>
+            </div>
+
             <!-- Summary Stats -->
             <div class="card">
                 <h2>📊 Summary</h2>
@@ -480,6 +496,7 @@
     <script>
         let siteCount = 2;
         let comparisonChart = null;
+        let lastCompetitiveRequest = null;  // Store last request for PDF export
 
         function addSite() {
             if (siteCount >= 5) {
@@ -535,6 +552,13 @@
             document.getElementById('results').style.display = 'none';
 
             try {
+                // Store request for PDF export
+                lastCompetitiveRequest = {
+                    sites: sites,
+                    max_pages: 10,
+                    render_js: false
+                };
+
                 const response = await fetch('/website/compare', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -742,6 +766,52 @@
                 item.innerHTML = `<strong>${index + 1}.</strong> ${opp}`;
                 list.appendChild(item);
             });
+        }
+
+        async function downloadPDF() {
+            if (!lastCompetitiveRequest) {
+                alert('Please run a comparison first');
+                return;
+            }
+
+            try {
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '⏳ Generating PDF...';
+                button.disabled = true;
+
+                // Call PDF export API
+                const response = await fetch('/website/export-competitive-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lastCompetitiveRequest)
+                });
+
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+
+                // Download the PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `competitive_analysis_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Restore button
+                button.textContent = originalText;
+                button.disabled = false;
+
+            } catch (error) {
+                alert(`Error generating PDF: ${error.message}`);
+                event.target.textContent = '📄 Download PDF Report';
+                event.target.disabled = false;
+            }
         }
     </script>
 </body>

@@ -4,7 +4,7 @@ Website Analysis API Routes
 Endpoints for analyzing website narrative structure
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, HttpUrl
 from pathlib import Path
 from typing import Optional, Dict
@@ -17,6 +17,7 @@ from src.services.url_fetcher import URLFetcher
 from src.services.js_fetcher import JSFetcher
 from src.services.ai_narrative_analyzer import AINavrativeAnalyzer, to_dict
 from src.services.competitive_analyzer import CompetitiveAnalyzer, to_dict as comp_to_dict
+from src.services.pdf_generator import PDFGenerator
 
 router = APIRouter(prefix="/website", tags=["Website Analysis"])
 
@@ -302,6 +303,171 @@ async def compare_websites(request: CompetitiveAnalysisRequest):
         )
 
 
+@router.post("/export-pdf")
+async def export_standard_pdf(request: WebsiteAnalysisRequest):
+    """
+    Export standard website analysis as PDF
+
+    Generates a professional PDF report with:
+    - Executive summary
+    - Claims and proof points
+    - Customer testimonials
+    - Visual charts
+
+    Returns PDF file for download.
+    """
+    # Run analysis (same logic as /analyze)
+    is_url = request.path.startswith(('http://', 'https://'))
+    fetcher = None
+    website_path = None
+
+    try:
+        if is_url:
+            print(f"🌐 Analyzing URL for PDF export: {request.path}")
+            if request.render_js:
+                js_fetcher = JSFetcher(max_pages=request.max_pages, headless=True)
+                website_path = js_fetcher.fetch_website_sync(request.path)
+                fetcher = js_fetcher
+            else:
+                fetcher = URLFetcher(max_pages=request.max_pages)
+                website_path = fetcher.fetch_website(request.path)
+        else:
+            website_path = Path(request.path)
+            if not website_path.exists():
+                raise HTTPException(status_code=404, detail=f"Path not found: {request.path}")
+
+        # Run analysis
+        analyzer = WebsiteAnalyzer(website_path)
+        analysis = analyzer.analyze()
+
+        # Generate PDF
+        print("📄 Generating PDF report...")
+        pdf_generator = PDFGenerator()
+        website_name = request.path if not is_url else request.path.split('//')[-1].split('/')[0]
+        pdf_bytes = pdf_generator.generate_standard_report(analysis, website_name)
+
+        # Return PDF as downloadable file
+        filename = f"narrative_analysis_{website_name.replace('/', '_').replace(':', '')}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    finally:
+        if fetcher:
+            fetcher.cleanup()
+
+
+@router.post("/export-ai-pdf")
+async def export_ai_pdf(request: WebsiteAnalysisRequest):
+    """
+    Export AI-enhanced analysis as PDF
+
+    Generates a comprehensive PDF report with:
+    - Overall narrative score
+    - AI-extracted claims with strength ratings
+    - Narrative gaps and recommendations
+    - Tone and voice analysis
+    - Value proposition scoring
+
+    Requires ANTHROPIC_API_KEY environment variable.
+    Returns PDF file for download.
+    """
+    is_url = request.path.startswith(('http://', 'https://'))
+    fetcher = None
+    website_path = None
+
+    try:
+        if is_url:
+            print(f"🌐 Analyzing URL for AI PDF export: {request.path}")
+            if request.render_js:
+                js_fetcher = JSFetcher(max_pages=request.max_pages, headless=True)
+                website_path = js_fetcher.fetch_website_sync(request.path)
+                fetcher = js_fetcher
+            else:
+                fetcher = URLFetcher(max_pages=request.max_pages)
+                website_path = fetcher.fetch_website(request.path)
+        else:
+            website_path = Path(request.path)
+            if not website_path.exists():
+                raise HTTPException(status_code=404, detail=f"Path not found: {request.path}")
+
+        # Run AI analysis
+        print("🤖 Running AI-enhanced analysis...")
+        ai_analyzer = AINavrativeAnalyzer(website_path)
+        ai_result = ai_analyzer.analyze()
+
+        # Convert to dict
+        result_dict = to_dict(ai_result)
+
+        # Generate PDF
+        print("📄 Generating AI PDF report...")
+        pdf_generator = PDFGenerator()
+        website_name = request.path if not is_url else request.path.split('//')[-1].split('/')[0]
+        pdf_bytes = pdf_generator.generate_ai_report(result_dict, website_name)
+
+        filename = f"ai_analysis_{website_name.replace('/', '_').replace(':', '')}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    finally:
+        if fetcher:
+            fetcher.cleanup()
+
+
+@router.post("/export-competitive-pdf")
+async def export_competitive_pdf(request: CompetitiveAnalysisRequest):
+    """
+    Export competitive analysis as PDF
+
+    Generates a landscape-oriented PDF report with:
+    - Side-by-side comparison table
+    - Visual comparison charts
+    - Competitive gaps with priorities
+    - Your strengths
+    - Actionable opportunities
+
+    Returns PDF file for download.
+    """
+    if not request.sites or len(request.sites) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 sites required")
+
+    if len(request.sites) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 sites allowed")
+
+    try:
+        print(f"🔍 Running competitive analysis for PDF export...")
+
+        # Run analysis
+        analyzer = CompetitiveAnalyzer(max_pages=request.max_pages, render_js=request.render_js)
+        result = analyzer.analyze_sites(request.sites)
+
+        # Convert to dict
+        result_dict = comp_to_dict(result)
+
+        # Generate PDF
+        print("📄 Generating competitive PDF report...")
+        pdf_generator = PDFGenerator()
+        pdf_bytes = pdf_generator.generate_competitive_report(result_dict)
+
+        filename = f"competitive_analysis_{len(request.sites)}_sites.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    except Exception as e:
+        print(f"❌ PDF export error: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     """Health check for website analysis service"""
@@ -315,6 +481,7 @@ async def health_check():
             "persona_identification",
             "report_generation",
             "ai_enhanced_analysis",
-            "competitive_analysis"
+            "competitive_analysis",
+            "pdf_export"
         ]
     }

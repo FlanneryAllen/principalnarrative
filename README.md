@@ -200,10 +200,13 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 ### Website Analysis
 - `POST /website/analyze` - Analyze website narrative structure
 - `POST /website/analyze-ai` - AI-enhanced narrative analysis
-- `POST /website/compare` - Competitive analysis (2-5 sites) ⭐ New!
+- `POST /website/compare` - Competitive analysis (2-5 sites)
+- `POST /website/export-pdf` - Export standard analysis as PDF ⭐ New!
+- `POST /website/export-ai-pdf` - Export AI analysis as PDF ⭐ New!
+- `POST /website/export-competitive-pdf` - Export competitive analysis as PDF ⭐ New!
 - `GET /website/health` - Website analysis service health check
 - `GET /dashboard` - Interactive visual dashboard
-- `GET /competitive` - Competitive analysis dashboard ⭐ New!
+- `GET /competitive` - Competitive analysis dashboard
 
 See http://localhost:8000/docs for interactive API documentation.
 
@@ -231,12 +234,17 @@ See http://localhost:8000/docs for interactive API documentation.
   - Tone & voice analysis
   - Value proposition scoring
   - Automated recommendations
-- ✅ **Competitive Analysis** ⭐ New!
+- ✅ **Competitive Analysis**
   - Side-by-side comparison of 2-5 websites
   - Gap identification (what you're missing)
   - Strengths analysis
   - Visual charts and rankings
   - Actionable opportunities
+- ✅ **PDF Report Export** ⭐ New!
+  - Professional branded PDF reports
+  - Charts and visualizations embedded
+  - One-click download from dashboards
+  - Shareable with stakeholders
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -252,11 +260,16 @@ Analyze any website's narrative structure - from local files or live URLs.
   - Automated recommendations
   - Tone & voice consistency analysis
   - Value proposition scoring
-- **Competitive Analysis**: Compare against competitors side-by-side ⭐ New!
+- **Competitive Analysis**: Compare against competitors side-by-side
   - Analyze 2-5 websites simultaneously
   - Identify gaps, strengths, and opportunities
   - Visual comparison charts
   - Priority-ranked recommendations
+- **PDF Report Export**: Professional, shareable reports ⭐ New!
+  - One-click download from dashboards
+  - Branded PDF templates with charts
+  - Standard, AI, and competitive analysis reports
+  - Email-ready format for stakeholders
 - **Persona Detection**: Extract customer testimonials and personas
 - **Consistency Scoring**: 0-100 score analyzing messaging alignment
 - **Live URL Analysis**: Download and analyze any public website

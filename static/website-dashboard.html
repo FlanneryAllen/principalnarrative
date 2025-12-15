@@ -456,6 +456,22 @@
         </div>
 
         <div id="dashboard" style="display: none;">
+            <!-- Export Button -->
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <button onclick="downloadPDF()" style="
+                    padding: 0.75rem 1.5rem;
+                    background: linear-gradient(135deg, #6366f1, #4f46e5);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 1rem;
+                ">
+                    📄 Download PDF Report
+                </button>
+            </div>
+
             <!-- Stats Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
@@ -541,6 +557,7 @@
 
     <script>
         let currentMode = 'url';
+        let lastAnalysisRequest = null;  // Store last request for PDF export
 
         function toggleInputMode(mode) {
             currentMode = mode;
@@ -592,6 +609,15 @@
             try {
                 // Choose endpoint based on AI option
                 const endpoint = useAI ? '/website/analyze-ai' : '/website/analyze';
+
+                // Store request for PDF export
+                lastAnalysisRequest = {
+                    path: path,
+                    generate_report: true,
+                    max_pages: 20,
+                    render_js: renderJs,
+                    useAI: useAI
+                };
 
                 // Call API
                 const response = await fetch(endpoint, {
@@ -846,6 +872,59 @@
                 `;
                 list.innerHTML += item;
             });
+        }
+
+        async function downloadPDF() {
+            if (!lastAnalysisRequest) {
+                alert('Please run an analysis first');
+                return;
+            }
+
+            try {
+                // Choose endpoint based on whether AI was used
+                const endpoint = lastAnalysisRequest.useAI ? '/website/export-ai-pdf' : '/website/export-pdf';
+
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '⏳ Generating PDF...';
+                button.disabled = true;
+
+                // Call PDF export API
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: lastAnalysisRequest.path,
+                        max_pages: lastAnalysisRequest.max_pages,
+                        render_js: lastAnalysisRequest.render_js
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+
+                // Download the PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `narrative_analysis_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Restore button
+                button.textContent = originalText;
+                button.disabled = false;
+
+            } catch (error) {
+                alert(`Error generating PDF: ${error.message}`);
+                event.target.textContent = '📄 Download PDF Report';
+                event.target.disabled = false;
+            }
         }
     </script>
 </body>
