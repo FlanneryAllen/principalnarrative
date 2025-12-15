@@ -4,7 +4,7 @@
   "name": "Principal Narrative",
   "description": "Complete Principal Narrative API codebase with shared context services",
   "rows": 4,
-  "cols": 3,
+  "cols": 4,
   "referenceGroups": {
     "core": {
       "title": "Core Application",
@@ -108,6 +108,52 @@
         "README.md"
       ],
       "position": { "row": 2, "col": 2 }
+    },
+    "website-services": {
+      "title": "Website Analysis",
+      "description": "Website narrative analysis services",
+      "files": [
+        "src/services/website_analyzer.py",
+        "src/services/url_fetcher.py",
+        "src/services/js_fetcher.py",
+        "src/services/competitive_analyzer.py",
+        "src/services/batch_analyzer.py",
+        "src/routes/website_routes.py"
+      ],
+      "position": { "row": 3, "col": 0 }
+    },
+    "ai-services": {
+      "title": "AI & Analytics",
+      "description": "AI resolution and drift analytics",
+      "files": [
+        "src/services/ai_conflict_resolver.py",
+        "src/services/ai_narrative_analyzer.py",
+        "src/services/drift_analytics.py",
+        "src/services/semantic_drift_detector.py"
+      ],
+      "position": { "row": 3, "col": 1 }
+    },
+    "multi-repo": {
+      "title": "Multi-Repository",
+      "description": "Cross-repository coordination",
+      "files": [
+        "src/services/repository_registry.py",
+        "src/services/cross_repo_drift_scanner.py",
+        "src/services/central_narrative_resolver.py"
+      ],
+      "position": { "row": 3, "col": 2 }
+    },
+    "support-services": {
+      "title": "Supporting Services",
+      "description": "Cache, history, PDF, and alerts",
+      "files": [
+        "src/services/cache_service.py",
+        "src/services/history_service.py",
+        "src/services/pdf_generator.py",
+        "src/services/alert_service.py",
+        "src/services/claim_validator.py"
+      ],
+      "position": { "row": 3, "col": 3 }
     }
   },
   "overviewPath": "README.md",
@@ -119,7 +165,7 @@
     "ui": {
       "enabled": true,
       "rows": 4,
-      "cols": 3,
+      "cols": 4,
       "showCellLabels": true,
       "cellLabelPosition": "top"
     }

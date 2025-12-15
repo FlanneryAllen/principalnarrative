@@ -8,5 +8,33 @@
         ".alexandria/**"
       ]
     }
+  },
+  "graph": {
+    "layout": {
+      "algorithm": "hierarchical",
+      "direction": "TB",
+      "nodeSpacing": 200,
+      "levelSpacing": 250,
+      "edgeSpacing": 100,
+      "sortMethod": "directed"
+    },
+    "physics": {
+      "enabled": false
+    },
+    "nodes": {
+      "defaultSize": {
+        "width": 150,
+        "height": 60
+      },
+      "font": {
+        "size": 14
+      },
+      "margin": {
+        "top": 10,
+        "right": 10,
+        "bottom": 10,
+        "left": 10
+      }
+    }
   }
 }

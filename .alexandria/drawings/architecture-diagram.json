@@ -1,0 +1,131 @@
+{
+  "id": "architecture-diagram",
+  "name": "Architecture Diagram",
+  "type": "graph",
+  "version": "1.0.0",
+  "layout": {
+    "algorithm": "hierarchical",
+    "direction": "TB",
+    "nodeSpacing": 150,
+    "levelSpacing": 200,
+    "edgeSpacing": 50
+  },
+  "nodes": [
+    {
+      "id": "main-api",
+      "label": "Main API",
+      "type": "component",
+      "position": { "x": 400, "y": 50 }
+    },
+    {
+      "id": "website-analyzer",
+      "label": "Website Analyzer",
+      "type": "service",
+      "position": { "x": 200, "y": 250 }
+    },
+    {
+      "id": "url-fetcher",
+      "label": "URL Fetcher",
+      "type": "service",
+      "position": { "x": 50, "y": 450 }
+    },
+    {
+      "id": "js-fetcher",
+      "label": "JS Fetcher",
+      "type": "service",
+      "position": { "x": 200, "y": 450 }
+    },
+    {
+      "id": "external-playwright",
+      "label": "External: Playwright",
+      "type": "external",
+      "position": { "x": 200, "y": 650 }
+    },
+    {
+      "id": "competitive-analyzer",
+      "label": "Competitive Analyzer",
+      "type": "service",
+      "position": { "x": 400, "y": 250 }
+    },
+    {
+      "id": "batch-analyzer",
+      "label": "Batch Analyzer",
+      "type": "service",
+      "position": { "x": 600, "y": 250 }
+    },
+    {
+      "id": "ai-analyzer",
+      "label": "AI Narrative Analyzer",
+      "type": "service",
+      "position": { "x": 800, "y": 250 }
+    },
+    {
+      "id": "cache-service",
+      "label": "Cache Service",
+      "type": "service",
+      "position": { "x": 400, "y": 450 }
+    },
+    {
+      "id": "history-service",
+      "label": "History Service",
+      "type": "service",
+      "position": { "x": 600, "y": 450 }
+    },
+    {
+      "id": "database",
+      "label": "SQLite Database",
+      "type": "storage",
+      "position": { "x": 500, "y": 650 }
+    },
+    {
+      "id": "external-claude",
+      "label": "External: Claude API",
+      "type": "external",
+      "position": { "x": 800, "y": 450 }
+    }
+  ],
+  "edges": [
+    { "from": "main-api", "to": "website-analyzer" },
+    { "from": "main-api", "to": "competitive-analyzer" },
+    { "from": "main-api", "to": "batch-analyzer" },
+    { "from": "main-api", "to": "ai-analyzer" },
+    { "from": "website-analyzer", "to": "url-fetcher" },
+    { "from": "website-analyzer", "to": "js-fetcher" },
+    { "from": "website-analyzer", "to": "cache-service" },
+    { "from": "js-fetcher", "to": "external-playwright" },
+    { "from": "competitive-analyzer", "to": "website-analyzer" },
+    { "from": "batch-analyzer", "to": "website-analyzer" },
+    { "from": "ai-analyzer", "to": "external-claude" },
+    { "from": "cache-service", "to": "database" },
+    { "from": "history-service", "to": "database" },
+    { "from": "website-analyzer", "to": "history-service" }
+  ],
+  "style": {
+    "nodes": {
+      "component": {
+        "color": "#3b82f6",
+        "shape": "rectangle",
+        "width": 120,
+        "height": 60
+      },
+      "service": {
+        "color": "#22c55e",
+        "shape": "rectangle",
+        "width": 140,
+        "height": 50
+      },
+      "external": {
+        "color": "#a855f7",
+        "shape": "ellipse",
+        "width": 140,
+        "height": 50
+      },
+      "storage": {
+        "color": "#eab308",
+        "shape": "cylinder",
+        "width": 120,
+        "height": 50
+      }
+    }
+  }
+}
