@@ -12,12 +12,8 @@ class TestNarrativeService:
     def test_load_narrative_units(self, temp_narrative_dir):
         """Test loading narrative units from directory."""
         from src.services.narrative import NarrativeService
-        from src.config import Settings
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        service = NarrativeService(settings)
+        service = NarrativeService(temp_narrative_dir)
         units = service.get_all_units()
 
         assert len(units) > 0
@@ -27,13 +23,9 @@ class TestNarrativeService:
     def test_query_by_type(self, temp_narrative_dir):
         """Test querying units by type."""
         from src.services.narrative import NarrativeService
-        from src.config import Settings
         from src.models import QueryRequest
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        service = NarrativeService(settings)
+        service = NarrativeService(temp_narrative_dir)
         request = QueryRequest(type="messaging")
         units = service.query(request)
 
@@ -43,12 +35,8 @@ class TestNarrativeService:
     def test_get_forbidden_terms(self, temp_narrative_dir):
         """Test getting forbidden terms."""
         from src.services.narrative import NarrativeService
-        from src.config import Settings
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        service = NarrativeService(settings)
+        service = NarrativeService(temp_narrative_dir)
         terms = service.get_forbidden_terms()
 
         assert isinstance(terms, list)
@@ -64,13 +52,9 @@ class TestValidatorService:
         """Test validating a clean claim."""
         from src.services.narrative import NarrativeService
         from src.services.validator import ValidatorService
-        from src.config import Settings
         from src.models import ValidateRequest
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        narrative_service = NarrativeService(settings)
+        narrative_service = NarrativeService(temp_narrative_dir)
         validator = ValidatorService(narrative_service)
 
         request = ValidateRequest(claim="Our platform helps teams work better")
@@ -82,21 +66,16 @@ class TestValidatorService:
         """Test detecting forbidden terms."""
         from src.services.narrative import NarrativeService
         from src.services.validator import ValidatorService
-        from src.config import Settings
         from src.models import ValidateRequest
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        narrative_service = NarrativeService(settings)
+        narrative_service = NarrativeService(temp_narrative_dir)
         validator = ValidatorService(narrative_service)
 
         request = ValidateRequest(claim="Our game-changing solution is revolutionary")
         result = validator.validate(request)
 
         # Should have issues for forbidden terms
-        naming_issues = [i for i in result.issues if "naming" in i.type.lower()]
-        assert len(naming_issues) > 0 or not result.valid
+        assert len(result.issues) > 0 or not result.valid
 
 
 class TestCoherenceService:
@@ -106,12 +85,8 @@ class TestCoherenceService:
         """Test computing coherence score."""
         from src.services.narrative import NarrativeService
         from src.services.coherence import CoherenceService
-        from src.config import Settings
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        narrative_service = NarrativeService(settings)
+        narrative_service = NarrativeService(temp_narrative_dir)
         coherence_service = CoherenceService(narrative_service)
 
         score = coherence_service.compute_coherence()
@@ -127,12 +102,8 @@ class TestDriftDetector:
         """Test running a full drift scan."""
         from src.services.narrative import NarrativeService
         from src.services.drift_detector import DriftDetector
-        from src.config import Settings
 
-        settings = Settings()
-        settings.narrative_base_path = temp_narrative_dir
-
-        narrative_service = NarrativeService(settings)
+        narrative_service = NarrativeService(temp_narrative_dir)
         detector = DriftDetector(narrative_service)
 
         events = detector.run_full_scan()

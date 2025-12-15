@@ -75,16 +75,18 @@ status: active
   source: "Sales data"
 """)
 
-    (temp_dir / "naming" / "forbidden.md").write_text("""---
+    (temp_dir / "naming" / "terminology.md").write_text("""---
 type: naming
-subtype: forbidden
+subtype: terminology
 status: active
 ---
 
-# Forbidden Terms
+# Canonical Terminology
 
-| Term | Reason | Alternative |
-|------|--------|-------------|
+## Forbidden Terms
+
+| Forbidden Term | Reason | Use Instead |
+|----------------|--------|-------------|
 | game-changing | Overused marketing speak | transformative |
 | revolutionary | Overpromises | innovative |
 | synergy | Corporate jargon | collaboration |
@@ -119,8 +121,17 @@ def api_client(temp_narrative_dir, monkeypatch):
     from src.config import settings
     monkeypatch.setattr(settings, "narrative_base_path", temp_narrative_dir)
 
-    # Import and create app
+    # Import app and reinitialize services with the test directory
     from src.main import app
+    from src.services.narrative import NarrativeService
+    from src.services.validator import ValidatorService
+    from src.services.coherence import CoherenceService
+    import src.main
+
+    # Reinitialize services with the test directory
+    src.main.narrative_service = NarrativeService(temp_narrative_dir)
+    src.main.validator_service = ValidatorService(src.main.narrative_service)
+    src.main.coherence_service = CoherenceService(src.main.narrative_service)
 
     return TestClient(app)
 

@@ -199,9 +199,6 @@ class CoherenceService:
     def _compute_strategic_score(self) -> float:
         """Compute strategic alignment score."""
         # Check that strategy layer is populated
-        strategy_units = self.narrative.query(
-            type_filter=None  # We'll filter manually
-        )
         strategy_units = [u for u in self.narrative.get_all_units() if u.type.value == 'strategy']
 
         if not strategy_units:
