@@ -199,9 +199,11 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 
 ### Website Analysis
 - `POST /website/analyze` - Analyze website narrative structure
-- `POST /website/analyze-ai` - AI-enhanced narrative analysis ⭐ New!
+- `POST /website/analyze-ai` - AI-enhanced narrative analysis
+- `POST /website/compare` - Competitive analysis (2-5 sites) ⭐ New!
 - `GET /website/health` - Website analysis service health check
 - `GET /dashboard` - Interactive visual dashboard
+- `GET /competitive` - Competitive analysis dashboard ⭐ New!
 
 See http://localhost:8000/docs for interactive API documentation.
 
@@ -223,12 +225,18 @@ See http://localhost:8000/docs for interactive API documentation.
 - ✅ Proof-backed claim validation
 - ✅ Semantic search (requires Anthropic API key)
 - ✅ Website narrative analysis
-- ✅ **AI-Enhanced Analysis** with Claude API ⭐ New!
+- ✅ **AI-Enhanced Analysis** with Claude API
   - Smart claim extraction with strength scoring
   - Narrative gap detection
   - Tone & voice analysis
   - Value proposition scoring
   - Automated recommendations
+- ✅ **Competitive Analysis** ⭐ New!
+  - Side-by-side comparison of 2-5 websites
+  - Gap identification (what you're missing)
+  - Strengths analysis
+  - Visual charts and rankings
+  - Actionable opportunities
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -244,6 +252,11 @@ Analyze any website's narrative structure - from local files or live URLs.
   - Automated recommendations
   - Tone & voice consistency analysis
   - Value proposition scoring
+- **Competitive Analysis**: Compare against competitors side-by-side ⭐ New!
+  - Analyze 2-5 websites simultaneously
+  - Identify gaps, strengths, and opportunities
+  - Visual comparison charts
+  - Priority-ranked recommendations
 - **Persona Detection**: Extract customer testimonials and personas
 - **Consistency Scoring**: 0-100 score analyzing messaging alignment
 - **Live URL Analysis**: Download and analyze any public website
@@ -285,7 +298,8 @@ pip install -r requirements.txt
 ```
 
 ### Documentation
-- **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md) ⭐ New!
+- **Competitive Analysis**: [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md) ⭐ New!
+- **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md)
 - **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)
 - **Live URL Analysis**: [URL_ANALYSIS.md](URL_ANALYSIS.md)
 - **JavaScript Rendering**: [JS_RENDERING.md](JS_RENDERING.md)

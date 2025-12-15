@@ -181,6 +181,16 @@ async def dashboard():
     return FileResponse(dashboard_path)
 
 
+@app.get("/competitive")
+async def competitive_dashboard():
+    """Serve the competitive analysis dashboard."""
+    from pathlib import Path
+    dashboard_path = Path(__file__).parent.parent / "static" / "competitive-dashboard.html"
+    if not dashboard_path.exists():
+        raise HTTPException(status_code=404, detail="Competitive dashboard not found")
+    return FileResponse(dashboard_path)
+
+
 # ============================================================================
 # Context Query Endpoints
 # ============================================================================

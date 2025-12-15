@@ -16,6 +16,7 @@ from src.services.report_generator import ReportGenerator
 from src.services.url_fetcher import URLFetcher
 from src.services.js_fetcher import JSFetcher
 from src.services.ai_narrative_analyzer import AINavrativeAnalyzer, to_dict
+from src.services.competitive_analyzer import CompetitiveAnalyzer, to_dict as comp_to_dict
 
 router = APIRouter(prefix="/website", tags=["Website Analysis"])
 
@@ -50,6 +51,28 @@ class AIAnalysisResponse(BaseModel):
     summary: Dict
     # Also include base analysis
     base_analysis: Optional[WebsiteAnalysisResponse] = None
+
+
+class CompetitiveSiteRequest(BaseModel):
+    """Single site for competitive analysis"""
+    name: str
+    url: str  # URL or local path
+
+
+class CompetitiveAnalysisRequest(BaseModel):
+    """Request for competitive analysis"""
+    sites: list  # List of {name, url} dicts
+    max_pages: int = 20
+    render_js: bool = False
+
+
+class CompetitiveAnalysisResponse(BaseModel):
+    """Response from competitive analysis"""
+    sites: list
+    gaps: list
+    strengths: list
+    opportunities: list
+    summary: Dict
 
 
 @router.post("/analyze", response_model=WebsiteAnalysisResponse)
@@ -216,6 +239,69 @@ async def analyze_website_ai(request: WebsiteAnalysisRequest):
             fetcher.cleanup()
 
 
+@router.post("/compare", response_model=CompetitiveAnalysisResponse)
+async def compare_websites(request: CompetitiveAnalysisRequest):
+    """
+    Competitive Analysis - Compare multiple websites side-by-side
+
+    Analyzes 2-5 websites and compares:
+    - Claims and value propositions
+    - Proof points and evidence
+    - Customer testimonials
+    - Messaging consistency
+
+    Returns:
+    - Side-by-side comparison data
+    - Competitive gaps (what you're missing)
+    - Your strengths vs competitors
+    - Opportunities for improvement
+
+    Accepts either local paths or URLs for each site.
+    First site in list is considered "your site" for gap analysis.
+    """
+
+    if not request.sites or len(request.sites) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least 2 sites to compare"
+        )
+
+    if len(request.sites) > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 5 sites allowed for comparison"
+        )
+
+    print(f"🔍 Starting competitive analysis of {len(request.sites)} sites...")
+
+    try:
+        # Run competitive analysis
+        analyzer = CompetitiveAnalyzer(
+            max_pages=request.max_pages,
+            render_js=request.render_js
+        )
+
+        result = analyzer.analyze_sites(request.sites)
+
+        # Convert to dict
+        result_dict = comp_to_dict(result)
+
+        return CompetitiveAnalysisResponse(
+            sites=result_dict['sites'],
+            gaps=result_dict['gaps'],
+            strengths=result_dict['strengths'],
+            opportunities=result_dict['opportunities'],
+            summary=result_dict['summary']
+        )
+
+    except Exception as e:
+        print(f"❌ Competitive analysis error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Competitive analysis failed: {str(e)}"
+        )
+
+
 @router.get("/health")
 async def health_check():
     """Health check for website analysis service"""
@@ -228,6 +314,7 @@ async def health_check():
             "proof_validation",
             "persona_identification",
             "report_generation",
-            "ai_enhanced_analysis"
+            "ai_enhanced_analysis",
+            "competitive_analysis"
         ]
     }
