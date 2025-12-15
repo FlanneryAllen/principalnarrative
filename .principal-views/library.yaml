@@ -1,0 +1,259 @@
+version: "1.0.0"
+name: "Principal Narrative Component Library"
+
+nodeComponents:
+  # API Layer
+  api-endpoint:
+    label: "API Endpoint"
+    description: "FastAPI REST endpoint"
+    color: "#6366f1"
+    icon: "🔌"
+    metadata:
+      layer: "api"
+      type: "endpoint"
+
+  api-router:
+    label: "API Router"
+    description: "FastAPI router grouping related endpoints"
+    color: "#4f46e5"
+    icon: "🔀"
+    metadata:
+      layer: "api"
+      type: "router"
+
+  # Service Layer
+  analyzer-service:
+    label: "Analyzer Service"
+    description: "Core analysis service"
+    color: "#10b981"
+    icon: "🔍"
+    metadata:
+      layer: "service"
+      type: "analyzer"
+
+  cache-service:
+    label: "Cache Service"
+    description: "Result caching service"
+    color: "#0ea5e9"
+    icon: "💾"
+    metadata:
+      layer: "service"
+      type: "cache"
+
+  batch-service:
+    label: "Batch Service"
+    description: "Batch processing service"
+    color: "#8b5cf6"
+    icon: "🚀"
+    metadata:
+      layer: "service"
+      type: "batch"
+
+  history-service:
+    label: "History Service"
+    description: "Historical tracking service"
+    color: "#f59e0b"
+    icon: "📊"
+    metadata:
+      layer: "service"
+      type: "history"
+
+  # Data Layer
+  database:
+    label: "Database"
+    description: "SQLite database"
+    color: "#64748b"
+    icon: "🗄️"
+    metadata:
+      layer: "data"
+      type: "database"
+
+  database-table:
+    label: "Database Table"
+    description: "SQLite table"
+    color: "#475569"
+    icon: "📋"
+    metadata:
+      layer: "data"
+      type: "table"
+
+  # External Services
+  external-api:
+    label: "External API"
+    description: "Third-party API service"
+    color: "#ef4444"
+    icon: "🌐"
+    metadata:
+      layer: "external"
+      type: "api"
+
+  browser-automation:
+    label: "Browser Automation"
+    description: "Playwright browser automation"
+    color: "#ec4899"
+    icon: "🎭"
+    metadata:
+      layer: "external"
+      type: "browser"
+
+  # UI Layer
+  dashboard:
+    label: "Dashboard"
+    description: "Interactive web dashboard"
+    color: "#22d3ee"
+    icon: "📱"
+    metadata:
+      layer: "ui"
+      type: "dashboard"
+
+  user:
+    label: "User"
+    description: "End user or API client"
+    color: "#14b8a6"
+    icon: "👤"
+    metadata:
+      layer: "client"
+      type: "user"
+
+  # Processing Components
+  fetcher:
+    label: "Fetcher"
+    description: "URL/content fetcher"
+    color: "#06b6d4"
+    icon: "📥"
+    metadata:
+      layer: "service"
+      type: "fetcher"
+
+  generator:
+    label: "Generator"
+    description: "Report/export generator"
+    color: "#84cc16"
+    icon: "📄"
+    metadata:
+      layer: "service"
+      type: "generator"
+
+edgeComponents:
+  # API Communication
+  http-request:
+    label: "HTTP Request"
+    description: "HTTP API request"
+    color: "#6366f1"
+    style: "solid"
+    arrow: true
+    metadata:
+      protocol: "http"
+
+  http-response:
+    label: "HTTP Response"
+    description: "HTTP API response"
+    color: "#6366f1"
+    style: "dashed"
+    arrow: true
+    metadata:
+      protocol: "http"
+
+  # Service Communication
+  service-call:
+    label: "Service Call"
+    description: "Internal service invocation"
+    color: "#10b981"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "internal"
+
+  async-call:
+    label: "Async Call"
+    description: "Asynchronous service call"
+    color: "#8b5cf6"
+    style: "dotted"
+    arrow: true
+    metadata:
+      type: "async"
+
+  # Data Flow
+  data-read:
+    label: "Read"
+    description: "Read data from storage"
+    color: "#0ea5e9"
+    style: "solid"
+    arrow: true
+    metadata:
+      operation: "read"
+
+  data-write:
+    label: "Write"
+    description: "Write data to storage"
+    color: "#f59e0b"
+    style: "solid"
+    arrow: true
+    metadata:
+      operation: "write"
+
+  data-flow:
+    label: "Data Flow"
+    description: "Generic data flow"
+    color: "#64748b"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "data"
+
+  # External Communication
+  external-api-call:
+    label: "External API Call"
+    description: "Call to external API"
+    color: "#ef4444"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "external"
+
+  browser-control:
+    label: "Browser Control"
+    description: "Browser automation command"
+    color: "#ec4899"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "automation"
+
+  # User Interaction
+  user-request:
+    label: "User Request"
+    description: "User initiates request"
+    color: "#22d3ee"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "user-action"
+
+  user-response:
+    label: "User Response"
+    description: "Response to user"
+    color: "#22d3ee"
+    style: "dashed"
+    arrow: true
+    metadata:
+      type: "user-response"
+
+  # Processing Flow
+  processing:
+    label: "Processing"
+    description: "Data processing flow"
+    color: "#84cc16"
+    style: "solid"
+    arrow: true
+    metadata:
+      type: "processing"
+
+  cache-check:
+    label: "Cache Check"
+    description: "Check cache for result"
+    color: "#0ea5e9"
+    style: "dotted"
+    arrow: true
+    metadata:
+      type: "cache-lookup"

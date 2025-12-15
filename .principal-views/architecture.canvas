@@ -1,0 +1,583 @@
+{
+  "nodes": [
+    {
+      "id": "user",
+      "type": "user",
+      "label": "User / API Client",
+      "position": { "x": 400, "y": 50 },
+      "metadata": {
+        "description": "End users accessing dashboards or making API calls"
+      }
+    },
+    {
+      "id": "dashboard-main",
+      "type": "dashboard",
+      "label": "Main Dashboard",
+      "position": { "x": 100, "y": 150 },
+      "metadata": {
+        "route": "/dashboard",
+        "file": "static/website-dashboard.html"
+      }
+    },
+    {
+      "id": "dashboard-competitive",
+      "type": "dashboard",
+      "label": "Competitive Dashboard",
+      "position": { "x": 300, "y": 150 },
+      "metadata": {
+        "route": "/competitive",
+        "file": "static/competitive-dashboard.html"
+      }
+    },
+    {
+      "id": "dashboard-batch",
+      "type": "dashboard",
+      "label": "Batch Dashboard",
+      "position": { "x": 500, "y": 150 },
+      "metadata": {
+        "route": "/batch",
+        "file": "static/batch-dashboard.html"
+      }
+    },
+    {
+      "id": "dashboard-trends",
+      "type": "dashboard",
+      "label": "Trends Dashboard",
+      "position": { "x": 700, "y": 150 },
+      "metadata": {
+        "route": "/trends",
+        "file": "static/trends-dashboard.html"
+      }
+    },
+    {
+      "id": "api-main",
+      "type": "api-router",
+      "label": "Main API",
+      "position": { "x": 400, "y": 300 },
+      "metadata": {
+        "file": "src/main.py",
+        "framework": "FastAPI"
+      }
+    },
+    {
+      "id": "api-website-router",
+      "type": "api-router",
+      "label": "Website Router",
+      "position": { "x": 400, "y": 400 },
+      "metadata": {
+        "prefix": "/website",
+        "file": "src/routes/website_routes.py"
+      }
+    },
+    {
+      "id": "endpoint-analyze",
+      "type": "api-endpoint",
+      "label": "POST /analyze",
+      "position": { "x": 100, "y": 500 },
+      "metadata": {
+        "description": "Standard website analysis"
+      }
+    },
+    {
+      "id": "endpoint-analyze-ai",
+      "type": "api-endpoint",
+      "label": "POST /analyze-ai",
+      "position": { "x": 250, "y": 500 },
+      "metadata": {
+        "description": "AI-enhanced analysis"
+      }
+    },
+    {
+      "id": "endpoint-compare",
+      "type": "api-endpoint",
+      "label": "POST /compare",
+      "position": { "x": 400, "y": 500 },
+      "metadata": {
+        "description": "Competitive analysis"
+      }
+    },
+    {
+      "id": "endpoint-batch-analyze",
+      "type": "api-endpoint",
+      "label": "POST /batch/analyze",
+      "position": { "x": 550, "y": 500 },
+      "metadata": {
+        "description": "Batch URL analysis"
+      }
+    },
+    {
+      "id": "endpoint-trends",
+      "type": "api-endpoint",
+      "label": "GET /history/trends",
+      "position": { "x": 700, "y": 500 },
+      "metadata": {
+        "description": "Historical trend analysis"
+      }
+    },
+    {
+      "id": "service-website-analyzer",
+      "type": "analyzer-service",
+      "label": "WebsiteAnalyzer",
+      "position": { "x": 100, "y": 650 },
+      "metadata": {
+        "file": "src/analyzer/website_analyzer.py",
+        "description": "Core narrative analysis engine"
+      }
+    },
+    {
+      "id": "service-ai-analyzer",
+      "type": "analyzer-service",
+      "label": "AIAnalyzer",
+      "position": { "x": 250, "y": 650 },
+      "metadata": {
+        "file": "src/services/ai_narrative_analyzer.py",
+        "description": "AI-enhanced analysis with Claude"
+      }
+    },
+    {
+      "id": "service-competitive-analyzer",
+      "type": "analyzer-service",
+      "label": "CompetitiveAnalyzer",
+      "position": { "x": 400, "y": 650 },
+      "metadata": {
+        "file": "src/services/competitive_analyzer.py",
+        "description": "Multi-site comparison"
+      }
+    },
+    {
+      "id": "service-batch-analyzer",
+      "type": "batch-service",
+      "label": "BatchAnalyzer",
+      "position": { "x": 550, "y": 650 },
+      "metadata": {
+        "file": "src/services/batch_analyzer.py",
+        "description": "Parallel URL processing"
+      }
+    },
+    {
+      "id": "service-cache",
+      "type": "cache-service",
+      "label": "CacheService",
+      "position": { "x": 200, "y": 800 },
+      "metadata": {
+        "file": "src/services/cache_service.py",
+        "description": "24-hour result caching"
+      }
+    },
+    {
+      "id": "service-history",
+      "type": "history-service",
+      "label": "HistoryService",
+      "position": { "x": 400, "y": 800 },
+      "metadata": {
+        "file": "src/services/history_service.py",
+        "description": "Historical snapshots & trends"
+      }
+    },
+    {
+      "id": "service-url-fetcher",
+      "type": "fetcher",
+      "label": "URLFetcher",
+      "position": { "x": 600, "y": 800 },
+      "metadata": {
+        "file": "src/services/url_fetcher.py",
+        "description": "HTTP website fetcher"
+      }
+    },
+    {
+      "id": "service-js-fetcher",
+      "type": "fetcher",
+      "label": "JSFetcher",
+      "position": { "x": 750, "y": 800 },
+      "metadata": {
+        "file": "src/services/js_fetcher.py",
+        "description": "JavaScript rendering fetcher"
+      }
+    },
+    {
+      "id": "service-pdf-generator",
+      "type": "generator",
+      "label": "PDFGenerator",
+      "position": { "x": 50, "y": 800 },
+      "metadata": {
+        "file": "src/services/pdf_generator.py",
+        "description": "PDF report generation"
+      }
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "SQLite Database",
+      "position": { "x": 400, "y": 950 },
+      "metadata": {
+        "path": "data/narrative_analysis.db",
+        "file": "src/database/schema.py"
+      }
+    },
+    {
+      "id": "table-cache",
+      "type": "database-table",
+      "label": "analysis_cache",
+      "position": { "x": 150, "y": 1100 },
+      "metadata": {
+        "description": "24-hour cached results"
+      }
+    },
+    {
+      "id": "table-history",
+      "type": "database-table",
+      "label": "analysis_history",
+      "position": { "x": 300, "y": 1100 },
+      "metadata": {
+        "description": "Historical snapshots"
+      }
+    },
+    {
+      "id": "table-batch-jobs",
+      "type": "database-table",
+      "label": "batch_jobs",
+      "position": { "x": 450, "y": 1100 },
+      "metadata": {
+        "description": "Batch job tracking"
+      }
+    },
+    {
+      "id": "table-batch-results",
+      "type": "database-table",
+      "label": "batch_results",
+      "position": { "x": 600, "y": 1100 },
+      "metadata": {
+        "description": "Batch analysis results"
+      }
+    },
+    {
+      "id": "external-claude",
+      "type": "external-api",
+      "label": "Claude API",
+      "position": { "x": 250, "y": 500 },
+      "metadata": {
+        "provider": "Anthropic",
+        "model": "claude-sonnet-4-20250514"
+      }
+    },
+    {
+      "id": "external-playwright",
+      "type": "browser-automation",
+      "label": "Playwright",
+      "position": { "x": 750, "y": 650 },
+      "metadata": {
+        "description": "Headless browser for SPA rendering"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "user",
+      "target": "dashboard-main",
+      "type": "user-request",
+      "label": "Access dashboard"
+    },
+    {
+      "id": "e2",
+      "source": "user",
+      "target": "dashboard-competitive",
+      "type": "user-request",
+      "label": "Access dashboard"
+    },
+    {
+      "id": "e3",
+      "source": "user",
+      "target": "dashboard-batch",
+      "type": "user-request",
+      "label": "Access dashboard"
+    },
+    {
+      "id": "e4",
+      "source": "user",
+      "target": "dashboard-trends",
+      "type": "user-request",
+      "label": "Access dashboard"
+    },
+    {
+      "id": "e5",
+      "source": "user",
+      "target": "api-main",
+      "type": "http-request",
+      "label": "API calls"
+    },
+    {
+      "id": "e6",
+      "source": "dashboard-main",
+      "target": "api-website-router",
+      "type": "http-request",
+      "label": "POST /analyze"
+    },
+    {
+      "id": "e7",
+      "source": "dashboard-competitive",
+      "target": "api-website-router",
+      "type": "http-request",
+      "label": "POST /compare"
+    },
+    {
+      "id": "e8",
+      "source": "dashboard-batch",
+      "target": "api-website-router",
+      "type": "http-request",
+      "label": "POST /batch/analyze"
+    },
+    {
+      "id": "e9",
+      "source": "dashboard-trends",
+      "target": "api-website-router",
+      "type": "http-request",
+      "label": "GET /history/trends"
+    },
+    {
+      "id": "e10",
+      "source": "api-main",
+      "target": "api-website-router",
+      "type": "service-call",
+      "label": "Include router"
+    },
+    {
+      "id": "e11",
+      "source": "api-website-router",
+      "target": "endpoint-analyze",
+      "type": "service-call",
+      "label": "Route"
+    },
+    {
+      "id": "e12",
+      "source": "api-website-router",
+      "target": "endpoint-analyze-ai",
+      "type": "service-call",
+      "label": "Route"
+    },
+    {
+      "id": "e13",
+      "source": "api-website-router",
+      "target": "endpoint-compare",
+      "type": "service-call",
+      "label": "Route"
+    },
+    {
+      "id": "e14",
+      "source": "api-website-router",
+      "target": "endpoint-batch-analyze",
+      "type": "service-call",
+      "label": "Route"
+    },
+    {
+      "id": "e15",
+      "source": "api-website-router",
+      "target": "endpoint-trends",
+      "type": "service-call",
+      "label": "Route"
+    },
+    {
+      "id": "e16",
+      "source": "endpoint-analyze",
+      "target": "service-cache",
+      "type": "cache-check",
+      "label": "Check cache"
+    },
+    {
+      "id": "e17",
+      "source": "endpoint-analyze",
+      "target": "service-website-analyzer",
+      "type": "service-call",
+      "label": "Analyze"
+    },
+    {
+      "id": "e18",
+      "source": "endpoint-analyze-ai",
+      "target": "service-cache",
+      "type": "cache-check",
+      "label": "Check cache"
+    },
+    {
+      "id": "e19",
+      "source": "endpoint-analyze-ai",
+      "target": "service-ai-analyzer",
+      "type": "service-call",
+      "label": "Analyze"
+    },
+    {
+      "id": "e20",
+      "source": "endpoint-compare",
+      "target": "service-competitive-analyzer",
+      "type": "service-call",
+      "label": "Compare"
+    },
+    {
+      "id": "e21",
+      "source": "endpoint-batch-analyze",
+      "target": "service-batch-analyzer",
+      "type": "async-call",
+      "label": "Start batch"
+    },
+    {
+      "id": "e22",
+      "source": "endpoint-trends",
+      "target": "service-history",
+      "type": "service-call",
+      "label": "Get trends"
+    },
+    {
+      "id": "e23",
+      "source": "service-ai-analyzer",
+      "target": "service-website-analyzer",
+      "type": "service-call",
+      "label": "Base analysis"
+    },
+    {
+      "id": "e24",
+      "source": "service-ai-analyzer",
+      "target": "external-claude",
+      "type": "external-api-call",
+      "label": "AI analysis"
+    },
+    {
+      "id": "e25",
+      "source": "service-competitive-analyzer",
+      "target": "service-website-analyzer",
+      "type": "service-call",
+      "label": "Analyze each site"
+    },
+    {
+      "id": "e26",
+      "source": "service-batch-analyzer",
+      "target": "service-website-analyzer",
+      "type": "async-call",
+      "label": "Parallel analysis"
+    },
+    {
+      "id": "e27",
+      "source": "service-batch-analyzer",
+      "target": "service-cache",
+      "type": "cache-check",
+      "label": "Check cache"
+    },
+    {
+      "id": "e28",
+      "source": "service-website-analyzer",
+      "target": "service-url-fetcher",
+      "type": "service-call",
+      "label": "Fetch URL"
+    },
+    {
+      "id": "e29",
+      "source": "service-website-analyzer",
+      "target": "service-js-fetcher",
+      "type": "service-call",
+      "label": "Fetch SPA"
+    },
+    {
+      "id": "e30",
+      "source": "service-js-fetcher",
+      "target": "external-playwright",
+      "type": "browser-control",
+      "label": "Render JS"
+    },
+    {
+      "id": "e31",
+      "source": "service-website-analyzer",
+      "target": "service-cache",
+      "type": "data-write",
+      "label": "Save result"
+    },
+    {
+      "id": "e32",
+      "source": "service-website-analyzer",
+      "target": "service-history",
+      "type": "data-write",
+      "label": "Save snapshot"
+    },
+    {
+      "id": "e33",
+      "source": "service-ai-analyzer",
+      "target": "service-cache",
+      "type": "data-write",
+      "label": "Save result"
+    },
+    {
+      "id": "e34",
+      "source": "service-ai-analyzer",
+      "target": "service-history",
+      "type": "data-write",
+      "label": "Save snapshot"
+    },
+    {
+      "id": "e35",
+      "source": "service-batch-analyzer",
+      "target": "service-history",
+      "type": "data-write",
+      "label": "Save snapshots"
+    },
+    {
+      "id": "e36",
+      "source": "service-cache",
+      "target": "database",
+      "type": "data-read",
+      "label": "Query"
+    },
+    {
+      "id": "e37",
+      "source": "service-cache",
+      "target": "database",
+      "type": "data-write",
+      "label": "Insert/Update"
+    },
+    {
+      "id": "e38",
+      "source": "service-history",
+      "target": "database",
+      "type": "data-read",
+      "label": "Query"
+    },
+    {
+      "id": "e39",
+      "source": "service-history",
+      "target": "database",
+      "type": "data-write",
+      "label": "Insert"
+    },
+    {
+      "id": "e40",
+      "source": "database",
+      "target": "table-cache",
+      "type": "data-flow",
+      "label": "Contains"
+    },
+    {
+      "id": "e41",
+      "source": "database",
+      "target": "table-history",
+      "type": "data-flow",
+      "label": "Contains"
+    },
+    {
+      "id": "e42",
+      "source": "database",
+      "target": "table-batch-jobs",
+      "type": "data-flow",
+      "label": "Contains"
+    },
+    {
+      "id": "e43",
+      "source": "database",
+      "target": "table-batch-results",
+      "type": "data-flow",
+      "label": "Contains"
+    },
+    {
+      "id": "e44",
+      "source": "service-pdf-generator",
+      "target": "endpoint-analyze",
+      "type": "service-call",
+      "label": "Generate PDF"
+    }
+  ]
+}
