@@ -415,11 +415,19 @@
                        placeholder="https://example.com"
                        value="https://example.com">
 
-                <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <input type="checkbox" id="renderJs" style="width: auto; cursor: pointer;">
-                    <label for="renderJs" style="cursor: pointer; font-size: 0.875rem;">
-                        🎭 Render JavaScript (for React/Vue/Angular sites)
-                    </label>
+                <div style="margin-top: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="renderJs" style="width: auto; cursor: pointer;">
+                        <label for="renderJs" style="cursor: pointer; font-size: 0.875rem;">
+                            🎭 Render JavaScript (for React/Vue/Angular sites)
+                        </label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="useAI" style="width: auto; cursor: pointer;">
+                        <label for="useAI" style="cursor: pointer; font-size: 0.875rem;">
+                            🤖 AI-Enhanced Analysis (requires Claude API key)
+                        </label>
+                    </div>
                 </div>
 
                 <div class="input-hint">
@@ -559,6 +567,7 @@
 
             // Get render JS option
             const renderJs = currentMode === 'url' && document.getElementById('renderJs').checked;
+            const useAI = document.getElementById('useAI').checked;
 
             // Show loading
             document.getElementById('uploadSection').style.display = 'none';
@@ -574,11 +583,18 @@
                 loadingMsg = '🎭 Rendering JavaScript and analyzing (this may take longer)...';
             }
 
+            if (useAI) {
+                loadingMsg = '🤖 Running AI-enhanced analysis with Claude (this may take a while)...';
+            }
+
             document.querySelector('#loading p').textContent = loadingMsg;
 
             try {
+                // Choose endpoint based on AI option
+                const endpoint = useAI ? '/website/analyze-ai' : '/website/analyze';
+
                 // Call API
-                const response = await fetch('/website/analyze', {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -608,6 +624,19 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
 
+            // Check if this is AI-enhanced analysis
+            const isAIAnalysis = !!data.overall_narrative_score;
+
+            if (isAIAnalysis) {
+                // AI-enhanced display
+                displayAIDashboard(data);
+            } else {
+                // Standard display
+                displayStandardDashboard(data);
+            }
+        }
+
+        function displayStandardDashboard(data) {
             // Update stats
             document.getElementById('totalClaims').textContent = data.summary.total_claims;
             document.getElementById('totalProof').textContent = data.summary.total_proof;
@@ -647,6 +676,94 @@
                   description: 'Value propositions across pages have low keyword overlap',
                   recommendation: 'Ensure core value proposition messaging is consistent across all pages' }
             ]);
+        }
+
+        function displayAIDashboard(data) {
+            // Update stats with AI data
+            document.getElementById('totalClaims').textContent = data.summary.total_ai_claims || 0;
+            document.getElementById('totalProof').textContent = data.summary.high_strength_claims || 0;
+            document.getElementById('totalPersonas').textContent = data.summary.total_gaps || 0;
+
+            // Use overall narrative score
+            const narrativeScore = Math.round(data.overall_narrative_score);
+            document.getElementById('proofRatio').textContent = narrativeScore;
+
+            // Update consistency gauge with tone consistency
+            const toneScore = Math.round(data.tone_analysis.consistency_score);
+            updateGauge(toneScore);
+
+            // Update claim validation with AI metrics
+            const totalAIClaims = data.summary.total_ai_claims || 0;
+            const highStrength = data.summary.high_strength_claims || 0;
+            const proofPercent = totalAIClaims > 0 ? Math.round((highStrength / totalAIClaims) * 100) : 0;
+
+            document.getElementById('claimsWithProof').textContent = `${highStrength} / ${totalAIClaims}`;
+            document.getElementById('proofProgress').style.width = proofPercent + '%';
+            document.getElementById('validationStatus').textContent = `✅ ${proofPercent}% are high-strength claims`;
+
+            // Display personas (use base analysis if available)
+            const personas = data.base_analysis?.personas || [];
+            displayPersonas(personas);
+
+            // Display narrative gaps as unsupported claims
+            const criticalGaps = data.narrative_gaps.filter(g => g.severity === 'critical' || g.severity === 'high').slice(0, 5);
+            const gapsForDisplay = criticalGaps.map(gap => ({
+                type: gap.gap_type,
+                claim: gap.description,
+                recommendation: gap.recommendation
+            }));
+            displayUnsupportedClaims(gapsForDisplay);
+
+            // Display tone variations as consistency issues
+            const toneIssues = data.tone_analysis.variations.map(v => ({
+                severity: 'medium',
+                description: `${v.page}: ${v.tone}`,
+                recommendation: data.tone_analysis.recommendations[0] || 'Maintain consistent tone'
+            }));
+            displayConsistencyIssues(toneIssues.slice(0, 3));
+
+            // Add AI recommendations section
+            if (data.recommendations && data.recommendations.length > 0) {
+                displayAIRecommendations(data.recommendations);
+            }
+        }
+
+        function displayAIRecommendations(recommendations) {
+            // Find or create recommendations section
+            let recSection = document.getElementById('aiRecommendations');
+            if (!recSection) {
+                // Create it after consistency section
+                const container = document.querySelector('.container');
+                const section = document.createElement('div');
+                section.id = 'aiRecommendations';
+                section.className = 'card';
+                section.style.marginTop = '2rem';
+                section.innerHTML = `
+                    <h2>🤖 AI Recommendations</h2>
+                    <div class="list-container">
+                        <ul id="aiRecList" class="issue-list"></ul>
+                    </div>
+                `;
+                container.appendChild(section);
+                recSection = section;
+            }
+
+            const list = document.getElementById('aiRecList');
+            list.innerHTML = '';
+
+            recommendations.slice(0, 10).forEach(rec => {
+                const item = document.createElement('li');
+                item.className = 'issue-item';
+                item.innerHTML = `
+                    <div class="issue-content">
+                        <div class="issue-title">${rec}</div>
+                    </div>
+                    <span class="severity-badge info">AI Insight</span>
+                `;
+                list.appendChild(item);
+            });
+
+            recSection.style.display = 'block';
         }
 
         function updateGauge(score) {

@@ -199,6 +199,7 @@ See [PRODUCTION.md](PRODUCTION.md) for detailed production deployment guide incl
 
 ### Website Analysis
 - `POST /website/analyze` - Analyze website narrative structure
+- `POST /website/analyze-ai` - AI-enhanced narrative analysis ⭐ New!
 - `GET /website/health` - Website analysis service health check
 - `GET /dashboard` - Interactive visual dashboard
 
@@ -222,6 +223,12 @@ See http://localhost:8000/docs for interactive API documentation.
 - ✅ Proof-backed claim validation
 - ✅ Semantic search (requires Anthropic API key)
 - ✅ Website narrative analysis
+- ✅ **AI-Enhanced Analysis** with Claude API ⭐ New!
+  - Smart claim extraction with strength scoring
+  - Narrative gap detection
+  - Tone & voice analysis
+  - Value proposition scoring
+  - Automated recommendations
 - ✅ Live URL scraping
 - ✅ JavaScript rendering for SPAs (React, Vue, Angular)
 
@@ -231,6 +238,12 @@ Analyze any website's narrative structure - from local files or live URLs.
 
 ### Features
 - **Claims & Proof Extraction**: Identify value propositions and supporting evidence
+- **AI-Enhanced Analysis**: Deep narrative intelligence with Claude API
+  - Smart claim extraction with 0-100 strength scoring
+  - Narrative gap identification (what's missing or weak)
+  - Automated recommendations
+  - Tone & voice consistency analysis
+  - Value proposition scoring
 - **Persona Detection**: Extract customer testimonials and personas
 - **Consistency Scoring**: 0-100 score analyzing messaging alignment
 - **Live URL Analysis**: Download and analyze any public website
@@ -249,7 +262,18 @@ Analyze any website's narrative structure - from local files or live URLs.
 3. **Analyze a website**:
    - Toggle between "📁 Local Path" or "🌐 URL" mode
    - For SPAs, check "🎭 Render JavaScript"
+   - For deep insights, check "🤖 AI-Enhanced Analysis"
    - Click "🔍 Analyze Website"
+
+### Setup AI-Enhanced Analysis
+
+For deep narrative intelligence with Claude:
+
+```bash
+# Get API key from: https://console.anthropic.com
+export ANTHROPIC_API_KEY="sk-ant-..."
+# Or add to .env file
+```
 
 ### Setup JavaScript Rendering
 
@@ -261,6 +285,7 @@ pip install -r requirements.txt
 ```
 
 ### Documentation
+- **AI-Enhanced Analysis**: [AI_ANALYSIS.md](AI_ANALYSIS.md) ⭐ New!
 - **Dashboard Guide**: [DASHBOARD.md](DASHBOARD.md)
 - **Live URL Analysis**: [URL_ANALYSIS.md](URL_ANALYSIS.md)
 - **JavaScript Rendering**: [JS_RENDERING.md](JS_RENDERING.md)
