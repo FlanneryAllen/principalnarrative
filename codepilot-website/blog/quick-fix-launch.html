@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Fix: One-Click Code Improvements - CodePilot Blog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --secondary: #0f172a; --accent: #22d3ee; --bg-light: #f8fafc; --text-primary: #1e293b; --text-secondary: #64748b; --white: #ffffff; --border: #e2e8f0; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.8; color: var(--text-primary); background: var(--white); }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        nav { padding: 16px 24px; border-bottom: 1px solid var(--border); margin-bottom: 60px; max-width: 1200px; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .back-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .back-link:hover { color: var(--primary); }
+        article { padding-bottom: 80px; }
+        .post-tag { display: inline-block; padding: 6px 12px; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 100px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        h1 { font-size: 42px; font-weight: 800; color: var(--secondary); margin-bottom: 24px; line-height: 1.2; }
+        .post-meta { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; padding-bottom: 40px; border-border: 1px solid var(--border); }
+        .author-avatar { width: 48px; height: 48px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .post-content p { margin-bottom: 24px; font-size: 17px; }
+        .post-content h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 48px 0 24px; }
+        .post-content h3 { font-size: 22px; font-weight: 700; color: var(--secondary); margin: 36px 0 16px; }
+        .post-content ul, .post-content ol { margin: 0 0 24px 24px; }
+        .post-content li { margin-bottom: 12px; font-size: 17px; }
+        .post-content blockquote { border-left: 4px solid var(--primary); padding-left: 24px; margin: 32px 0; font-style: italic; color: var(--text-secondary); }
+
+        .feature-announcement { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; margin: 40px 0; text-align: center; }
+        .feature-announcement h3 { font-size: 28px; margin-bottom: 12px; }
+        .feature-announcement p { opacity: 0.9; font-size: 18px; }
+
+        .demo-box { background: var(--bg-light); border-radius: 16px; padding: 32px; margin: 32px 0; }
+        .demo-box h4 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--secondary); }
+        .suggestion-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 16px 0; }
+        .suggestion-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+        .suggestion-type { font-size: 14px; font-weight: 600; color: var(--primary); }
+        .suggestion-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+        .code-diff { background: #f9fafb; border-radius: 8px; padding: 16px; margin: 16px 0; }
+        .code-diff .removed { color: #dc2626; text-decoration: line-through; }
+        .code-diff .added { color: #16a34a; font-weight: 500; }
+        .quick-fix-btn { background: var(--success); color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+
+        .stats-highlight { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 40px 0; }
+        .stat-card { background: var(--bg-light); padding: 32px; border-radius: 16px; text-align: center; }
+        .stat-card .value { font-size: 48px; font-weight: 800; color: var(--primary); }
+        .stat-card .label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
+
+        .use-case-grid { display: grid; gap: 20px; margin: 32px 0; }
+        .use-case { background: var(--bg-light); padding: 24px; border-radius: 12px; border-left: 4px solid var(--primary); }
+        .use-case h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--secondary); }
+        .use-case p { font-size: 14px; color: var(--text-secondary); margin: 0; }
+
+        .highlight-box { background: var(--bg-light); border-radius: 12px; padding: 24px; margin: 32px 0; }
+        .highlight-box h4 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+        .cta-box { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 40px; border-radius: 16px; text-align: center; margin: 48px 0; }
+        .cta-box h3 { font-size: 24px; margin-bottom: 16px; }
+        .cta-box p { opacity: 0.9; margin-bottom: 24px; }
+        .cta-box a { display: inline-block; background: white; color: var(--primary); padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+        footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 14px; }
+        @media (max-width: 768px) { .stats-highlight { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="../index.html" class="logo"><div class="logo-icon">CP</div>CodePilot</a>
+        <a href="index.html" class="back-link">← Back to Blog</a>
+    </nav>
+
+    <article class="container">
+        <span class="post-tag">Product Update</span>
+        <h1>Quick Fix: One-Click Code Improvements</h1>
+        <div class="post-meta">
+            <div class="author-avatar">PL</div>
+            <div>
+                <strong>Priya Lakshmi</strong><br>
+                <span>Product Manager · October 12, 2024 · 5 min read</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            <p>Code review has always been a two-step dance: AI (or a human) spots an issue, then the developer goes back to their editor to fix it. We wondered: what if we could collapse those steps?</p>
+
+            <p>Today we're launching <strong>Quick Fix</strong>—one-click code improvements that apply CodePilot's suggestions directly to your PR. No context-switching, no copy-paste, just click and the fix is applied.</p>
+
+            <div class="feature-announcement">
+                <h3>✨ Quick Fix is Live</h3>
+                <p>Accept suggestions with one click. Watch changes apply automatically.</p>
+            </div>
+
+            <h2>The Problem: Friction Between Review and Fix</h2>
+
+            <p>When CodePilot (or a human reviewer) suggests a change, the traditional workflow looks like this:</p>
+
+            <ol>
+                <li>Read the suggestion in the PR</li>
+                <li>Context-switch to your editor</li>
+                <li>Find the file and line number</li>
+                <li>Make the change manually</li>
+                <li>Commit and push</li>
+                <li>Return to the PR to see if you did it right</li>
+            </ol>
+
+            <p>For small fixes—adding a null check, fixing a typo, reordering imports—this is pure overhead. The suggestion tells you exactly what to change. Why should you have to manually type it?</p>
+
+            <h2>The Solution: Executable Suggestions</h2>
+
+            <p>With Quick Fix, applicable suggestions come with a button. Click it, and CodePilot applies the change directly to your branch.</p>
+
+            <div class="demo-box">
+                <h4>Example: Quick Fix in Action</h4>
+                <div class="suggestion-card">
+                    <div class="suggestion-header">
+                        <span class="suggestion-type">⚡ Quick Fix Available</span>
+                    </div>
+                    <div class="suggestion-body">
+                        This async function doesn't await the database call, which means errors won't be caught and data may not be saved before the function returns. Add await to ensure the operation completes.
+                    </div>
+                    <div class="code-diff">
+                        <div><span class="removed">- db.saveUser(newUser);</span></div>
+                        <div><span class="added">+ await db.saveUser(newUser);</span></div>
+                    </div>
+                    <button class="quick-fix-btn">
+                        <span>✓</span> Apply Quick Fix
+                    </button>
+                </div>
+            </div>
+
+            <p>Click the button. Two seconds later, the change is committed to your branch. No editor switching, no manual typing.</p>
+
+            <h2>What Quick Fix Handles</h2>
+
+            <p>Quick Fix works for deterministic changes where the fix is unambiguous. We've enabled it for:</p>
+
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <h4>🔧 Common Bugs</h4>
+                    <p>Missing null checks, unhandled promises, off-by-one errors</p>
+                </div>
+                <div class="use-case">
+                    <h4>📝 Style & Formatting</h4>
+                    <p>Import ordering, spacing, naming conventions</p>
+                </div>
+                <div class="use-case">
+                    <h4>🔒 Security Fixes</h4>
+                    <p>Parameterized queries, input escaping, secure random generation</p>
+                </div>
+                <div class="use-case">
+                    <h4>♻️ Simple Refactors</h4>
+                    <p>Extract constants, rename variables, add error handling</p>
+                </div>
+                <div class="use-case">
+                    <h4>📚 Documentation</h4>
+                    <p>Adding JSDoc comments, updating outdated docs</p>
+                </div>
+                <div class="use-case">
+                    <h4>🧪 Test Improvements</h4>
+                    <p>Missing assertions, test descriptions, setup/teardown</p>
+                </div>
+            </div>
+
+            <h2>How We Decide What's "Quick Fixable"</h2>
+
+            <p>Not every suggestion can be auto-applied. Quick Fix is only offered when:</p>
+
+            <ul>
+                <li><strong>The fix is deterministic:</strong> There's one correct way to make the change</li>
+                <li><strong>Context is sufficient:</strong> We understand the surrounding code well enough to apply the change safely</li>
+                <li><strong>Impact is localized:</strong> The change affects a small, well-defined area</li>
+                <li><strong>Risk is low:</strong> The change is unlikely to introduce new issues</li>
+            </ul>
+
+            <p>Architectural changes, business logic decisions, and anything requiring human judgment? Those still need human review. Quick Fix handles the routine, mechanical changes.</p>
+
+            <h2>The Impact: Time Saved</h2>
+
+            <p>We tracked Quick Fix usage across beta teams for 30 days. The results:</p>
+
+            <div class="stats-highlight">
+                <div class="stat-card">
+                    <div class="value">42%</div>
+                    <div class="label">Acceptance rate for Quick Fix suggestions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">3.2min</div>
+                    <div class="label">Average time saved per Quick Fix used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">73%</div>
+                    <div class="label">Reduction in review cycle time</div>
+                </div>
+            </div>
+
+            <p>That 42% acceptance rate is key. It means developers find Quick Fix suggestions genuinely helpful, not noise. And when they use it, they save an average of 3.2 minutes per fix.</p>
+
+            <p>For a team processing 50 PRs per week with an average of 2 Quick Fix suggestions per PR:</p>
+
+            <ul>
+                <li>100 Quick Fix opportunities per week</li>
+                <li>42 accepted (42% acceptance rate)</li>
+                <li>42 × 3.2 minutes = <strong>2.2 hours saved per week</strong></li>
+                <li><strong>115 hours saved per year</strong></li>
+            </ul>
+
+            <p>That's almost three full work weeks of context-switching eliminated.</p>
+
+            <h2>Developer Experience: Staying in Flow</h2>
+
+            <p>The time savings are real, but the bigger win is preserving flow state. Context-switching from PR review back to your editor and back to the PR breaks concentration.</p>
+
+            <blockquote>
+                "Quick Fix lets me process review feedback without leaving the PR. I can accept the trivial fixes immediately and focus my mental energy on the architectural feedback that actually requires thought."
+                <br><br>— Beta tester feedback
+            </blockquote>
+
+            <p>When reviewing your own PR after CodePilot's first pass:</p>
+
+            <ol>
+                <li>Scan the suggestions</li>
+                <li>Quick Fix the obvious ones (styling, null checks, etc.)</li>
+                <li>Think deeply about the architectural or logic suggestions</li>
+                <li>Request human review for complex decisions</li>
+            </ol>
+
+            <p>The result: human attention goes where it's actually needed.</p>
+
+            <h2>Safety & Control</h2>
+
+            <p>Letting AI write directly to your codebase requires trust. Here's how we built Quick Fix safely:</p>
+
+            <div class="highlight-box">
+                <h4>Quick Fix Safety Features</h4>
+                <ul>
+                    <li><strong>Always creates a new commit:</strong> Every Quick Fix is a separate commit on your branch—full git history and easy rollback</li>
+                    <li><strong>Shows the diff first:</strong> You see exactly what will change before clicking apply</li>
+                    <li><strong>Respects your workflows:</strong> Triggers your CI/tests just like manual commits</li>
+                    <li><strong>Opt-in per suggestion:</strong> Each suggestion requires explicit approval</li>
+                    <li><strong>No forced changes:</strong> You can always dismiss and make the change manually</li>
+                </ul>
+            </div>
+
+            <p>And if Quick Fix ever applies a change you don't like? Standard git revert, or just push your own correction.</p>
+
+            <h2>What's Next for Quick Fix</h2>
+
+            <p>This is version 1. Coming soon:</p>
+
+            <ul>
+                <li><strong>Batch Quick Fix:</strong> Accept multiple suggestions at once</li>
+                <li><strong>Custom Quick Fixes:</strong> Define team-specific auto-fixes for recurring patterns</li>
+                <li><strong>Quick Fix preview:</strong> See CI test results before accepting</li>
+                <li><strong>Learn from edits:</strong> If you modify a Quick Fix, CodePilot learns your preference</li>
+            </ul>
+
+            <p>Our goal: make the distance between "spotted an issue" and "issue fixed" as short as possible.</p>
+
+            <h2>Try Quick Fix Today</h2>
+
+            <p>Quick Fix is available now on all Team and Enterprise plans. Just open a PR and look for the "Quick Fix Available" badge on applicable suggestions.</p>
+
+            <p>We'd love to hear your feedback. What kinds of changes do you want Quick Fix to handle? What would make you trust it more? Let us know at feedback@codepilot.io.</p>
+
+            <div class="cta-box">
+                <h3>Experience one-click code fixes</h3>
+                <p>Quick Fix is live on Team and Enterprise plans.</p>
+                <a href="../index.html">Start Free Trial</a>
+            </div>
+        </div>
+    </article>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 CodePilot. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

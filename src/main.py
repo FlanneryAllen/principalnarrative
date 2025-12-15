@@ -35,6 +35,7 @@ from .services import NarrativeService, ValidatorService, CoherenceService, Drif
 from .webhooks import router as webhooks_router
 from .auth.routes import router as auth_router
 from .websocket import ws_router
+from .routes.website_routes import router as website_router
 
 
 # Initialize logging
@@ -104,6 +105,7 @@ app.add_middleware(
 app.include_router(webhooks_router)
 app.include_router(auth_router)
 app.include_router(ws_router)
+app.include_router(website_router)
 
 # Initialize services
 narrative_service = NarrativeService()
