@@ -8,11 +8,12 @@ Provides the Shared Context API for autonomous agents to:
 """
 import logging
 import time
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from .config import settings

@@ -1,0 +1,179 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-08T16:20:42.786324",
+  "total_repositories": 5,
+  "repositories": [
+    {
+      "config": {
+        "name": "auth-service",
+        "type": "service",
+        "mode": "central",
+        "description": "User authentication and authorization service",
+        "owner_team": "platform",
+        "owner_contact": "platform@example.com",
+        "central_repo_url": "https://github.com/example/applied-narrative.git",
+        "central_repo_branch": "main",
+        "local_narrative_path": ".principalnarrative/applied-narrative",
+        "drift_detection_enabled": true,
+        "check_against_central": true,
+        "report_to_org": true,
+        "tags": [
+          "backend",
+          "auth",
+          "python"
+        ]
+      },
+      "metrics": {
+        "repository_name": "auth-service",
+        "total_drift": 0,
+        "drift_by_severity": {},
+        "drift_by_type": {},
+        "coherence_score": 100,
+        "last_scan": "2026-01-08T16:20:41.553786",
+        "drift_trend_7d": "stable",
+        "resolution_rate": 0.0
+      },
+      "registered_at": "2026-01-08T10:47:48.524872",
+      "last_updated": "2026-01-08T16:20:41.553814",
+      "last_heartbeat": "2026-01-08T16:20:39.531053",
+      "status": "active"
+    },
+    {
+      "config": {
+        "name": "frontend-app",
+        "type": "frontend",
+        "mode": "hybrid",
+        "description": "Main web application",
+        "owner_team": "product",
+        "owner_contact": "product@example.com",
+        "central_repo_url": "https://github.com/example/applied-narrative.git",
+        "central_repo_branch": "main",
+        "local_narrative_path": ".principalnarrative/applied-narrative",
+        "drift_detection_enabled": true,
+        "check_against_central": true,
+        "report_to_org": true,
+        "tags": [
+          "frontend",
+          "react",
+          "typescript"
+        ]
+      },
+      "metrics": {
+        "repository_name": "frontend-app",
+        "total_drift": 0,
+        "drift_by_severity": {},
+        "drift_by_type": {},
+        "coherence_score": 100,
+        "last_scan": "2026-01-08T16:20:41.864954",
+        "drift_trend_7d": "stable",
+        "resolution_rate": 0.0
+      },
+      "registered_at": "2026-01-08T10:47:48.527027",
+      "last_updated": "2026-01-08T16:20:41.864961",
+      "last_heartbeat": null,
+      "status": "active"
+    },
+    {
+      "config": {
+        "name": "mobile-app",
+        "type": "mobile",
+        "mode": "central",
+        "description": "iOS and Android mobile app",
+        "owner_team": "mobile",
+        "owner_contact": "mobile@example.com",
+        "central_repo_url": "https://github.com/example/applied-narrative.git",
+        "central_repo_branch": "main",
+        "local_narrative_path": ".principalnarrative/applied-narrative",
+        "drift_detection_enabled": true,
+        "check_against_central": true,
+        "report_to_org": true,
+        "tags": [
+          "mobile",
+          "react-native"
+        ]
+      },
+      "metrics": {
+        "repository_name": "mobile-app",
+        "total_drift": 0,
+        "drift_by_severity": {},
+        "drift_by_type": {},
+        "coherence_score": 100,
+        "last_scan": "2026-01-08T16:20:42.172327",
+        "drift_trend_7d": "stable",
+        "resolution_rate": 0.0
+      },
+      "registered_at": "2026-01-08T10:47:48.528907",
+      "last_updated": "2026-01-08T16:20:42.172351",
+      "last_heartbeat": null,
+      "status": "active"
+    },
+    {
+      "config": {
+        "name": "data-pipeline",
+        "type": "service",
+        "mode": "hybrid",
+        "description": "Data processing pipeline",
+        "owner_team": "data",
+        "owner_contact": "data@example.com",
+        "central_repo_url": "https://github.com/example/applied-narrative.git",
+        "central_repo_branch": "main",
+        "local_narrative_path": ".principalnarrative/applied-narrative",
+        "drift_detection_enabled": true,
+        "check_against_central": true,
+        "report_to_org": true,
+        "tags": [
+          "backend",
+          "python",
+          "data"
+        ]
+      },
+      "metrics": {
+        "repository_name": "data-pipeline",
+        "total_drift": 0,
+        "drift_by_severity": {},
+        "drift_by_type": {},
+        "coherence_score": 100,
+        "last_scan": "2026-01-08T16:20:42.490666",
+        "drift_trend_7d": "stable",
+        "resolution_rate": 0.0
+      },
+      "registered_at": "2026-01-08T10:47:48.531210",
+      "last_updated": "2026-01-08T16:20:42.490686",
+      "last_heartbeat": null,
+      "status": "active"
+    },
+    {
+      "config": {
+        "name": "api-docs",
+        "type": "docs",
+        "mode": "standalone",
+        "description": "API documentation site",
+        "owner_team": "platform",
+        "owner_contact": "platform@example.com",
+        "central_repo_url": null,
+        "central_repo_branch": "main",
+        "local_narrative_path": ".principalnarrative/applied-narrative",
+        "drift_detection_enabled": true,
+        "check_against_central": true,
+        "report_to_org": true,
+        "tags": [
+          "docs"
+        ]
+      },
+      "metrics": {
+        "repository_name": "api-docs",
+        "total_drift": 0,
+        "drift_by_severity": {},
+        "drift_by_type": {},
+        "coherence_score": 100,
+        "last_scan": "2026-01-08T16:20:42.786297",
+        "drift_trend_7d": "stable",
+        "resolution_rate": 0.0
+      },
+      "registered_at": "2026-01-08T10:47:48.533554",
+      "last_updated": "2026-01-08T16:20:42.786322",
+      "last_heartbeat": null,
+      "status": "active"
+    }
+  ]
+}

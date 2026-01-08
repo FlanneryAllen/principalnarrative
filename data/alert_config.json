@@ -1,0 +1,50 @@
+{
+  "rules": [
+    {
+      "id": "critical-drift",
+      "name": "Critical Drift Alerts",
+      "enabled": false,
+      "min_severity": "critical",
+      "drift_types": [],
+      "channels": [
+        "slack"
+      ],
+      "slack_webhook": null,
+      "email_recipients": null,
+      "webhook_url": null,
+      "cooldown_hours": 1
+    },
+    {
+      "id": "high-drift-daily",
+      "name": "High Severity Daily Digest",
+      "enabled": false,
+      "min_severity": "high",
+      "drift_types": [],
+      "channels": [
+        "email"
+      ],
+      "slack_webhook": null,
+      "email_recipients": [
+        ""
+      ],
+      "webhook_url": null,
+      "cooldown_hours": 24
+    },
+    {
+      "id": "semantic-drift",
+      "name": "Semantic Drift Alerts",
+      "enabled": false,
+      "min_severity": "medium",
+      "drift_types": [
+        "semantic"
+      ],
+      "channels": [
+        "slack"
+      ],
+      "slack_webhook": null,
+      "email_recipients": null,
+      "webhook_url": null,
+      "cooldown_hours": 12
+    }
+  ]
+}

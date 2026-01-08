@@ -22,7 +22,7 @@ from io import StringIO
 from ..database import get_database
 from .cache_service import get_cache_service
 from .history_service import get_history_service
-from ..analyzer.website_analyzer import WebsiteAnalyzer
+from .website_analyzer import WebsiteAnalyzer
 
 
 @dataclass
