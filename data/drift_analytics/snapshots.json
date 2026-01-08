@@ -1,0 +1,451 @@
+{
+  "snapshots": [
+    {
+      "timestamp": "2026-01-08T16:23:05.929363",
+      "total_drifts": 57,
+      "by_severity": {
+        "low": 37,
+        "medium": 15,
+        "high": 5
+      },
+      "by_type": {
+        "naming": 9,
+        "proof": 6,
+        "promise-delivery": 2,
+        "messaging": 9,
+        "semantic": 31
+      },
+      "by_document": {
+        "naming/terminology.md": 8,
+        "marketing/feature-descriptions.md": 6,
+        "messaging/voice.md": 9,
+        "messaging/value-propositions.md": 6,
+        "messaging/pillars.md": 3,
+        "strategy/priorities.md": 2,
+        "coherence/current.json": 2,
+        "proof/README.md": 1,
+        "proof/case-studies/template.md": 1,
+        "proof/customer-quotes/quotes.md": 1,
+        "constraints/business.md": 1,
+        "constraints/architectural.md": 1,
+        "naming/ui-patterns.md": 1,
+        "naming/api-naming.md": 1,
+        "marketing/product-copy.md": 1,
+        "marketing/release-notes.md": 1,
+        "marketing/competitive.md": 1,
+        "definitions/glossary.md": 1,
+        "definitions/personas.md": 1,
+        "story/explanatory-models.md": 1,
+        "story/product-narrative.md": 1,
+        "strategy/vision.md": 1,
+        "strategy/architecture-principles.md": 2,
+        "proof/roi-stats/roi.json": 1,
+        "proof/metrics/performance.json": 1,
+        "proof/adoption-stats/adoption.json": 1,
+        "technical-context/architecture.md": 1
+      },
+      "events": [
+        {
+          "id": "drift-73127d93",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-aaca97ba",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-f2b656b7",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-700bd427",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-e188fdbc",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-2a2440d8",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-221b7889",
+          "type": "naming",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-4ba2d48d",
+          "type": "naming",
+          "severity": "low",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-2d75a948",
+          "type": "naming",
+          "severity": "low",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-2a14c842",
+          "type": "proof",
+          "severity": "medium",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-095dd611",
+          "type": "proof",
+          "severity": "medium",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-db135b50",
+          "type": "proof",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-82ef1472",
+          "type": "proof",
+          "severity": "medium",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-92fb74eb",
+          "type": "proof",
+          "severity": "medium",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-c5924b28",
+          "type": "proof",
+          "severity": "medium",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-cc47f46e",
+          "type": "promise-delivery",
+          "severity": "high",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-6af228d2",
+          "type": "promise-delivery",
+          "severity": "high",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-b5487374",
+          "type": "messaging",
+          "severity": "high",
+          "source": "messaging/pillars.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-4b26b238",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-9761ede7",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-3da9f915",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-c742dce3",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-49f31243",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-300f72ee",
+          "type": "messaging",
+          "severity": "high",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-8821b2a0",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "strategy/priorities.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-bbfc9ccd",
+          "type": "messaging",
+          "severity": "medium",
+          "source": "coherence/current.json",
+          "status": "open"
+        },
+        {
+          "id": "drift-d3486ed5",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/README.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-bbe06557",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/case-studies/template.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-8ef69f9e",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/customer-quotes/quotes.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-a3396b6b",
+          "type": "semantic",
+          "severity": "low",
+          "source": "constraints/business.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-8971b6d6",
+          "type": "semantic",
+          "severity": "low",
+          "source": "constraints/architectural.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-cd019af9",
+          "type": "semantic",
+          "severity": "low",
+          "source": "naming/ui-patterns.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-52e9fffe",
+          "type": "semantic",
+          "severity": "low",
+          "source": "naming/api-naming.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-27f35691",
+          "type": "semantic",
+          "severity": "low",
+          "source": "naming/terminology.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-9c247e59",
+          "type": "semantic",
+          "severity": "low",
+          "source": "marketing/product-copy.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-e9bca284",
+          "type": "semantic",
+          "severity": "low",
+          "source": "marketing/release-notes.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-28abb4fe",
+          "type": "semantic",
+          "severity": "low",
+          "source": "marketing/competitive.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-a2844d44",
+          "type": "semantic",
+          "severity": "low",
+          "source": "marketing/feature-descriptions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-ebffd14f",
+          "type": "semantic",
+          "severity": "low",
+          "source": "definitions/glossary.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-289de987",
+          "type": "semantic",
+          "severity": "low",
+          "source": "definitions/personas.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-3c8d4b89",
+          "type": "semantic",
+          "severity": "low",
+          "source": "messaging/pillars.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-412f0ccf",
+          "type": "semantic",
+          "severity": "low",
+          "source": "messaging/voice.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-232d2b94",
+          "type": "semantic",
+          "severity": "low",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-8dd3771a",
+          "type": "semantic",
+          "severity": "low",
+          "source": "story/explanatory-models.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-b8cd9a3c",
+          "type": "semantic",
+          "severity": "low",
+          "source": "story/product-narrative.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-01453742",
+          "type": "semantic",
+          "severity": "low",
+          "source": "strategy/priorities.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-b4e18d51",
+          "type": "semantic",
+          "severity": "low",
+          "source": "strategy/vision.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-880a17bd",
+          "type": "semantic",
+          "severity": "low",
+          "source": "strategy/architecture-principles.md",
+          "status": "open"
+        },
+        {
+          "id": "drift-742b9a1e",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/roi-stats/roi.json",
+          "status": "open"
+        },
+        {
+          "id": "drift-9d1d280f",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/metrics/performance.json",
+          "status": "open"
+        },
+        {
+          "id": "drift-1467bb2d",
+          "type": "semantic",
+          "severity": "low",
+          "source": "proof/adoption-stats/adoption.json",
+          "status": "open"
+        },
+        {
+          "id": "drift-38dbe9db",
+          "type": "semantic",
+          "severity": "low",
+          "source": "coherence/current.json",
+          "status": "open"
+        },
+        {
+          "id": "semantic-drift-b5c10f32",
+          "type": "semantic",
+          "severity": "low",
+          "source": "messaging/pillars.md",
+          "status": "open"
+        },
+        {
+          "id": "semantic-drift-37b6075b",
+          "type": "semantic",
+          "severity": "medium",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "semantic-drift-9de8907a",
+          "type": "semantic",
+          "severity": "low",
+          "source": "messaging/value-propositions.md",
+          "status": "open"
+        },
+        {
+          "id": "semantic-drift-bf5aaba4",
+          "type": "semantic",
+          "severity": "high",
+          "source": "strategy/architecture-principles.md",
+          "status": "open"
+        },
+        {
+          "id": "semantic-drift-86003ae0",
+          "type": "semantic",
+          "severity": "medium",
+          "source": "technical-context/architecture.md",
+          "status": "open"
+        }
+      ]
+    }
+  ],
+  "last_updated": "2026-01-08T16:23:05.929397"
+}
