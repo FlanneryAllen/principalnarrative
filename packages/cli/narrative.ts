@@ -10,7 +10,18 @@ import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
 import boxen from 'boxen';
-import { NarrativeClient, NarrativeUnit, NarrativeType, ValidationState } from '@narrative/sdk';
+import {
+  NarrativeClient,
+  NarrativeUnit,
+  NarrativeType,
+  ValidationState,
+  StakeholderPreset,
+  NarrativeSubgraph,
+  PropagationResult,
+  CoverageResult,
+  DriftResult,
+  NarrativeMetrics,
+} from '@narrative/sdk';
 import { StorySignalMiner, StoryCapture } from '@narrative/signal';
 import { NarrativeValidator } from '@narrative/validator';
 import { MarkdownToNarrativeConverter } from '@narrative/integrations';
@@ -55,10 +66,17 @@ async function mainMenu() {
         { name: '🔄 Sync Markdown → Database', value: 'sync' },
         { name: '✅ Validate Code', value: 'validate' },
         { name: '📈 Show Statistics', value: 'stats' },
+        new inquirer.Separator(chalk.gray('── Narrative Algebra ──')),
+        { name: '🧮 Compose Stakeholder View', value: 'algebra-compose' },
+        { name: '🌊 Propagation Impact', value: 'algebra-propagate' },
+        { name: '📐 NCI Report', value: 'algebra-nci' },
+        { name: '🔀 Drift Report', value: 'algebra-drift' },
+        { name: '🎯 Resonate Signal', value: 'algebra-resonate' },
+        new inquirer.Separator(chalk.gray('────────────────────')),
         { name: '🔧 Manage Units', value: 'manage' },
         { name: '❌ Exit', value: 'exit' },
       ],
-      pageSize: 12,
+      pageSize: 18,
     },
   ]);
 
@@ -86,6 +104,21 @@ async function mainMenu() {
       break;
     case 'stats':
       await showStats();
+      break;
+    case 'algebra-compose':
+      await algebraCompose();
+      break;
+    case 'algebra-propagate':
+      await algebraPropagate();
+      break;
+    case 'algebra-nci':
+      await algebraNCI();
+      break;
+    case 'algebra-drift':
+      await algebraDrift();
+      break;
+    case 'algebra-resonate':
+      await algebraResonate();
       break;
     case 'manage':
       await manageUnits();
@@ -793,6 +826,467 @@ async function manageUnits() {
   }
 
   client.close();
+}
+
+// =============================================================================
+// Narrative Algebra Commands
+// =============================================================================
+
+const STAKEHOLDER_CHOICES: Array<{ name: string; value: StakeholderPreset }> = [
+  { name: 'Board — core story, positioning, evidence (depth 2)', value: 'board' },
+  { name: 'Investor — core story, positioning, evidence (depth 3)', value: 'investor' },
+  { name: 'Engineering — product, operational, evidence (full depth)', value: 'engineering' },
+  { name: 'Compliance — operational, evidence, core story (full depth)', value: 'compliance' },
+  { name: 'Customer — product, communication, positioning (depth 3)', value: 'customer' },
+  { name: 'Marketing — positioning, communication, product (depth 3)', value: 'marketing' },
+];
+
+function formatPercent(n: number): string {
+  return (n * 100).toFixed(1) + '%';
+}
+
+function stateColor(state: ValidationState): string {
+  switch (state) {
+    case 'ALIGNED': return chalk.green(state);
+    case 'DRIFTED': return chalk.yellow(state);
+    case 'BROKEN':  return chalk.red(state);
+    default:        return chalk.gray(state);
+  }
+}
+
+async function algebraCompose() {
+  console.log(boxen(
+    chalk.bold.magenta('Σ  Compose Stakeholder View') + '\n' +
+    chalk.gray('Filter the narrative graph for a specific audience'),
+    { padding: 1, borderStyle: 'round', borderColor: 'magenta' }
+  ));
+
+  const { preset } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'preset',
+      message: 'Select stakeholder view:',
+      choices: STAKEHOLDER_CHOICES,
+    },
+  ]);
+
+  const spinner = ora('Composing subgraph...').start();
+
+  try {
+    const config = loadConfig();
+    const client = new NarrativeClient(config.dbPath);
+    const subgraph = client.composeForStakeholder(preset as StakeholderPreset);
+    const coverage = client.coverSubgraph(subgraph);
+    client.close();
+
+    spinner.succeed(chalk.green(`Composed ${preset} view`));
+
+    // Summary box
+    console.log(boxen(
+      chalk.bold(`${preset.toUpperCase()} VIEW`) + '\n\n' +
+      `Units: ${chalk.cyan(subgraph.units.length.toString())}    ` +
+      `Edges: ${chalk.cyan(subgraph.edges.length.toString())}    ` +
+      `Coverage: ${chalk.cyan(formatPercent(coverage.coverage))}`,
+      { padding: 1, borderStyle: 'single', borderColor: 'cyan' }
+    ));
+
+    // Units table
+    if (subgraph.units.length > 0) {
+      const table = new Table({
+        head: [
+          chalk.cyan('ID'),
+          chalk.cyan('Layer'),
+          chalk.cyan('State'),
+          chalk.cyan('Confidence'),
+          chalk.cyan('Assertion'),
+        ],
+        colWidths: [25, 20, 10, 12, 50],
+        wordWrap: true,
+      });
+
+      subgraph.units.forEach(u => {
+        table.push([
+          u.id,
+          u.type,
+          stateColor(u.validationState),
+          formatPercent(u.confidence),
+          u.assertion.substring(0, 47) + (u.assertion.length > 47 ? '...' : ''),
+        ]);
+      });
+
+      console.log(table.toString());
+    }
+
+    // Layer coverage breakdown
+    console.log(chalk.bold('\n  Layer Coverage:'));
+    for (const [layer, data] of Object.entries(coverage.byLayer)) {
+      if (data.total > 0) {
+        const bar = '█'.repeat(Math.round(data.coverage * 20)).padEnd(20, '░');
+        console.log(`    ${layer.padEnd(20)} ${chalk.cyan(bar)} ${formatPercent(data.coverage)} (${data.aligned}/${data.total})`);
+      }
+    }
+
+    // Gaps
+    if (coverage.gaps.length > 0) {
+      console.log(chalk.bold.yellow(`\n  ⚠ ${coverage.gaps.length} gap(s) (no evidence backing):`));
+      coverage.gaps.slice(0, 5).forEach(g => {
+        console.log(chalk.yellow(`    • ${g.id}: "${g.assertion.substring(0, 50)}..."`);
+      });
+      if (coverage.gaps.length > 5) {
+        console.log(chalk.gray(`    ... and ${coverage.gaps.length - 5} more`));
+      }
+    }
+
+    console.log(chalk.gray(`\n  Provenance: ${subgraph.provenance.operation} @ ${subgraph.provenance.timestamp}`));
+
+  } catch (error) {
+    spinner.fail(chalk.red('Compose failed'));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+async function algebraPropagate() {
+  console.log(boxen(
+    chalk.bold.magenta('Δ  Propagation Impact') + '\n' +
+    chalk.gray('What happens when a unit changes?'),
+    { padding: 1, borderStyle: 'round', borderColor: 'magenta' }
+  ));
+
+  const config = loadConfig();
+  const client = new NarrativeClient(config.dbPath);
+  const allUnits = client['graph'].getAllUnits();
+
+  if (allUnits.length === 0) {
+    console.log(chalk.yellow('  No units in the graph'));
+    client.close();
+    return;
+  }
+
+  const { unitId } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'unitId',
+      message: 'Select the unit that would change:',
+      choices: allUnits.map((u: NarrativeUnit) => ({
+        name: `${u.id} (${u.type}) — "${u.assertion.substring(0, 40)}..."`,
+        value: u.id,
+      })),
+      pageSize: 15,
+    },
+  ]);
+
+  const spinner = ora('Computing propagation...').start();
+
+  try {
+    const result = client.propagate(unitId);
+    client.close();
+
+    spinner.succeed(chalk.green('Propagation computed'));
+
+    console.log(boxen(
+      chalk.bold(`Impact of changing: ${unitId}`) + '\n\n' +
+      `Affected units: ${chalk.cyan(result.affectedUnits.length.toString())}    ` +
+      `Scope: ${chalk.cyan(formatPercent(result.scope))} of graph`,
+      { padding: 1, borderStyle: 'single', borderColor: 'yellow' }
+    ));
+
+    if (result.affectedUnits.length > 0) {
+      // Group by layer
+      console.log(chalk.bold('\n  Impact by Layer:'));
+      for (const [layer, units] of Object.entries(result.byLayer)) {
+        if ((units as NarrativeUnit[]).length > 0) {
+          console.log(chalk.bold.cyan(`\n    ${layer.toUpperCase()}:`));
+          (units as NarrativeUnit[]).forEach(u => {
+            console.log(`      ${stateColor(u.validationState)} ${u.id} — "${u.assertion.substring(0, 45)}..."`);
+          });
+        }
+      }
+    } else {
+      console.log(chalk.gray('\n  No downstream units affected — this is a leaf node.'));
+    }
+
+  } catch (error) {
+    spinner.fail(chalk.red('Propagation failed'));
+    client.close();
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+async function algebraNCI() {
+  console.log(boxen(
+    chalk.bold.magenta('NCI  Narrative Coherence Report') + '\n' +
+    chalk.gray('NCI(G) = |{n ∈ G | V(n) = ALIGNED}| / |G|'),
+    { padding: 1, borderStyle: 'round', borderColor: 'magenta' }
+  ));
+
+  const spinner = ora('Computing metrics...').start();
+
+  try {
+    const config = loadConfig();
+    const client = new NarrativeClient(config.dbPath);
+    const metrics = client.computeMetrics();
+    const coverage = client.cover();
+    const drift = client.drift();
+    client.close();
+
+    spinner.succeed(chalk.green('Metrics computed'));
+
+    // NCI headline
+    const nciValue = metrics.narrativeCoherenceIndex;
+    const nciColor = nciValue >= 0.8 ? chalk.green : nciValue >= 0.5 ? chalk.yellow : chalk.red;
+    const nciBar = '█'.repeat(Math.round(nciValue * 30)).padEnd(30, '░');
+
+    console.log(boxen(
+      chalk.bold('NARRATIVE COHERENCE INDEX') + '\n\n' +
+      `  ${nciColor(nciBar)}  ${nciColor(formatPercent(nciValue))}` + '\n\n' +
+      `  Total Units: ${chalk.cyan(metrics.totalUnits.toString())}    ` +
+      `Total Edges: ${chalk.cyan(metrics.totalEdges.toString())}    ` +
+      `Coverage: ${chalk.cyan(formatPercent(metrics.coverageRatio))}    ` +
+      `Drift: ${chalk.cyan(formatPercent(drift.driftRate))}`,
+      { padding: 1, borderStyle: 'double', borderColor: nciValue >= 0.8 ? 'green' : nciValue >= 0.5 ? 'yellow' : 'red' }
+    ));
+
+    // Layer health table
+    const table = new Table({
+      head: [
+        chalk.cyan('Layer'),
+        chalk.cyan('NCI'),
+        chalk.cyan('Units'),
+        chalk.cyan('Aligned'),
+        chalk.cyan('Drifted'),
+        chalk.cyan('Broken'),
+        chalk.cyan('Coverage'),
+        chalk.cyan('Health'),
+      ],
+      colWidths: [22, 8, 8, 9, 9, 8, 10, 22],
+    });
+
+    const layerOrder: NarrativeType[] = [
+      'core_story', 'positioning', 'product_narrative',
+      'operational', 'evidence', 'communication',
+    ];
+
+    layerOrder.forEach(layer => {
+      const health = metrics.layerHealth[layer];
+      if (health.unitCount > 0) {
+        const bar = '█'.repeat(Math.round(health.nci * 15)).padEnd(15, '░');
+        const barColor = health.nci >= 0.8 ? chalk.green : health.nci >= 0.5 ? chalk.yellow : chalk.red;
+        table.push([
+          layer,
+          formatPercent(health.nci),
+          health.unitCount.toString(),
+          chalk.green(health.alignedCount.toString()),
+          health.driftedCount > 0 ? chalk.yellow(health.driftedCount.toString()) : '0',
+          health.brokenCount > 0 ? chalk.red(health.brokenCount.toString()) : '0',
+          formatPercent(coverage.byLayer[layer]?.coverage ?? 0),
+          barColor(bar),
+        ]);
+      }
+    });
+
+    console.log(table.toString());
+
+    // Gaps & orphans
+    if (coverage.gaps.length > 0 || coverage.orphans.length > 0) {
+      console.log(chalk.bold.yellow('\n  Issues:'));
+      if (coverage.gaps.length > 0) {
+        console.log(chalk.yellow(`    • ${coverage.gaps.length} unit(s) have no evidence backing`));
+      }
+      if (coverage.orphans.length > 0) {
+        console.log(chalk.yellow(`    • ${coverage.orphans.length} orphan unit(s) (no connections)`));
+      }
+    }
+
+    if (drift.driftedUnits.length > 0) {
+      console.log(chalk.bold.yellow(`\n  Drifted Units (${drift.driftedUnits.length}):  `));
+      drift.driftedUnits.slice(0, 5).forEach(u => {
+        console.log(chalk.yellow(`    • ${u.id} (${u.type}) — ${u.validationState}`));
+      });
+      if (drift.driftedUnits.length > 5) {
+        console.log(chalk.gray(`    ... and ${drift.driftedUnits.length - 5} more`));
+      }
+    }
+
+  } catch (error) {
+    spinner.fail(chalk.red('Metrics computation failed'));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+async function algebraDrift() {
+  console.log(boxen(
+    chalk.bold.magenta('δ  Drift Report') + '\n' +
+    chalk.gray('Measure narrative coherence decay'),
+    { padding: 1, borderStyle: 'round', borderColor: 'magenta' }
+  ));
+
+  const { filterLayers } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'filterLayers',
+      message: 'Filter to specific layers?',
+      default: false,
+    },
+  ]);
+
+  let layers: NarrativeType[] | undefined;
+  if (filterLayers) {
+    const { selectedLayers } = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        name: 'selectedLayers',
+        message: 'Select layers:',
+        choices: [
+          { name: 'Core Story', value: 'core_story' },
+          { name: 'Positioning', value: 'positioning' },
+          { name: 'Product Narrative', value: 'product_narrative' },
+          { name: 'Operational', value: 'operational' },
+          { name: 'Evidence', value: 'evidence' },
+          { name: 'Communication', value: 'communication' },
+        ],
+      },
+    ]);
+    layers = selectedLayers;
+  }
+
+  const spinner = ora('Computing drift...').start();
+
+  try {
+    const config = loadConfig();
+    const client = new NarrativeClient(config.dbPath);
+    const drift = client.drift(layers ? { layers } : undefined);
+    client.close();
+
+    spinner.succeed(chalk.green('Drift computed'));
+
+    const driftColor = drift.driftRate === 0 ? chalk.green :
+                       drift.driftRate < 0.2 ? chalk.yellow : chalk.red;
+
+    console.log(boxen(
+      chalk.bold('DRIFT RATE: ') + driftColor(formatPercent(drift.driftRate)) + '\n\n' +
+      `Drifted/Broken units: ${chalk.cyan(drift.driftedUnits.length.toString())}`,
+      { padding: 1, borderStyle: 'single', borderColor: drift.driftRate === 0 ? 'green' : drift.driftRate < 0.2 ? 'yellow' : 'red' }
+    ));
+
+    // By-layer breakdown
+    const table = new Table({
+      head: [
+        chalk.cyan('Layer'),
+        chalk.cyan('Total'),
+        chalk.cyan('Drifted'),
+        chalk.cyan('Rate'),
+        chalk.cyan('Status'),
+      ],
+      colWidths: [22, 8, 9, 10, 22],
+    });
+
+    for (const [layer, data] of Object.entries(drift.byLayer)) {
+      if (data.total > 0) {
+        const bar = '░'.repeat(Math.round((1 - data.rate) * 15)) + '█'.repeat(Math.round(data.rate * 15));
+        const barColor = data.rate === 0 ? chalk.green : data.rate < 0.3 ? chalk.yellow : chalk.red;
+        table.push([
+          layer,
+          data.total.toString(),
+          data.drifted > 0 ? chalk.yellow(data.drifted.toString()) : '0',
+          formatPercent(data.rate),
+          barColor(bar),
+        ]);
+      }
+    }
+
+    console.log(table.toString());
+
+    // List drifted units
+    if (drift.driftedUnits.length > 0) {
+      console.log(chalk.bold.yellow('\n  Drifted Units:'));
+      drift.driftedUnits.forEach(u => {
+        console.log(`    ${stateColor(u.validationState)} ${chalk.bold(u.id)} (${u.type})`);
+        console.log(chalk.gray(`       "${u.assertion.substring(0, 60)}..."`);
+      });
+    } else {
+      console.log(chalk.green('\n  ✓ No drift detected — narrative is fully coherent'));
+    }
+
+  } catch (error) {
+    spinner.fail(chalk.red('Drift computation failed'));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+async function algebraResonate() {
+  console.log(boxen(
+    chalk.bold.magenta('ρ  Resonate Signal') + '\n' +
+    chalk.gray('Score an external signal against the narrative graph'),
+    { padding: 1, borderStyle: 'round', borderColor: 'magenta' }
+  ));
+
+  const { signalText } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'signalText',
+      message: 'Enter the signal (market intel, competitor move, news):',
+      validate: (input) => input.length > 0 || 'Signal text required',
+    },
+  ]);
+
+  const spinner = ora('Computing resonance...').start();
+
+  try {
+    const config = loadConfig();
+    const client = new NarrativeClient(config.dbPath);
+    const result = client.resonate(signalText);
+    client.close();
+
+    spinner.succeed(chalk.green('Resonance computed'));
+
+    const urgencyColor = {
+      critical: chalk.red,
+      high: chalk.yellow,
+      medium: chalk.cyan,
+      low: chalk.gray,
+    };
+
+    console.log(boxen(
+      chalk.bold('SIGNAL RESONANCE') + '\n\n' +
+      `  Resonance:  ${chalk.cyan(formatPercent(result.resonance))}\n` +
+      `  Relevance:  ${chalk.cyan(formatPercent(result.relevance))}\n` +
+      `  Scope:      ${chalk.cyan(formatPercent(result.scope))} of graph affected\n` +
+      `  Urgency:    ${urgencyColor[result.urgency](result.urgency.toUpperCase())}`,
+      { padding: 1, borderStyle: 'single', borderColor: result.urgency === 'critical' ? 'red' : result.urgency === 'high' ? 'yellow' : 'cyan' }
+    ));
+
+    if (result.matchedUnits.length > 0) {
+      console.log(chalk.bold(`\n  Matched Units (${result.matchedUnits.length}):  `));
+
+      const table = new Table({
+        head: [
+          chalk.cyan('Unit ID'),
+          chalk.cyan('Layer'),
+          chalk.cyan('Similarity'),
+          chalk.cyan('Assertion'),
+        ],
+        colWidths: [25, 20, 12, 50],
+        wordWrap: true,
+      });
+
+      result.matchedUnits.forEach(m => {
+        table.push([
+          m.unit.id,
+          m.unit.type,
+          formatPercent(m.similarity),
+          m.unit.assertion.substring(0, 47) + (m.unit.assertion.length > 47 ? '...' : ''),
+        ]);
+      });
+
+      console.log(table.toString());
+    } else {
+      console.log(chalk.gray('\n  No matching units — signal does not resonate with current narrative.'));
+    }
+
+  } catch (error) {
+    spinner.fail(chalk.red('Resonance computation failed'));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
 }
 
 // Main entry point

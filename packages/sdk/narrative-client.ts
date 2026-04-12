@@ -7,6 +7,7 @@
 
 import {
   NarrativeGraph,
+  NarrativeAlgebra,
   QueryFilters,
   NarrativeUnit,
   NarrativeType,
@@ -15,6 +16,15 @@ import {
   ValidationRule,
   CodeConstraints,
   ContentConstraints,
+  NarrativeSubgraph,
+  ComposeParams,
+  StakeholderPreset,
+  PropagationResult,
+  ValidationResult,
+  ResonanceResult,
+  CoverageResult,
+  DriftResult,
+  NarrativeMetrics,
 } from '@narrative/core';
 
 export interface QueryNarrativeParams {
@@ -37,9 +47,11 @@ export interface QueryNarrativeParams {
 
 export class NarrativeClient {
   private graph: NarrativeGraph;
+  private algebra: NarrativeAlgebra;
 
   constructor(dbPath?: string) {
     this.graph = new NarrativeGraph(dbPath);
+    this.algebra = new NarrativeAlgebra(this.graph);
   }
 
   /**
@@ -332,6 +344,192 @@ export class NarrativeClient {
    */
   async getStats() {
     return this.graph.getStats();
+  }
+
+  // ===========================================================================
+  // Algebra Operations — Σ, Δ, Ω, ρ, κ, δ
+  // ===========================================================================
+
+  /**
+   * Σ  Compose a stakeholder-specific subgraph.
+   *
+   * Returns a filtered view of the narrative graph tailored to a specific
+   * audience. The result is itself a valid narrative graph (closure property).
+   *
+   * ```ts
+   * const boardView = client.compose({ typeFilter: ['core_story', 'evidence'], depth: 2, stakeholder: 'board' });
+   * ```
+   */
+  compose(params: ComposeParams): NarrativeSubgraph {
+    return this.algebra.compose(params);
+  }
+
+  /**
+   * Σ  Compose from a predefined stakeholder preset.
+   *
+   * Available presets: board, engineering, compliance, customer, investor, marketing
+   *
+   * ```ts
+   * const investorView = client.composeForStakeholder('investor');
+   * ```
+   */
+  composeForStakeholder(preset: StakeholderPreset): NarrativeSubgraph {
+    return this.algebra.composeForStakeholder(preset);
+  }
+
+  /**
+   * Σ∘Σ  Compose on an existing subgraph (composition of compositions).
+   *
+   * Demonstrates the closure property — you can compose on composed views.
+   */
+  composeOnSubgraph(subgraph: NarrativeSubgraph, params: Partial<ComposeParams>): NarrativeSubgraph {
+    return this.algebra.composeOnSubgraph(subgraph, params);
+  }
+
+  /**
+   * Δ  Compute the propagation impact of changing a unit.
+   *
+   * Returns all units whose transitive dependency chain includes the changed unit.
+   * Useful for "what if" analysis before making changes to narrative.
+   *
+   * ```ts
+   * const impact = client.propagate('core_mission');
+   * console.log(`${impact.affectedUnits.length} units would be affected`);
+   * ```
+   */
+  propagate(
+    unitId: string,
+    options?: { maxDepth?: number; typeFilter?: NarrativeType[] }
+  ): PropagationResult {
+    return this.algebra.propagate(unitId, options);
+  }
+
+  /**
+   * Ω  Validate a unit against its dependencies.
+   *
+   * Evaluates structural alignment: checks dependency validation states
+   * and propagation consistency. Updates the unit's state in the graph.
+   *
+   * ```ts
+   * const result = client.validate('product_positioning');
+   * if (result.newState === 'DRIFTED') { /* remediate */ }
+   * ```
+   */
+  validate(unitId: string): ValidationResult {
+    return this.algebra.validate(unitId);
+  }
+
+  /**
+   * Ω  Validate all units in dependency order (roots first).
+   *
+   * Full graph validation — propagates state from core_story outward.
+   */
+  validateAll(): ValidationResult[] {
+    return this.algebra.validateAll();
+  }
+
+  /**
+   * ρ  Score an external signal against the narrative graph.
+   *
+   * Evaluates how strongly a piece of market intelligence, competitor move,
+   * or news article resonates with the existing narrative structure.
+   *
+   * ```ts
+   * const result = client.resonate('Competitor launched AI-powered analytics');
+   * if (result.urgency === 'critical') { /* act fast */ }
+   * ```
+   */
+  resonate(signalText: string): ResonanceResult {
+    return this.algebra.resonate(signalText);
+  }
+
+  /**
+   * κ  Measure narrative coverage across the graph or specific layers.
+   *
+   * Returns overall coverage ratio, per-layer breakdown, gaps (units with
+   * no evidence), and orphans (disconnected units).
+   *
+   * ```ts
+   * const coverage = client.cover();
+   * console.log(`NCI coverage: ${(coverage.coverage * 100).toFixed(1)}%`);
+   * ```
+   */
+  cover(options?: {
+    layers?: NarrativeType[];
+    coveredStates?: import('@narrative/core').ValidationState[];
+  }): CoverageResult {
+    return this.algebra.cover(options);
+  }
+
+  /**
+   * κ  Coverage applied to a subgraph (closure property).
+   */
+  coverSubgraph(subgraph: NarrativeSubgraph): CoverageResult {
+    return this.algebra.coverSubgraph(subgraph);
+  }
+
+  /**
+   * δ  Measure narrative coherence decay (drift).
+   *
+   * Returns the drift rate, list of drifted units, and per-layer breakdown.
+   *
+   * ```ts
+   * const drift = client.drift();
+   * if (drift.driftRate > 0.2) { /* narrative is fragmenting */ }
+   * ```
+   */
+  drift(options?: { layers?: NarrativeType[] }): DriftResult {
+    return this.algebra.drift(options);
+  }
+
+  /**
+   * Compute the Narrative Coherence Index and related metrics.
+   *
+   * NCI(G) = |{n ∈ G | V(n) = ALIGNED}| / |G|
+   *
+   * Returns NCI, coverage ratio, per-layer health, and edge counts.
+   *
+   * ```ts
+   * const metrics = client.computeMetrics();
+   * console.log(`NCI: ${metrics.narrativeCoherenceIndex}`);
+   * ```
+   */
+  computeMetrics(): NarrativeMetrics {
+    return this.algebra.computeMetrics();
+  }
+
+  // ===========================================================================
+  // Composed Queries — Multi-operation algebraic chains
+  // ===========================================================================
+
+  /**
+   * Strategic alignment: validate engineering subgraph against board dependencies.
+   *
+   * Composes two stakeholder views and finds engineering units whose board-level
+   * dependencies are misaligned.
+   */
+  queryStrategicAlignment() {
+    return this.algebra.queryStrategicAlignment();
+  }
+
+  /**
+   * Competitive response: resonate a signal then propagate to compute impact.
+   *
+   * Returns the resonance score, all propagation chains, and which
+   * stakeholder views are affected.
+   */
+  queryCompetitiveResponse(competitorSignal: string) {
+    return this.algebra.queryCompetitiveResponse(competitorSignal);
+  }
+
+  /**
+   * Regulatory exposure: cover compliance domain, find exposed communications.
+   *
+   * Returns compliance coverage and communication units that depend on
+   * unvalidated compliance units.
+   */
+  queryRegulatoryExposure() {
+    return this.algebra.queryRegulatoryExposure();
   }
 
   /**

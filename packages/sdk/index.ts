@@ -1,7 +1,8 @@
 /**
  * @narrative/sdk
  *
- * Narrative Intelligence SDK for agent coordination
+ * Narrative Intelligence SDK for agent coordination.
+ * Includes algebraic operations (Σ, Δ, Ω, ρ, κ, δ) and NCI metrics.
  */
 
 export { NarrativeClient } from './narrative-client';

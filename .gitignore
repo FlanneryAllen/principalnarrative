@@ -85,3 +85,6 @@ site/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# Node
+node_modules/
