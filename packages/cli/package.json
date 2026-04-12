@@ -1,0 +1,38 @@
+{
+  "name": "@narrative/cli",
+  "version": "0.1.0",
+  "description": "Comprehensive CLI for Intent Engineering Infrastructure",
+  "main": "dist/index.js",
+  "bin": {
+    "narrative": "./dist/narrative.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "intent-engineering",
+    "cli",
+    "narrative-intelligence"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "dependencies": {
+    "@narrative/core": "file:../core",
+    "@narrative/sdk": "file:../sdk",
+    "@narrative/signal": "file:../signal",
+    "@narrative/validator": "file:../validator",
+    "@narrative/integrations": "file:../integrations",
+    "inquirer": "^9.2.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "cli-table3": "^0.6.3",
+    "boxen": "^5.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/inquirer": "^9.0.0",
+    "typescript": "^5.5.0"
+  }
+}

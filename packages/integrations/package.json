@@ -1,0 +1,29 @@
+{
+  "name": "@narrative/integrations",
+  "version": "0.1.0",
+  "description": "Integrations between markdown Applied Narrative and Intent Engineering",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "intent-engineering",
+    "applied-narrative",
+    "markdown",
+    "integration"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "dependencies": {
+    "@narrative/core": "file:../core",
+    "@narrative/sdk": "file:../sdk",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}

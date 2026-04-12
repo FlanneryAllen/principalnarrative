@@ -1,0 +1,38 @@
+{
+  "name": "narrative-agent-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Intent Engineering Infrastructure - Making organizational intent machine-readable",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "keywords": [
+    "intent-engineering",
+    "narrative-intelligence",
+    "agent-coordination",
+    "organizational-intent"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "storybook": "^10.3.5",
+    "@storybook/react-vite": "^10.3.5",
+    "@chromatic-com/storybook": "^5.1.1",
+    "@storybook/addon-vitest": "^10.3.5",
+    "@storybook/addon-a11y": "^10.3.5",
+    "@storybook/addon-docs": "^10.3.5",
+    "@storybook/addon-onboarding": "^10.3.5",
+    "vitest": "^4.1.4",
+    "playwright": "^1.59.1",
+    "@vitest/browser-playwright": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.4"
+  }
+}

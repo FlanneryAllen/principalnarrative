@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narrative Intelligence - Interactive Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.5em;
+        }
+
+        .query-section {
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tag:hover {
+            background: #e0e0e0;
+        }
+
+        .tag.active:hover {
+            background: #5568d3;
+        }
+
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #5568d3;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .intent-chain {
+            margin-bottom: 20px;
+        }
+
+        .intent-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .intent-item .type {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .intent-item .assertion {
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .constraints {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .constraint-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .constraint-box h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .constraint-list {
+            list-style: none;
+        }
+
+        .constraint-list li {
+            padding: 6px 0;
+            font-size: 0.9em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .constraint-list li::before {
+            content: "•";
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .constraint-list.forbidden li::before {
+            content: "✗";
+            color: #e74c3c;
+        }
+
+        .code-editor {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .line {
+            display: flex;
+            gap: 20px;
+        }
+
+        .line-number {
+            color: #858585;
+            user-select: none;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .line-content {
+            flex: 1;
+        }
+
+        .keyword { color: #569cd6; }
+        .function { color: #dcdcaa; }
+        .string { color: #ce9178; }
+        .comment { color: #6a9955; }
+        .error { background: rgba(231, 76, 60, 0.2); }
+
+        .violation {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .violation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .violation-icon {
+            color: #e74c3c;
+            font-size: 1.2em;
+        }
+
+        .violation-message {
+            color: #c0392b;
+            font-weight: 600;
+        }
+
+        .violation-suggestion {
+            color: #555;
+            font-size: 0.9em;
+            margin-left: 28px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: white;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .constraints {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Narrative Intelligence</h1>
+            <p>Making organizational narrative machine-readable for AI agents</p>
+        </div>
+
+        <div class="demo-grid">
+            <!-- Query Interface -->
+            <div class="card">
+                <h2><span class="icon">🔍</span> Query Narrative</h2>
+
+                <div class="query-section">
+                    <input type="text"
+                           class="query-input"
+                           id="queryInput"
+                           placeholder="What are you building? (e.g., 'writing authentication code')"
+                           value="writing authentication code">
+
+                    <p style="margin-bottom: 10px; color: #666; font-size: 0.9em;">Select context tags:</p>
+                    <div class="tags" id="tagContainer">
+                        <!-- Tags will be added by JS -->
+                    </div>
+
+                    <button class="button" onclick="runQuery()">Query Narrative</button>
+                </div>
+
+                <div class="results" id="queryResults" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">📋 Narrative Chain</h3>
+                    <div class="intent-chain" id="narrativeChain"></div>
+
+                    <h3 style="margin-bottom: 15px;">🔒 Constraints</h3>
+                    <div class="constraints">
+                        <div class="constraint-box">
+                            <h4>✅ Required Patterns</h4>
+                            <ul class="constraint-list" id="requiredPatterns"></ul>
+                        </div>
+                        <div class="constraint-box">
+                            <h4>❌ Forbidden Patterns</h4>
+                            <ul class="constraint-list forbidden" id="forbiddenPatterns"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Validation -->
+            <div class="card">
+                <h2><span class="icon">✅</span> Live Validation</h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('violations')">Violations</button>
+                    <button class="tab" onclick="switchTab('code')">Code</button>
+                </div>
+
+                <div class="tab-content active" id="violations-tab">
+                    <div id="violationsList"></div>
+                </div>
+
+                <div class="tab-content" id="code-tab">
+                    <div class="code-editor" id="codeEditor"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card full-width">
+            <h2><span class="icon">📊</span> Database Statistics</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">27</div>
+                    <div class="stat-label">Narrative Units</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">Projects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">23</div>
+                    <div class="stat-label">Forbidden Patterns</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Detection Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data (in real version, this would call the actual SDK)
+        const mockData = {
+            healthcare: {
+                narrativeChain: [
+                    { type: 'core_story', assertion: 'We build the most trusted healthcare data infrastructure by prioritizing security, compliance, and patient privacy' },
+                    { type: 'operational', assertion: 'All API authentication must use OAuth 2.0 with refresh tokens and support for MFA' },
+                    { type: 'operational', assertion: 'All patient data must be encrypted at rest using AES-256 and in transit using TLS 1.3' },
+                    { type: 'operational', assertion: 'All access to patient data must be logged with timestamp, user ID, action, and data accessed' }
+                ],
+                constraints: {
+                    required: ['oauth2', 'mfa_support', 'audit_logging', 'encryption_at_rest', 'jwt_signing'],
+                    forbidden: ['localStorage', 'console.log', 'eval', 'basic_auth', 'innerHTML']
+                }
+            },
+            infrastructure: {
+                narrativeChain: [
+                    { type: 'core_story', assertion: 'We build infrastructure, not applications - providing primitives and tools' },
+                    { type: 'core_story', assertion: 'We manage complexity through simple, composable primitives' },
+                    { type: 'operational', assertion: 'All TypeScript code must use strict mode with explicit types - no implicit any' }
+                ],
+                constraints: {
+                    required: ['strict_mode', 'type_safety', 'composable', 'documented'],
+                    forbidden: ['god_object', 'any_type', 'circular_dependencies']
+                }
+            }
+        };
+
+        const violationsData = [
+            { line: 11, pattern: 'localStorage', message: 'Forbidden pattern "localStorage" detected', suggestion: 'Use httpOnly cookies or secure session storage instead' },
+            { line: 17, pattern: 'console.log', message: 'Forbidden pattern "console.log" detected', suggestion: 'Use a proper logging library with log levels' },
+            { line: 37, pattern: 'eval', message: 'Forbidden pattern "eval" detected', suggestion: 'Avoid eval() for security reasons' },
+            { line: 49, pattern: 'basic_auth', message: 'Forbidden pattern "basic_auth" detected', suggestion: 'Use OAuth 2.0 or JWT authentication instead' }
+        ];
+
+        const codeSnippet = `<span class="comment">// Test file with violations</span>
+
+<span class="keyword">function</span> <span class="function">saveToken</span>(token) {
+  <span class="error">localStorage.setItem('auth', token);</span>  <span class="comment">// ❌ Line 11</span>
+}
+
+<span class="keyword">function</span> <span class="function">debugUser</span>(user) {
+  <span class="error">console.log('User:', user);</span>  <span class="comment">// ❌ Line 17</span>
+}
+
+<span class="keyword">function</span> <span class="function">executeCode</span>(code) {
+  <span class="keyword">return</span> <span class="error">eval(code);</span>  <span class="comment">// ❌ Line 37</span>
+}
+
+<span class="keyword">function</span> <span class="function">authenticate</span>(user, pass) {
+  <span class="keyword">const</span> <span class="error">basic_auth</span> = btoa(user + <span class="string">':'</span> + pass);  <span class="comment">// ❌ Line 49</span>
+  <span class="keyword">return</span> basic_auth;
+}`;
+
+        const tags = [
+            { id: 'healthcare', label: 'Healthcare', group: 'healthcare' },
+            { id: 'patient', label: 'Patient Data', group: 'healthcare' },
+            { id: 'authentication', label: 'Authentication', group: 'both' },
+            { id: 'security', label: 'Security', group: 'both' },
+            { id: 'typescript', label: 'TypeScript', group: 'infrastructure' },
+            { id: 'infrastructure', label: 'Infrastructure', group: 'infrastructure' }
+        ];
+
+        let activeTags = ['authentication', 'patient', 'security'];
+
+        // Initialize
+        function init() {
+            renderTags();
+            renderViolations();
+            renderCode();
+            runQuery();
+        }
+
+        function renderTags() {
+            const container = document.getElementById('tagContainer');
+            container.innerHTML = tags.map(tag =>
+                `<div class="tag ${activeTags.includes(tag.id) ? 'active' : ''}" onclick="toggleTag('${tag.id}')">${tag.label}</div>`
+            ).join('');
+        }
+
+        function toggleTag(tagId) {
+            if (activeTags.includes(tagId)) {
+                activeTags = activeTags.filter(t => t !== tagId);
+            } else {
+                activeTags.push(tagId);
+            }
+            renderTags();
+        }
+
+        function runQuery() {
+            const hasHealthcare = activeTags.some(t => ['healthcare', 'patient'].includes(t));
+            const data = hasHealthcare ? mockData.healthcare : mockData.infrastructure;
+
+            // Show results
+            document.getElementById('queryResults').style.display = 'block';
+
+            // Render narrative chain
+            const chainHtml = data.narrativeChain.map(item => `
+                <div class="intent-item">
+                    <div class="type">${item.type}</div>
+                    <div class="assertion">${item.assertion}</div>
+                </div>
+            `).join('');
+            document.getElementById('narrativeChain').innerHTML = chainHtml;
+
+            // Render constraints
+            document.getElementById('requiredPatterns').innerHTML =
+                data.constraints.required.slice(0, 5).map(p => `<li>${p}</li>`).join('');
+
+            document.getElementById('forbiddenPatterns').innerHTML =
+                data.constraints.forbidden.slice(0, 5).map(p => `<li>${p}</li>`).join('');
+        }
+
+        function renderViolations() {
+            const html = violationsData.map(v => `
+                <div class="violation">
+                    <div class="violation-header">
+                        <span class="violation-icon">❌</span>
+                        <span class="violation-message">${v.message} (line ${v.line})</span>
+                    </div>
+                    <div class="violation-suggestion">💡 ${v.suggestion}</div>
+                </div>
+            `).join('');
+            document.getElementById('violationsList').innerHTML = html;
+        }
+
+        function renderCode() {
+            document.getElementById('codeEditor').innerHTML = codeSnippet;
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Run on load
+        init();
+    </script>
+</body>
+</html>

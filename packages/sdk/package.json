@@ -1,0 +1,26 @@
+{
+  "name": "@narrative/sdk",
+  "version": "0.1.0",
+  "description": "Intent Client SDK for agent coordination",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "intent-engineering",
+    "agent-coordination",
+    "narrative-intelligence"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "dependencies": {
+    "@narrative/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}

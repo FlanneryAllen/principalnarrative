@@ -1,0 +1,35 @@
+{
+  "name": "@narrative/validator",
+  "version": "0.1.0",
+  "description": "Pre-commit validator for intent compliance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "narrative-validate": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "intent-validation",
+    "pre-commit",
+    "linting",
+    "narrative-intelligence"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "dependencies": {
+    "@narrative/core": "file:../core",
+    "@narrative/sdk": "file:../sdk",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/typescript-estree": "^7.0.0",
+    "glob": "^10.3.10",
+    "minimatch": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0"
+  }
+}

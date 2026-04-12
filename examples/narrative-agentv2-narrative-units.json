@@ -1,0 +1,416 @@
+{
+  "description": "Intent units for the narrative-agentv2 project itself (dogfooding)",
+  "company": "Intent Engineering Infrastructure",
+  "units": [
+    {
+      "id": "core_story_infrastructure_not_application",
+      "type": "core_story",
+      "assertion": "We build infrastructure, not applications - providing primitives and tools that others compose into solutions",
+      "intent": {
+        "objective": "Create foundational infrastructure for intent engineering that enables infinite applications",
+        "constraints": {
+          "code": {
+            "required_patterns": ["composable", "extensible", "primitive", "interface"],
+            "forbidden_patterns": ["hardcoded_use_case", "application_logic", "ui_framework"],
+            "required_libraries": []
+          },
+          "content": {
+            "required_themes": ["infrastructure", "primitives", "extensibility", "composability"],
+            "forbidden_themes": ["specific_use_case", "end_user_features", "application"],
+            "tone": "technical"
+          }
+        },
+        "evidence_required": [
+          "multiple_use_cases_enabled",
+          "sdk_in_multiple_languages",
+          "extensible_architecture"
+        ]
+      },
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["core", "philosophy", "architecture"]
+      }
+    },
+    {
+      "id": "core_story_simplicity_through_structure",
+      "type": "core_story",
+      "assertion": "We manage complexity through simple, composable primitives - not by adding features",
+      "intent": {
+        "objective": "Keep the codebase simple and maintainable by using small, composable pieces",
+        "constraints": {
+          "code": {
+            "required_patterns": ["single_responsibility", "small_functions", "type_safety", "documented"],
+            "forbidden_patterns": ["god_object", "circular_dependencies", "global_state"],
+            "required_libraries": []
+          },
+          "content": {
+            "required_themes": ["simplicity", "composability", "clarity"],
+            "forbidden_themes": ["complexity", "clever_code", "magic"],
+            "tone": "clear"
+          }
+        },
+        "evidence_required": [
+          "low_cyclomatic_complexity",
+          "no_circular_dependencies",
+          "documented_functions"
+        ]
+      },
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["core", "code_quality", "simplicity"]
+      }
+    },
+    {
+      "id": "core_story_developer_experience",
+      "type": "core_story",
+      "assertion": "We prioritize developer experience - installation should take 5 minutes, queries should be intuitive, errors should be helpful",
+      "intent": {
+        "objective": "Make Intent Engineering delightful to use for developers",
+        "constraints": {
+          "code": {
+            "required_patterns": ["clear_error_messages", "helpful_defaults", "type_definitions"],
+            "forbidden_patterns": ["cryptic_errors", "required_boilerplate", "implicit_magic"],
+            "required_libraries": []
+          },
+          "content": {
+            "required_themes": ["ease_of_use", "clear_documentation", "examples"],
+            "forbidden_themes": ["assume_knowledge", "terse", "academic"],
+            "tone": "helpful"
+          }
+        },
+        "evidence_required": [
+          "five_minute_quickstart",
+          "comprehensive_examples",
+          "helpful_error_messages"
+        ]
+      },
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["core", "dx", "usability"]
+      }
+    },
+    {
+      "id": "operational_typescript_strict_mode",
+      "type": "operational",
+      "assertion": "All TypeScript code must use strict mode with explicit types - no implicit any",
+      "intent": {
+        "objective": "Ensure type safety and catch errors at compile time",
+        "constraints": {
+          "code": {
+            "required_patterns": ["strict_mode", "explicit_types", "type_annotations"],
+            "forbidden_patterns": ["any_type", "type_assertion_workarounds", "ts_ignore"],
+            "required_libraries": ["typescript"]
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "\"strict\":\\s*true",
+              "error_message": "tsconfig.json must have strict: true",
+              "suggestion": "Set 'strict': true in tsconfig.json"
+            }
+          ]
+        },
+        "evidence_required": [
+          "no_implicit_any_errors",
+          "strict_mode_enabled"
+        ]
+      },
+      "dependencies": ["core_story_simplicity_through_structure"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "typescript", "quality"]
+      }
+    },
+    {
+      "id": "operational_zero_dependencies_core",
+      "type": "operational",
+      "assertion": "Core packages should minimize dependencies - only use what's essential",
+      "intent": {
+        "objective": "Keep the dependency tree small to reduce supply chain risk and installation size",
+        "constraints": {
+          "code": {
+            "required_patterns": ["dependency_justification"],
+            "forbidden_patterns": ["unnecessary_dependencies", "bloated_packages"],
+            "required_libraries": []
+          }
+        },
+        "evidence_required": [
+          "documented_dependency_rationale",
+          "small_node_modules"
+        ]
+      },
+      "dependencies": ["core_story_simplicity_through_structure"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "dependencies", "security"]
+      }
+    },
+    {
+      "id": "operational_sqlite_as_storage",
+      "type": "operational",
+      "assertion": "Use SQLite for all persistent storage - no external databases, no cloud dependencies",
+      "intent": {
+        "objective": "Keep the system self-contained and portable",
+        "constraints": {
+          "code": {
+            "required_patterns": ["sqlite", "local_storage"],
+            "forbidden_patterns": ["mongodb", "postgres", "cloud_db", "external_api"],
+            "required_libraries": ["better-sqlite3"]
+          }
+        },
+        "evidence_required": [
+          "all_data_in_sqlite",
+          "no_external_dependencies"
+        ]
+      },
+      "dependencies": ["core_story_infrastructure_not_application"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "storage", "architecture"]
+      }
+    },
+    {
+      "id": "operational_comprehensive_examples",
+      "type": "operational",
+      "assertion": "Every feature must have a working example - code examples, CLI walkthroughs, and realistic datasets",
+      "intent": {
+        "objective": "Make it easy for users to understand and use features",
+        "constraints": {
+          "code": {
+            "required_patterns": ["example_code", "documented_usage"],
+            "forbidden_patterns": ["undocumented_features"],
+            "required_libraries": []
+          },
+          "content": {
+            "required_themes": ["examples", "walkthroughs", "real_world_usage"],
+            "forbidden_themes": ["abstract_only", "todo_examples"],
+            "tone": "practical"
+          }
+        },
+        "evidence_required": [
+          "example_for_every_feature",
+          "realistic_datasets",
+          "working_code_samples"
+        ]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "documentation", "examples"]
+      }
+    },
+    {
+      "id": "operational_git_native",
+      "type": "operational",
+      "assertion": "All source of truth should be git-native - markdown files, JSON, code - not external systems",
+      "intent": {
+        "objective": "Enable version control, code review, and collaborative editing of organizational intent",
+        "constraints": {
+          "code": {
+            "required_patterns": ["markdown_source", "json_config", "git_friendly"],
+            "forbidden_patterns": ["binary_formats", "proprietary_formats", "external_cms"],
+            "required_libraries": []
+          }
+        },
+        "evidence_required": [
+          "all_sources_in_git",
+          "markdown_as_source_of_truth"
+        ]
+      },
+      "dependencies": ["core_story_infrastructure_not_application"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "git", "source_control"]
+      }
+    },
+    {
+      "id": "operational_multi_language_sdks",
+      "type": "operational",
+      "assertion": "Provide SDKs in both TypeScript and Python at minimum - meet developers where they are",
+      "intent": {
+        "objective": "Enable adoption across different ecosystems (Node.js and AI agents)",
+        "constraints": {
+          "code": {
+            "required_patterns": ["typescript_sdk", "python_sdk", "consistent_api"],
+            "forbidden_patterns": ["single_language_only"],
+            "required_libraries": []
+          }
+        },
+        "evidence_required": [
+          "typescript_sdk_complete",
+          "python_sdk_complete",
+          "api_parity"
+        ]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["operational", "sdk", "languages"]
+      }
+    },
+    {
+      "id": "communication_technical_but_accessible",
+      "type": "communication",
+      "assertion": "Documentation should be technically rigorous but accessible - explain concepts clearly without dumbing down",
+      "intent": {
+        "objective": "Reach both experts and newcomers to the space",
+        "constraints": {
+          "content": {
+            "required_themes": ["clear_explanations", "technical_accuracy", "practical_examples"],
+            "forbidden_themes": ["jargon_without_explanation", "condescending", "marketing_fluff"],
+            "tone": "professional",
+            "target_audience": "technical_users"
+          },
+          "validation_rules": [
+            {
+              "type": "semantic",
+              "check": "technical_terms_explained",
+              "error_message": "Technical terms should be explained on first use",
+              "suggestion": "Add explanation or link to glossary"
+            }
+          ]
+        },
+        "evidence_required": [
+          "positive_user_feedback",
+          "low_support_questions"
+        ]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["communication", "documentation", "tone"]
+      }
+    },
+    {
+      "id": "communication_show_dont_tell",
+      "type": "communication",
+      "assertion": "Always lead with examples and demos - show working code before explaining theory",
+      "intent": {
+        "objective": "Help users understand through practical demonstration",
+        "constraints": {
+          "content": {
+            "required_themes": ["code_examples", "demos", "walkthroughs"],
+            "forbidden_themes": ["theory_only", "abstract_concepts_first"],
+            "tone": "practical"
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "```(typescript|python|bash)",
+              "error_message": "Documentation should include code examples",
+              "suggestion": "Add code snippet showing actual usage"
+            }
+          ]
+        },
+        "evidence_required": [
+          "every_doc_has_example",
+          "quickstart_under_5_minutes"
+        ]
+      },
+      "dependencies": ["core_story_developer_experience", "operational_comprehensive_examples"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["communication", "examples", "documentation"]
+      }
+    },
+    {
+      "id": "evidence_typescript_build_passes",
+      "type": "evidence",
+      "assertion": "All TypeScript packages build without errors and pass type checking",
+      "intent": {
+        "objective": "Maintain code quality and catch errors early",
+        "evidence_required": [
+          "npm_run_build_succeeds",
+          "tsc_no_errors",
+          "all_packages_compile"
+        ]
+      },
+      "dependencies": ["operational_typescript_strict_mode"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["evidence", "typescript", "quality"]
+      }
+    },
+    {
+      "id": "evidence_python_tests_pass",
+      "type": "evidence",
+      "assertion": "Python SDK has comprehensive tests that all pass",
+      "intent": {
+        "objective": "Ensure Python SDK reliability",
+        "evidence_required": [
+          "pytest_all_pass",
+          "test_coverage_above_80_percent"
+        ]
+      },
+      "dependencies": ["operational_multi_language_sdks"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["evidence", "python", "testing"]
+      }
+    },
+    {
+      "id": "evidence_quickstart_works",
+      "type": "evidence",
+      "assertion": "New users can install and run their first query in under 5 minutes",
+      "intent": {
+        "objective": "Validate developer experience quality",
+        "evidence_required": [
+          "install_script_runs",
+          "database_seeds",
+          "first_query_succeeds",
+          "user_testing_confirms_5_minutes"
+        ]
+      },
+      "dependencies": ["core_story_developer_experience", "operational_comprehensive_examples"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-04-11T00:00:00Z",
+        "created_by": "dogfooding",
+        "tags": ["evidence", "onboarding", "dx"]
+      }
+    }
+  ]
+}

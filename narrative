@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+// Wrapper script for narrative CLI
+require('./packages/cli/dist/narrative.js');

@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://narrative.dev/schema/intent-unit.json",
+  "title": "Intent Unit",
+  "description": "Machine-readable organizational intent primitive for autonomous agent coordination",
+  "type": "object",
+  "required": ["id", "type", "assertion", "intent", "dependencies"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Globally unique identifier (e.g., intent_hipaa_compliance_2024)",
+      "pattern": "^[a-z_][a-z0-9_]*$"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["core_story", "positioning", "product_narrative", "operational", "evidence", "communication"],
+      "description": "Layer in the narrative taxonomy - determines propagation scope"
+    },
+    "assertion": {
+      "type": "string",
+      "description": "Human-readable organizational claim or intent statement",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "IDs of intent units this depends on (forms DAG)",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z_][a-z0-9_]*$"
+      },
+      "default": []
+    },
+    "validationState": {
+      "type": "string",
+      "enum": ["ALIGNED", "DRIFTED", "BROKEN", "UNKNOWN"],
+      "description": "Current alignment status with dependencies and evidence",
+      "default": "ALIGNED"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "System confidence in current validation state (0.0 - 1.0)",
+      "default": 1.0
+    },
+    "intent": {
+      "type": "object",
+      "description": "Machine-actionable intent specification for autonomous agents",
+      "required": ["objective"],
+      "properties": {
+        "objective": {
+          "type": "string",
+          "description": "What the organization wants to achieve with this intent"
+        },
+        "constraints": {
+          "type": "object",
+          "description": "Machine-enforceable rules for agent behavior",
+          "properties": {
+            "code": {
+              "type": "object",
+              "description": "Constraints for coding agents",
+              "properties": {
+                "required_patterns": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Code patterns, APIs, or libraries that must be used"
+                },
+                "forbidden_patterns": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Code patterns, APIs, or libraries that must not be used"
+                },
+                "required_libraries": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "content": {
+              "type": "object",
+              "description": "Constraints for marketing/content agents",
+              "properties": {
+                "required_themes": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "forbidden_themes": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "tone": {
+                  "type": "string",
+                  "enum": ["professional", "casual", "technical", "empathetic", "urgent"]
+                },
+                "target_audience": {
+                  "type": "string"
+                }
+              }
+            },
+            "validation_rules": {
+              "type": "array",
+              "description": "Rules for validating agent output",
+              "items": {
+                "type": "object",
+                "required": ["type", "check"],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["regex", "ast_pattern", "semantic", "kpi_threshold"]
+                  },
+                  "check": {
+                    "type": "string",
+                    "description": "The validation logic (regex pattern, AST query, etc.)"
+                  },
+                  "error_message": {
+                    "type": "string"
+                  },
+                  "suggestion": {
+                    "type": "string",
+                    "description": "What to do instead"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "evidence_required": {
+          "type": "array",
+          "description": "What evidence is needed to validate this intent",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "description": "Metadata from Story Signal detection",
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Story Signal score (sum of 5 R's)"
+        },
+        "source": {
+          "type": "string",
+          "description": "Where this signal came from (e.g., slack://leadership, salesforce://call)"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "resonance": { "type": "number", "minimum": 0, "maximum": 20 },
+            "relevance": { "type": "number", "minimum": 0, "maximum": 20 },
+            "rarity": { "type": "number", "minimum": 0, "maximum": 20 },
+            "relatability": { "type": "number", "minimum": 0, "maximum": 20 },
+            "riskReward": { "type": "number", "minimum": 0, "maximum": 20 }
+          }
+        }
+      }
+    },
+    "propagation": {
+      "type": "object",
+      "description": "How changes propagate through the graph",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["all_dependents", "direct_only", "filtered"],
+          "default": "all_dependents"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["immediate", "batched", "manual"],
+          "default": "batched"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["auto_update", "notification", "silent"],
+          "default": "notification"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

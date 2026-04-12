@@ -1,0 +1,418 @@
+{
+  "description": "Example intent units for a healthcare SaaS company",
+  "company": "MediSecure - Healthcare data platform",
+  "units": [
+    {
+      "id": "core_story_healthcare_trust",
+      "type": "core_story",
+      "assertion": "We build the most trusted healthcare data infrastructure by prioritizing security, compliance, and patient privacy above all else",
+      "intent": {
+        "objective": "Become the most trusted healthcare data platform in the industry",
+        "constraints": {
+          "code": {
+            "required_patterns": ["audit_logging", "encryption_at_rest", "encryption_in_transit"],
+            "forbidden_patterns": ["console.log", "localStorage", "eval", "innerHTML"],
+            "required_libraries": ["@aws-sdk/client-kms", "bcrypt"]
+          },
+          "content": {
+            "required_themes": ["security", "compliance", "trust", "patient_privacy"],
+            "forbidden_themes": ["move_fast_break_things", "disruption", "cheap", "discount"],
+            "tone": "professional",
+            "target_audience": "healthcare_decision_makers"
+          }
+        },
+        "evidence_required": [
+          "SOC2_Type_II_certification",
+          "HIPAA_compliance_audit",
+          "penetration_test_passed",
+          "zero_security_incidents_90_days"
+        ]
+      },
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-01-01T00:00:00Z",
+        "created_by": "ceo",
+        "tags": ["core", "security", "healthcare", "trust"]
+      }
+    },
+    {
+      "id": "core_story_developer_experience",
+      "type": "core_story",
+      "assertion": "We make healthcare data accessible through elegant APIs that developers love to use",
+      "intent": {
+        "objective": "Create the best developer experience in healthcare data APIs",
+        "constraints": {
+          "code": {
+            "required_patterns": ["api_versioning", "rate_limiting", "comprehensive_error_messages"],
+            "forbidden_patterns": ["breaking_changes_without_version_bump"]
+          },
+          "content": {
+            "required_themes": ["developer_experience", "documentation", "examples"],
+            "tone": "technical"
+          }
+        },
+        "evidence_required": ["developer_nps_above_50", "api_uptime_99_9_percent"]
+      },
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-01-01T00:00:00Z",
+        "created_by": "cto",
+        "tags": ["core", "developer_experience", "api"]
+      }
+    },
+    {
+      "id": "positioning_hipaa_compliance_leader",
+      "type": "positioning",
+      "assertion": "MediSecure is the only healthcare data platform with native HIPAA compliance built into every API call",
+      "intent": {
+        "objective": "Position as the compliance-first healthcare data platform",
+        "constraints": {
+          "content": {
+            "required_themes": ["HIPAA", "compliance", "native_security", "enterprise_ready"],
+            "forbidden_themes": ["we_also_do_compliance", "compliance_as_addon"],
+            "tone": "professional"
+          }
+        },
+        "evidence_required": ["HIPAA_certification", "customer_testimonials_on_compliance"]
+      },
+      "dependencies": ["core_story_healthcare_trust"],
+      "validationState": "ALIGNED",
+      "confidence": 0.95,
+      "metadata": {
+        "created_at": "2026-01-15T00:00:00Z",
+        "created_by": "cmo",
+        "tags": ["positioning", "compliance", "differentiation"]
+      }
+    },
+    {
+      "id": "product_narrative_patient_data_api",
+      "type": "product_narrative",
+      "assertion": "Our Patient Data API provides real-time access to EHR data with sub-100ms latency and 99.99% uptime",
+      "intent": {
+        "objective": "Enable developers to build fast, reliable patient-facing applications",
+        "constraints": {
+          "code": {
+            "required_patterns": ["caching", "circuit_breaker", "retry_logic"],
+            "forbidden_patterns": ["synchronous_blocking_calls"]
+          }
+        },
+        "evidence_required": ["p95_latency_under_100ms", "uptime_99_99_percent"]
+      },
+      "dependencies": ["core_story_developer_experience", "core_story_healthcare_trust"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9,
+      "metadata": {
+        "created_at": "2026-02-01T00:00:00Z",
+        "created_by": "product_manager",
+        "tags": ["product", "api", "performance"]
+      }
+    },
+    {
+      "id": "operational_authentication_oauth",
+      "type": "operational",
+      "assertion": "All API authentication must use OAuth 2.0 with refresh tokens and support for MFA",
+      "intent": {
+        "objective": "Implement secure, industry-standard authentication",
+        "constraints": {
+          "code": {
+            "required_patterns": ["oauth2", "refresh_token", "mfa_support", "jwt_signing"],
+            "forbidden_patterns": ["basic_auth", "api_keys_in_url", "password_storage_plaintext"],
+            "required_libraries": ["passport", "jsonwebtoken", "@types/passport"]
+          },
+          "validation_rules": [
+            {
+              "type": "ast_pattern",
+              "check": "jwt\\.sign.*expiresIn",
+              "error_message": "JWT tokens must have expiration times",
+              "suggestion": "Add expiresIn option to jwt.sign()"
+            },
+            {
+              "type": "regex",
+              "check": "audit.*auth",
+              "error_message": "Authentication events must be audited",
+              "suggestion": "Add audit() call after authentication"
+            }
+          ]
+        },
+        "evidence_required": ["auth_test_coverage_95_percent", "oauth_flow_documented"]
+      },
+      "dependencies": ["core_story_healthcare_trust"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-02-10T00:00:00Z",
+        "created_by": "security_lead",
+        "tags": ["operational", "authentication", "security"]
+      }
+    },
+    {
+      "id": "operational_data_encryption",
+      "type": "operational",
+      "assertion": "All patient data must be encrypted at rest using AES-256 and in transit using TLS 1.3",
+      "intent": {
+        "objective": "Ensure patient data is always encrypted",
+        "constraints": {
+          "code": {
+            "required_patterns": ["aes_256", "tls_1_3", "kms", "key_rotation"],
+            "forbidden_patterns": ["plaintext_storage", "md5", "sha1", "tls_1_0", "tls_1_1"],
+            "required_libraries": ["@aws-sdk/client-kms", "crypto"]
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "encrypt.*aes.*256",
+              "error_message": "Encryption must use AES-256",
+              "suggestion": "Use crypto.createCipheriv('aes-256-gcm', ...)"
+            }
+          ]
+        },
+        "evidence_required": ["encryption_audit_passed", "key_rotation_automated"]
+      },
+      "dependencies": ["core_story_healthcare_trust"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-02-10T00:00:00Z",
+        "created_by": "security_lead",
+        "tags": ["operational", "encryption", "security"]
+      }
+    },
+    {
+      "id": "operational_audit_logging",
+      "type": "operational",
+      "assertion": "All access to patient data must be logged with timestamp, user ID, action, and data accessed",
+      "intent": {
+        "objective": "Maintain complete audit trail for compliance",
+        "constraints": {
+          "code": {
+            "required_patterns": ["audit_log", "structured_logging", "log_correlation_id"],
+            "forbidden_patterns": ["console.log", "printf", "print"],
+            "required_libraries": ["winston", "pino"]
+          },
+          "validation_rules": [
+            {
+              "type": "ast_pattern",
+              "check": "audit.*userId.*action.*timestamp",
+              "error_message": "Audit logs must include userId, action, and timestamp",
+              "suggestion": "Use audit({ userId, action, timestamp, resource })"
+            }
+          ]
+        },
+        "evidence_required": ["audit_logs_retained_7_years", "log_analysis_implemented"]
+      },
+      "dependencies": ["core_story_healthcare_trust"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-02-10T00:00:00Z",
+        "created_by": "compliance_officer",
+        "tags": ["operational", "audit", "compliance"]
+      }
+    },
+    {
+      "id": "operational_api_versioning",
+      "type": "operational",
+      "assertion": "All API endpoints must use semantic versioning and maintain backward compatibility for at least 12 months",
+      "intent": {
+        "objective": "Ensure developers can rely on stable APIs",
+        "constraints": {
+          "code": {
+            "required_patterns": ["api_version_header", "deprecation_warnings", "version_prefix"],
+            "forbidden_patterns": ["breaking_changes_in_patch", "removing_fields_without_deprecation"]
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "/api/v[0-9]+/",
+              "error_message": "API routes must include version prefix",
+              "suggestion": "Use /api/v1/resource format"
+            }
+          ]
+        },
+        "evidence_required": ["api_changelog_maintained", "deprecated_endpoints_documented"]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 0.95,
+      "metadata": {
+        "created_at": "2026-02-15T00:00:00Z",
+        "created_by": "api_architect",
+        "tags": ["operational", "api", "versioning"]
+      }
+    },
+    {
+      "id": "operational_error_handling",
+      "type": "operational",
+      "assertion": "All API errors must return standard HTTP codes with detailed error messages and request IDs for support",
+      "intent": {
+        "objective": "Make debugging easy for developers",
+        "constraints": {
+          "code": {
+            "required_patterns": ["request_id", "error_code", "error_message", "http_status"],
+            "forbidden_patterns": ["generic_500_error", "stack_traces_in_production"]
+          },
+          "validation_rules": [
+            {
+              "type": "ast_pattern",
+              "check": "res.*status.*json.*requestId",
+              "error_message": "Error responses must include requestId",
+              "suggestion": "Add requestId to error response body"
+            }
+          ]
+        },
+        "evidence_required": ["error_documentation_complete", "support_can_track_errors"]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9,
+      "metadata": {
+        "created_at": "2026-02-15T00:00:00Z",
+        "created_by": "api_architect",
+        "tags": ["operational", "error_handling", "developer_experience"]
+      }
+    },
+    {
+      "id": "operational_rate_limiting",
+      "type": "operational",
+      "assertion": "All API endpoints must implement rate limiting with clear headers and upgrade paths for higher limits",
+      "intent": {
+        "objective": "Prevent abuse while enabling growth",
+        "constraints": {
+          "code": {
+            "required_patterns": ["rate_limit_headers", "429_status_code", "retry_after_header"],
+            "forbidden_patterns": ["unlimited_requests", "silent_rate_limiting"]
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "X-RateLimit-(Limit|Remaining|Reset)",
+              "error_message": "Rate limit headers must be present",
+              "suggestion": "Add X-RateLimit-* headers to response"
+            }
+          ]
+        },
+        "evidence_required": ["rate_limits_documented", "upgrade_path_exists"]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 0.95,
+      "metadata": {
+        "created_at": "2026-02-15T00:00:00Z",
+        "created_by": "infrastructure_lead",
+        "tags": ["operational", "rate_limiting", "scalability"]
+      }
+    },
+    {
+      "id": "communication_security_messaging",
+      "type": "communication",
+      "assertion": "When communicating about security, we emphasize trust, compliance, and our track record - never fear or competitor inadequacy",
+      "intent": {
+        "objective": "Build trust through positive security messaging",
+        "constraints": {
+          "content": {
+            "required_themes": ["trust", "proactive_security", "compliance_excellence", "transparency"],
+            "forbidden_themes": ["fear_mongering", "competitor_bashing", "security_through_obscurity"],
+            "tone": "professional"
+          },
+          "validation_rules": [
+            {
+              "type": "semantic",
+              "check": "positive_framing",
+              "error_message": "Security messaging should be positive, not fear-based",
+              "suggestion": "Focus on what we do right, not what others do wrong"
+            }
+          ]
+        },
+        "evidence_required": ["messaging_review_by_security_team"]
+      },
+      "dependencies": ["core_story_healthcare_trust", "positioning_hipaa_compliance_leader"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9,
+      "metadata": {
+        "created_at": "2026-03-01T00:00:00Z",
+        "created_by": "head_of_communications",
+        "tags": ["communication", "security", "messaging"]
+      }
+    },
+    {
+      "id": "communication_developer_content",
+      "type": "communication",
+      "assertion": "All developer-facing content must include working code examples, explain the 'why' not just the 'how', and link to API reference",
+      "intent": {
+        "objective": "Create best-in-class developer documentation",
+        "constraints": {
+          "content": {
+            "required_themes": ["code_examples", "why_explanation", "api_reference_links"],
+            "forbidden_themes": ["marketing_speak_in_docs", "vague_descriptions"],
+            "tone": "technical"
+          },
+          "validation_rules": [
+            {
+              "type": "regex",
+              "check": "```(javascript|typescript|python)",
+              "error_message": "Developer docs must include code examples",
+              "suggestion": "Add code snippet showing actual usage"
+            }
+          ]
+        },
+        "evidence_required": ["developer_feedback_positive", "docs_traffic_increasing"]
+      },
+      "dependencies": ["core_story_developer_experience"],
+      "validationState": "ALIGNED",
+      "confidence": 0.85,
+      "metadata": {
+        "created_at": "2026-03-01T00:00:00Z",
+        "created_by": "developer_relations",
+        "tags": ["communication", "documentation", "developer_experience"]
+      }
+    },
+    {
+      "id": "evidence_security_metrics",
+      "type": "evidence",
+      "assertion": "We maintain zero critical security vulnerabilities and remediate high-severity issues within 24 hours",
+      "intent": {
+        "objective": "Demonstrate security excellence through metrics",
+        "evidence_required": [
+          "zero_critical_vulnerabilities_30_days",
+          "high_severity_remediation_under_24_hours",
+          "weekly_security_scans",
+          "quarterly_penetration_tests"
+        ]
+      },
+      "dependencies": ["core_story_healthcare_trust", "operational_data_encryption", "operational_authentication_oauth"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0,
+      "metadata": {
+        "created_at": "2026-03-15T00:00:00Z",
+        "created_by": "security_lead",
+        "tags": ["evidence", "security", "metrics"]
+      }
+    },
+    {
+      "id": "evidence_api_performance",
+      "type": "evidence",
+      "assertion": "Our API maintains 99.99% uptime with p95 latency under 100ms and p99 under 250ms",
+      "intent": {
+        "objective": "Prove API reliability through performance metrics",
+        "evidence_required": [
+          "uptime_99_99_percent_monthly",
+          "p95_latency_under_100ms",
+          "p99_latency_under_250ms",
+          "zero_data_loss_incidents"
+        ]
+      },
+      "dependencies": ["product_narrative_patient_data_api", "operational_rate_limiting"],
+      "validationState": "ALIGNED",
+      "confidence": 0.95,
+      "metadata": {
+        "created_at": "2026-03-15T00:00:00Z",
+        "created_by": "infrastructure_lead",
+        "tags": ["evidence", "performance", "reliability"]
+      }
+    }
+  ]
+}
