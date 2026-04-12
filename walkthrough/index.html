@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narrative Intelligence — Principal AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  overflow-x: hidden;
+}
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0a1628;
+  color: #c8d4e6;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ========== BRAND TOKENS ========== */
+:root {
+  --navy: #0a1628;
+  --navy-light: #0f1f38;
+  --navy-mid: #142542;
+  --navy-surface: #1a2d4a;
+  --copper: #d4872c;
+  --copper-light: #e6a559;
+  --copper-dim: #a86a22;
+  --copper-glow: rgba(212, 135, 44, 0.15);
+  --text-primary: #e4ecf7;
+  --text-secondary: #8fa3bf;
+  --text-muted: #5a7194;
+  --gold: #e6b84d;
+  --blue: #4d8fd6;
+  --green: #4dbd74;
+  --purple: #9b6dd7;
+  --slate: #708ba8;
+  --red: #e05c5c;
+  --yellow: #e6d44d;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-glow: 0 0 30px rgba(212, 135, 44, 0.12);
+}
+
+/* ========== TYPOGRAPHY ========== */
+h1, h2, h3, h4 { line-height: 1.15; text-wrap: balance; color: var(--text-primary); }
+p { text-wrap: pretty; max-width: 72ch; }
+.mono { font-family: var(--font-mono); }
+::selection { background: rgba(212, 135, 44, 0.3); color: #fff; }
+
+/* ========== SCROLL SECTIONS ========== */
+.step {
+  min-height: 100vh;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px 100px;
+  position: relative;
+  overflow: hidden;
+}
+.step.step-dense {
+  justify-content: flex-start;
+  padding-top: 60px;
+}
+.step-inner {
+  max-width: 1100px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 1;
+}
+.step-dense .step-inner {
+  gap: 14px;
+}
+.step-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--copper);
+  opacity: 0.9;
+}
+.step-title {
+  font-size: clamp(1.8rem, 1.2rem + 2vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.step-desc {
+  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.1rem);
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 620px;
+  line-height: 1.7;
+}
+
+/* ========== HEADER ========== */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(to bottom, rgba(10,22,40,0.95), rgba(10,22,40,0));
+  pointer-events: none;
+}
+.site-header > * { pointer-events: auto; }
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.logo-text span { color: var(--copper); }
+
+/* ========== BOTTOM NAV ========== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 32px;
+  background: linear-gradient(to top, rgba(10,22,40,0.97) 60%, rgba(10,22,40,0));
+}
+.nav-dots {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.nav-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all 300ms var(--ease-out);
+  padding: 0;
+}
+.nav-dot.active {
+  background: var(--copper);
+  border-color: var(--copper);
+  box-shadow: 0 0 8px rgba(212,135,44,0.4);
+  transform: scale(1.2);
+}
+.nav-dot:hover:not(.active) {
+  border-color: var(--text-secondary);
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.nav-btn:hover {
+  background: rgba(212,135,44,0.12);
+  border-color: var(--copper);
+  color: var(--copper);
+}
+.nav-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+.nav-btn svg { width: 18px; height: 18px; }
+
+/* ========== INTRO STEP ========== */
+#step-0 {
+  justify-content: center;
+}
+#intro-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.35;
+}
+.intro-content {
+  text-align: center;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.intro-title {
+  font-size: clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1.05;
+}
+.intro-title .accent { color: var(--copper); }
+.intro-subtitle {
+  font-size: clamp(1rem, 0.8rem + 0.8vw, 1.35rem);
+  color: var(--text-secondary);
+  font-weight: 400;
+  max-width: 500px;
+}
+.intro-small {
+  font-size: clamp(0.85rem, 0.75rem + 0.3vw, 0.95rem);
+  color: var(--text-muted);
+  font-style: italic;
+  max-width: 420px;
+}
+.begin-btn {
+  margin-top: 20px;
+  padding: 14px 36px;
+  border-radius: 999px;
+  border: none;
+  background: var(--copper);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 300ms var(--ease-out);
+  box-shadow: 0 4px 20px rgba(212,135,44,0.3);
+}
+.begin-btn:hover {
+  background: var(--copper-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(212,135,44,0.4);
+}
+.begin-btn:active {
+  transform: translateY(0);
+}
+
+/* ========== VIZ CONTAINERS ========== */
+.viz-container {
+  width: 100%;
+  max-width: 900px;
+  min-height: 340px;
+  height: 380px;
+  background: rgba(15,31,56,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+.viz-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ========== GRAPH STYLES ========== */
+.node circle {
+  stroke-width: 2;
+  cursor: pointer;
+  transition: opacity 500ms var(--ease-out), filter 500ms var(--ease-out);
+}
+.node text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+.node:hover text { opacity: 1; }
+.node.faded circle { opacity: 0.08; }
+.node.faded text { opacity: 0; }
+.node.highlighted circle {
+  filter: drop-shadow(0 0 8px var(--copper));
+}
+.link {
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 1.5;
+  fill: none;
+  transition: stroke 500ms var(--ease-out), opacity 500ms var(--ease-out), stroke-width 500ms var(--ease-out);
+}
+.link.faded { opacity: 0.03; }
+.link.highlighted {
+  stroke: var(--copper);
+  stroke-width: 2.5;
+  opacity: 1;
+}
+
+/* ========== STAKEHOLDER BUTTONS ========== */
+.stakeholder-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.stakeholder-btn {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: 'Inter', sans-serif;
+}
+.stakeholder-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+  background: rgba(212,135,44,0.08);
+}
+.stakeholder-btn.active {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: #fff;
+}
+
+/* ========== IMPACT COUNTER ========== */
+.impact-counter {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--copper-light);
+  padding: 8px 20px;
+  background: rgba(212,135,44,0.08);
+  border-radius: 999px;
+  border: 1px solid rgba(212,135,44,0.15);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.impact-counter.visible { opacity: 1; }
+
+/* ========== COVERAGE BARS ========== */
+.coverage-section {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.coverage-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.coverage-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 130px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.coverage-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.coverage-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  width: 0;
+  transition: width 1200ms var(--ease-out);
+}
+.coverage-pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  width: 40px;
+}
+
+/* ========== STATUS GRID ========== */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  width: 100%;
+  max-width: 700px;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.aligned { background: var(--green); box-shadow: 0 0 6px rgba(77,189,116,0.4); }
+.status-dot.drifted { background: var(--yellow); box-shadow: 0 0 6px rgba(230,212,77,0.4); }
+.status-dot.broken { background: var(--red); box-shadow: 0 0 6px rgba(224,92,92,0.4); }
+
+/* NCI */
+.nci-display {
+  text-align: center;
+  margin-top: 8px;
+}
+.nci-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.nci-number {
+  font-family: var(--font-mono);
+  font-size: clamp(2.2rem, 1.8rem + 1.5vw, 3.2rem);
+  font-weight: 700;
+  color: var(--copper);
+  letter-spacing: -0.02em;
+}
+
+/* ========== RESONATE ========== */
+.signal-input-wrap {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+}
+.signal-input {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.signal-input::placeholder { color: var(--text-muted); }
+.signal-input:focus { border-color: var(--copper); }
+.signal-submit {
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--copper);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.signal-submit:hover { background: var(--copper-light); }
+
+.urgency-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+.urgency-badge.visible { opacity: 1; }
+.urgency-badge.critical { background: rgba(224,92,92,0.15); color: var(--red); border: 1px solid rgba(224,92,92,0.3); }
+.urgency-badge.high { background: rgba(212,135,44,0.15); color: var(--copper-light); border: 1px solid rgba(212,135,44,0.3); }
+.urgency-badge.medium { background: rgba(230,212,77,0.12); color: var(--yellow); border: 1px solid rgba(230,212,77,0.25); }
+.urgency-badge.low { background: rgba(77,189,116,0.12); color: var(--green); border: 1px solid rgba(77,189,116,0.25); }
+
+.match-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 700px;
+}
+.match-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: rgba(212,135,44,0.08);
+  border: 1px solid rgba(212,135,44,0.15);
+  color: var(--copper-light);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 400ms var(--ease-out);
+}
+.match-chip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========== SYSTEM DIAGRAM ========== */
+.system-diagram {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+.system-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 22px 32px;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 600ms var(--ease-out);
+}
+.system-layer.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.system-layer-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.system-layer-text h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.system-layer-text p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.layer-1 { background: rgba(77,143,214,0.08); border: 1px solid rgba(77,143,214,0.15); }
+.layer-1 .system-layer-icon { background: rgba(77,143,214,0.15); color: var(--blue); }
+.layer-2 { background: rgba(77,189,116,0.08); border: 1px solid rgba(77,189,116,0.15); }
+.layer-2 .system-layer-icon { background: rgba(77,189,116,0.15); color: var(--green); }
+.layer-3 { background: rgba(212,135,44,0.08); border: 1px solid rgba(212,135,44,0.15); }
+.layer-3 .system-layer-icon { background: rgba(212,135,44,0.15); color: var(--copper); }
+
+.system-connector {
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.15), rgba(255,255,255,0.06));
+  opacity: 0;
+  transition: opacity 600ms var(--ease-out) 200ms;
+}
+.system-connector.visible { opacity: 1; }
+
+.github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.github-btn:hover {
+  background: rgba(212,135,44,0.08);
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* ========== LEGEND ========== */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ========== INSTRUCTION HINT ========== */
+.instruction {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.instruction svg { width: 14px; height: 14px; opacity: 0.6; }
+
+/* ========== ANIMATIONS ========== */
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(212,135,44,0.2)); }
+  50% { filter: drop-shadow(0 0 16px rgba(212,135,44,0.6)); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ========== REDUCED MOTION ========== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-label="Principal AI logo">
+    <rect x="2" y="2" width="28" height="28" rx="6" stroke="#d4872c" stroke-width="2"/>
+    <path d="M9 16h6l3-6 3 12 3-6h2" stroke="#d4872c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span class="logo-text">Principal <span>AI</span></span>
+</header>
+
+<!-- STEP 0: INTRO -->
+<section class="step" id="step-0">
+  <canvas id="intro-canvas"></canvas>
+  <div class="intro-content">
+    <div class="intro-title">Narrative<br><span class="accent">Intelligence</span></div>
+    <div class="intro-subtitle">A formal algebra for organizational narrative</div>
+    <div class="intro-small">Every organization tells a story. This system makes it machine-readable.</div>
+    <button class="begin-btn" onclick="goToStep(1)">Begin Walkthrough →</button>
+  </div>
+</section>
+
+<!-- STEP 1: THE GRAPH -->
+<section class="step" id="step-1">
+  <div class="step-inner">
+    <span class="step-label">Step 1</span>
+    <h2 class="step-title">The Narrative Graph</h2>
+    <p class="step-desc">An organization's narrative is a directed acyclic graph of assertions — from core story through positioning, product, operations, evidence, and communications. Each unit depends on units above it.</p>
+    <div class="legend" id="legend-1"></div>
+    <div class="viz-container" id="viz-1"></div>
+  </div>
+</section>
+
+<!-- STEP 2: COMPOSE -->
+<section class="step" id="step-2">
+  <div class="step-inner">
+    <span class="step-label">Step 2 · Σ Compose</span>
+    <h2 class="step-title">Σ Compose — Stakeholder Views</h2>
+    <p class="step-desc">The Compose operation filters the graph for a specific audience. A board member sees core story and evidence. An engineer sees product and operational layers. The result is itself a valid narrative graph.</p>
+    <div class="stakeholder-bar" id="stakeholder-bar"></div>
+    <div class="viz-container" id="viz-2"></div>
+  </div>
+</section>
+
+<!-- STEP 3: PROPAGATE -->
+<section class="step" id="step-3">
+  <div class="step-inner">
+    <span class="step-label">Step 3 · Δ Propagate</span>
+    <h2 class="step-title">Δ Propagate — Impact Analysis</h2>
+    <p class="step-desc">When a narrative unit changes, the Propagate operation computes the full downstream impact. Change the core mission? See exactly which communications, product claims, and evidence need updating.</p>
+    <div class="instruction">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+      Click any node to see what it affects
+    </div>
+    <div class="impact-counter" id="impact-counter">0 units affected (0% of graph)</div>
+    <div class="viz-container" id="viz-3"></div>
+  </div>
+</section>
+
+<!-- STEP 4: COVER + DRIFT -->
+<section class="step step-dense" id="step-4">
+  <div class="step-inner">
+    <span class="step-label">Step 4 · κ Cover + δ Drift</span>
+    <h2 class="step-title">κ Cover + δ Drift — Health Metrics</h2>
+    <p class="step-desc">Cover measures narrative completeness — are all claims backed by evidence? Drift detects coherence decay — which units have fallen out of alignment? Together they give you the NCI: Narrative Coherence Index.</p>
+    <div class="coverage-section" id="coverage-bars"></div>
+    <div class="status-grid" id="status-grid"></div>
+    <div class="nci-display">
+      <div class="nci-label">Narrative Coherence Index</div>
+      <div class="nci-number" id="nci-number">0.000</div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 5: RESONATE -->
+<section class="step" id="step-5">
+  <div class="step-inner">
+    <span class="step-label">Step 5 · ρ Resonate</span>
+    <h2 class="step-title">ρ Resonate — Signal Scoring</h2>
+    <p class="step-desc">The Resonate operation scores external signals against your narrative graph. Market news, competitor moves, regulatory changes — see instantly which parts of your narrative are affected and how urgently you need to respond.</p>
+    <div class="signal-input-wrap">
+      <input type="text" class="signal-input" id="signal-input" placeholder="Competitor launched AI-powered analytics">
+      <button class="signal-submit" id="signal-submit">Score Signal</button>
+    </div>
+    <div class="urgency-badge" id="urgency-badge">CRITICAL</div>
+    <div class="match-results" id="match-results"></div>
+    <div class="viz-container" id="viz-5"></div>
+  </div>
+</section>
+
+<!-- STEP 6: THE SYSTEM -->
+<section class="step" id="step-6">
+  <div class="step-inner">
+    <span class="step-label">Step 6</span>
+    <h2 class="step-title">Three Patents, One System</h2>
+    <p class="step-desc">Narrative Intelligence connects three provisional patents into a unified system. Context scaffolding provides the data layer. Bidirectional validation ensures alignment. The algebra makes it all queryable.</p>
+    <div class="system-diagram" id="system-diagram">
+      <div class="system-layer layer-1" id="sys-layer-1">
+        <div class="system-layer-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 3v18"/></svg>
+        </div>
+        <div class="system-layer-text">
+          <h4>Context Scaffolding</h4>
+          <p>NarrativeGraph — the data layer</p>
+        </div>
+      </div>
+      <div class="system-connector" id="sys-conn-1"></div>
+      <div class="system-layer layer-2" id="sys-layer-2">
+        <div class="system-layer-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <div class="system-layer-text">
+          <h4>Bidirectional Validation</h4>
+          <p>Ω Validate — alignment engine</p>
+        </div>
+      </div>
+      <div class="system-connector" id="sys-conn-2"></div>
+      <div class="system-layer layer-3" id="sys-layer-3">
+        <div class="system-layer-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6 4 4 6-6"/><path d="M16 5h4v4"/></svg>
+        </div>
+        <div class="system-layer-text">
+          <h4>Narrative Intelligence</h4>
+          <p>SDK + CLI — the queryable interface</p>
+        </div>
+      </div>
+    </div>
+    <a href="https://github.com/FlanneryAllen/principalnarrative" target="_blank" rel="noopener noreferrer" class="github-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      View on GitHub →
+    </a>
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn" id="nav-prev" aria-label="Previous step">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div class="nav-dots" id="nav-dots"></div>
+  <button class="nav-btn" id="nav-next" aria-label="Next step">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</nav>
+
+<script>
+// ========== DATA ==========
+const UNITS = [
+  {"id":"core_mission","type":"core_story","assertion":"We make organizational narrative machine-readable for autonomous agents","deps":[],"state":"ALIGNED","confidence":0.95},
+  {"id":"core_thesis","type":"core_story","assertion":"Every organization has a narrative graph that can be formalized and computed","deps":[],"state":"ALIGNED","confidence":0.90},
+  {"id":"pos_developer","type":"positioning","assertion":"The first narrative SDK for AI-native development","deps":["core_mission"],"state":"ALIGNED","confidence":0.85},
+  {"id":"pos_enterprise","type":"positioning","assertion":"Enterprise narrative governance and compliance","deps":["core_mission","core_thesis"],"state":"ALIGNED","confidence":0.80},
+  {"id":"prod_sdk","type":"product_narrative","assertion":"TypeScript SDK with formal algebra operations","deps":["pos_developer"],"state":"ALIGNED","confidence":0.90},
+  {"id":"prod_dashboard","type":"product_narrative","assertion":"Interactive dashboard for NCI visualization","deps":["pos_enterprise"],"state":"ALIGNED","confidence":0.85},
+  {"id":"prod_cli","type":"product_narrative","assertion":"CLI with compose, propagate, drift, and NCI commands","deps":["pos_developer","prod_sdk"],"state":"ALIGNED","confidence":0.88},
+  {"id":"ops_testing","type":"operational","assertion":"Comprehensive test coverage for all algebraic operations","deps":["prod_sdk"],"state":"ALIGNED","confidence":0.80},
+  {"id":"ops_cicd","type":"operational","assertion":"CI/CD pipeline validates narrative coherence on every push","deps":["ops_testing","prod_cli"],"state":"DRIFTED","confidence":0.60},
+  {"id":"ev_nci_score","type":"evidence","assertion":"NCI score of 0.692 achieved on 13-unit test graph","deps":["prod_sdk","ops_testing"],"state":"ALIGNED","confidence":0.95},
+  {"id":"ev_patent","type":"evidence","assertion":"Provisional patent filed covering narrative algebra formalism","deps":["core_thesis"],"state":"ALIGNED","confidence":1.0},
+  {"id":"comm_blog","type":"communication","assertion":"Technical blog series on narrative intelligence for developers","deps":["pos_developer","ev_nci_score"],"state":"ALIGNED","confidence":0.75},
+  {"id":"comm_pitch","type":"communication","assertion":"Investor pitch deck with NCI metrics and stakeholder ROI","deps":["pos_enterprise","ev_patent","prod_dashboard"],"state":"DRIFTED","confidence":0.55}
+];
+
+const TYPE_COLORS = {
+  core_story: '#e6b84d',
+  positioning: '#d4872c',
+  product_narrative: '#4d8fd6',
+  operational: '#708ba8',
+  evidence: '#4dbd74',
+  communication: '#9b6dd7'
+};
+const TYPE_LABELS = {
+  core_story: 'Core Story',
+  positioning: 'Positioning',
+  product_narrative: 'Product',
+  operational: 'Operational',
+  evidence: 'Evidence',
+  communication: 'Communication'
+};
+
+const STAKEHOLDERS = {
+  board: { label: 'Board', types: ['core_story','positioning','evidence'] },
+  engineering: { label: 'Engineering', types: ['product_narrative','operational','evidence'] },
+  compliance: { label: 'Compliance', types: ['operational','evidence','core_story'] },
+  customer: { label: 'Customer', types: ['product_narrative','communication','positioning'] },
+  investor: { label: 'Investor', types: ['core_story','positioning','evidence'] },
+  marketing: { label: 'Marketing', types: ['positioning','communication','product_narrative'] }
+};
+
+// Build edges
+const EDGES = [];
+UNITS.forEach(u => {
+  u.deps.forEach(d => { EDGES.push({ source: d, target: u.id }); });
+});
+
+// ========== NAVIGATION ==========
+let currentStep = 0;
+const totalSteps = 7;
+const stepInitialized = new Array(totalSteps).fill(false);
+
+function buildNav() {
+  const dotsEl = document.getElementById('nav-dots');
+  for (let i = 0; i < totalSteps; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Go to step ${i}`);
+    dot.addEventListener('click', () => goToStep(i));
+    dotsEl.appendChild(dot);
+  }
+  document.getElementById('nav-prev').addEventListener('click', () => goToStep(currentStep - 1));
+  document.getElementById('nav-next').addEventListener('click', () => goToStep(currentStep + 1));
+  updateNavState();
+}
+
+function updateNavState() {
+  const dots = document.querySelectorAll('.nav-dot');
+  dots.forEach((d, i) => d.classList.toggle('active', i === currentStep));
+  document.getElementById('nav-prev').disabled = currentStep === 0;
+  document.getElementById('nav-next').disabled = currentStep === totalSteps - 1;
+}
+
+function goToStep(index) {
+  if (index < 0 || index >= totalSteps) return;
+  currentStep = index;
+  const el = document.getElementById(`step-${index}`);
+  el.scrollIntoView({ behavior: 'smooth' });
+  updateNavState();
+  initStep(index);
+}
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); goToStep(currentStep + 1); }
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); goToStep(currentStep - 1); }
+});
+
+// Scroll spy
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const idx = parseInt(entry.target.id.split('-')[1]);
+      currentStep = idx;
+      updateNavState();
+      initStep(idx);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.step').forEach(s => observer.observe(s));
+
+// ========== INTRO CANVAS ==========
+function initIntroCanvas() {
+  const canvas = document.getElementById('intro-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h;
+  const particles = [];
+  const numParticles = 50;
+
+  function resize() {
+    w = canvas.width = canvas.parentElement.offsetWidth;
+    h = canvas.height = canvas.parentElement.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < numParticles; i++) {
+    particles.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 2 + 1,
+      opacity: Math.random() * 0.5 + 0.2
+    });
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(212,135,44,${p.opacity})`;
+      ctx.fill();
+    });
+    // Draw connections
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 140) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(212,135,44,${0.12 * (1 - dist / 140)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ========== D3 FORCE GRAPH ==========
+function createForceGraph(containerId, opts = {}) {
+  const container = document.getElementById(containerId);
+  const rect = container.getBoundingClientRect();
+  const width = rect.width || 900;
+  const height = rect.height || 420;
+
+  const svg = d3.select(`#${containerId}`).append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  // Defs for glow
+  const defs = svg.append('defs');
+  const glowFilter = defs.append('filter').attr('id', `glow-${containerId}`);
+  glowFilter.append('feGaussianBlur').attr('stdDeviation', '4').attr('result', 'coloredBlur');
+  const feMerge = glowFilter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+  // Arrow marker
+  defs.append('marker')
+    .attr('id', `arrow-${containerId}`)
+    .attr('viewBox', '0 0 10 10')
+    .attr('refX', 20)
+    .attr('refY', 5)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,0 L10,5 L0,10 Z')
+    .attr('fill', 'rgba(255,255,255,0.15)');
+
+  const nodes = UNITS.map(u => ({ ...u }));
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+  const links = EDGES.map(e => ({ source: e.source, target: e.target }));
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+    .force('charge', d3.forceManyBody().strength(-200))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(20))
+    .force('y', d3.forceY().y(d => {
+      const layerOrder = ['core_story','positioning','product_narrative','operational','evidence','communication'];
+      return (layerOrder.indexOf(d.type) + 1) * (height / 7);
+    }).strength(0.15));
+
+  const linkGroup = svg.append('g');
+  const nodeGroup = svg.append('g');
+
+  const linkEls = linkGroup.selectAll('line')
+    .data(links).enter().append('line')
+    .attr('class', 'link')
+    .attr('marker-end', `url(#arrow-${containerId})`);
+
+  const nodeEls = nodeGroup.selectAll('g')
+    .data(nodes).enter().append('g')
+    .attr('class', 'node');
+
+  nodeEls.append('circle')
+    .attr('r', d => d.type === 'core_story' ? 12 : 9)
+    .attr('fill', d => TYPE_COLORS[d.type])
+    .attr('stroke', d => TYPE_COLORS[d.type])
+    .attr('stroke-opacity', 0.3)
+    .attr('fill-opacity', 0.85);
+
+  nodeEls.append('text')
+    .attr('dy', -16)
+    .attr('text-anchor', 'middle')
+    .text(d => d.id);
+
+  simulation.on('tick', () => {
+    linkEls
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    nodeEls.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  // Drag
+  const drag = d3.drag()
+    .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+    .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; });
+  nodeEls.call(drag);
+
+  return { svg, simulation, nodeEls, linkEls, nodes, links, nodeMap };
+}
+
+// ========== LEGEND ==========
+function buildLegend(containerId) {
+  const el = document.getElementById(containerId);
+  Object.entries(TYPE_COLORS).forEach(([type, color]) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-dot" style="background:${color}"></span>${TYPE_LABELS[type]}`;
+    el.appendChild(item);
+  });
+}
+
+// ========== STEP INITIALIZERS ==========
+let graph1, graph2, graph3, graph5;
+
+function initStep(index) {
+  if (stepInitialized[index]) return;
+  stepInitialized[index] = true;
+
+  switch(index) {
+    case 0: initIntroCanvas(); break;
+    case 1: initGraph(); break;
+    case 2: initCompose(); break;
+    case 3: initPropagate(); break;
+    case 4: initCoverDrift(); break;
+    case 5: initResonate(); break;
+    case 6: initSystem(); break;
+  }
+}
+
+function initGraph() {
+  buildLegend('legend-1');
+  graph1 = createForceGraph('viz-1');
+}
+
+function initCompose() {
+  graph2 = createForceGraph('viz-2');
+  const bar = document.getElementById('stakeholder-bar');
+  let activeStakeholder = null;
+
+  Object.entries(STAKEHOLDERS).forEach(([key, val]) => {
+    const btn = document.createElement('button');
+    btn.className = 'stakeholder-btn';
+    btn.textContent = val.label;
+    btn.addEventListener('click', () => {
+      // Toggle
+      if (activeStakeholder === key) {
+        activeStakeholder = null;
+        btn.classList.remove('active');
+        resetCompose();
+        return;
+      }
+      activeStakeholder = key;
+      bar.querySelectorAll('.stakeholder-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyCompose(val.types);
+    });
+    bar.appendChild(btn);
+  });
+
+  function applyCompose(types) {
+    const includedIds = new Set();
+    UNITS.forEach(u => { if (types.includes(u.type)) includedIds.add(u.id); });
+
+    graph2.nodeEls.each(function(d) {
+      const node = d3.select(this);
+      if (includedIds.has(d.id)) {
+        node.classed('faded', false).classed('highlighted', true);
+        node.select('circle').attr('filter', `url(#glow-viz-2)`);
+      } else {
+        node.classed('faded', true).classed('highlighted', false);
+        node.select('circle').attr('filter', null);
+      }
+    });
+    graph2.linkEls.each(function(d) {
+      const link = d3.select(this);
+      const srcId = typeof d.source === 'object' ? d.source.id : d.source;
+      const tgtId = typeof d.target === 'object' ? d.target.id : d.target;
+      if (includedIds.has(srcId) && includedIds.has(tgtId)) {
+        link.classed('faded', false);
+      } else {
+        link.classed('faded', true);
+      }
+    });
+  }
+
+  function resetCompose() {
+    graph2.nodeEls.classed('faded', false).classed('highlighted', false);
+    graph2.nodeEls.selectAll('circle').attr('filter', null);
+    graph2.linkEls.classed('faded', false);
+  }
+}
+
+function initPropagate() {
+  graph3 = createForceGraph('viz-3');
+  const counter = document.getElementById('impact-counter');
+
+  // Build adjacency (forward: source -> targets)
+  const adj = {};
+  UNITS.forEach(u => { adj[u.id] = []; });
+  EDGES.forEach(e => { adj[e.source].push(e.target); });
+
+  graph3.nodeEls.on('click', function(event, d) {
+    event.stopPropagation();
+    // BFS from d
+    const visited = new Set([d.id]);
+    const queue = [d.id];
+    while (queue.length) {
+      const cur = queue.shift();
+      (adj[cur] || []).forEach(t => {
+        if (!visited.has(t)) { visited.add(t); queue.push(t); }
+      });
+    }
+    // Remove source from count
+    const affected = visited.size - 1;
+    const pct = Math.round((affected / UNITS.length) * 100);
+
+    // Highlight
+    graph3.nodeEls.each(function(nd) {
+      const node = d3.select(this);
+      if (visited.has(nd.id)) {
+        node.classed('highlighted', true).classed('faded', false);
+        node.select('circle')
+          .attr('filter', `url(#glow-viz-3)`)
+          .transition().duration(300)
+          .attr('r', nd.id === d.id ? 14 : 11)
+          .transition().duration(600)
+          .attr('r', nd.type === 'core_story' ? 12 : 9);
+      } else {
+        node.classed('highlighted', false).classed('faded', true);
+        node.select('circle').attr('filter', null);
+      }
+    });
+    graph3.linkEls.each(function(ld) {
+      const link = d3.select(this);
+      const srcId = typeof ld.source === 'object' ? ld.source.id : ld.source;
+      const tgtId = typeof ld.target === 'object' ? ld.target.id : ld.target;
+      if (visited.has(srcId) && visited.has(tgtId)) {
+        link.classed('highlighted', true).classed('faded', false);
+      } else {
+        link.classed('highlighted', false).classed('faded', true);
+      }
+    });
+
+    counter.textContent = `${affected} unit${affected !== 1 ? 's' : ''} affected (${pct}% of graph)`;
+    counter.classList.add('visible');
+  });
+}
+
+function initCoverDrift() {
+  // Coverage per layer
+  const layers = {};
+  UNITS.forEach(u => {
+    if (!layers[u.type]) layers[u.type] = { total: 0, aligned: 0, items: [] };
+    layers[u.type].total++;
+    if (u.state === 'ALIGNED') layers[u.type].aligned++;
+    layers[u.type].items.push(u);
+  });
+
+  const barsEl = document.getElementById('coverage-bars');
+  const layerOrder = ['core_story','positioning','product_narrative','operational','evidence','communication'];
+
+  layerOrder.forEach((type, i) => {
+    const layer = layers[type];
+    if (!layer) return;
+    const pct = Math.round((layer.aligned / layer.total) * 100);
+    const row = document.createElement('div');
+    row.className = 'coverage-row';
+    row.innerHTML = `
+      <div class="coverage-label">${TYPE_LABELS[type]}</div>
+      <div class="coverage-bar-track">
+        <div class="coverage-bar-fill" id="bar-fill-${type}" style="background:${TYPE_COLORS[type]}"></div>
+      </div>
+      <div class="coverage-pct" id="bar-pct-${type}">0%</div>
+    `;
+    barsEl.appendChild(row);
+
+    // Animate after delay
+    setTimeout(() => {
+      document.getElementById(`bar-fill-${type}`).style.width = `${pct}%`;
+      document.getElementById(`bar-pct-${type}`).textContent = `${pct}%`;
+    }, 200 + i * 150);
+  });
+
+  // Status grid
+  const grid = document.getElementById('status-grid');
+  UNITS.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'status-item';
+    const stateClass = u.state === 'ALIGNED' ? 'aligned' : u.state === 'DRIFTED' ? 'drifted' : 'broken';
+    item.innerHTML = `<span class="status-dot ${stateClass}"></span>${u.id}`;
+    grid.appendChild(item);
+  });
+
+  // Animate NCI
+  const nciEl = document.getElementById('nci-number');
+  const target = 0.692;
+  const duration = 1500;
+  const start = performance.now();
+  function animateNCI(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    nciEl.textContent = (target * eased).toFixed(3);
+    if (progress < 1) requestAnimationFrame(animateNCI);
+  }
+  setTimeout(() => requestAnimationFrame(animateNCI), 600);
+}
+
+function initResonate() {
+  graph5 = createForceGraph('viz-5');
+  const input = document.getElementById('signal-input');
+  const submit = document.getElementById('signal-submit');
+  const badge = document.getElementById('urgency-badge');
+  const results = document.getElementById('match-results');
+
+  // Pre-defined signal matches based on keywords
+  const signalProfiles = [
+    { keywords: ['ai','analytics','competitor','launched'], matches: ['prod_sdk','pos_developer','comm_blog','prod_dashboard','pos_enterprise'], urgency: 'critical' },
+    { keywords: ['regulation','compliance','gdpr','data'], matches: ['ops_cicd','pos_enterprise','core_mission'], urgency: 'high' },
+    { keywords: ['funding','investment','series','raise'], matches: ['comm_pitch','ev_patent','core_thesis','pos_enterprise'], urgency: 'medium' },
+    { keywords: ['hire','team','talent','engineer'], matches: ['ops_testing','prod_sdk','prod_cli'], urgency: 'low' },
+    { keywords: ['open source','github','developer','sdk'], matches: ['prod_sdk','prod_cli','pos_developer','comm_blog','ev_nci_score'], urgency: 'high' },
+  ];
+
+  function scoreSignal() {
+    const text = (input.value || input.placeholder).toLowerCase();
+    let bestMatch = signalProfiles[0]; // default
+    let bestScore = 0;
+    signalProfiles.forEach(sp => {
+      const score = sp.keywords.filter(k => text.includes(k)).length;
+      if (score > bestScore) { bestScore = score; bestMatch = sp; }
+    });
+
+    // Show urgency badge
+    badge.className = `urgency-badge visible ${bestMatch.urgency}`;
+    badge.textContent = bestMatch.urgency.toUpperCase();
+
+    // Show matched nodes
+    results.innerHTML = '';
+    const matchedSet = new Set(bestMatch.matches);
+    bestMatch.matches.forEach((id, i) => {
+      const unit = UNITS.find(u => u.id === id);
+      const score = (0.95 - i * 0.12).toFixed(2);
+      const chip = document.createElement('div');
+      chip.className = 'match-chip';
+      chip.textContent = `${id} · ${score}`;
+      results.appendChild(chip);
+      setTimeout(() => chip.classList.add('visible'), 100 + i * 80);
+    });
+
+    // Highlight in graph
+    graph5.nodeEls.each(function(d) {
+      const node = d3.select(this);
+      if (matchedSet.has(d.id)) {
+        node.classed('highlighted', true).classed('faded', false);
+        node.select('circle').attr('filter', `url(#glow-viz-5)`);
+      } else {
+        node.classed('highlighted', false).classed('faded', true);
+        node.select('circle').attr('filter', null);
+      }
+    });
+    graph5.linkEls.each(function(ld) {
+      const link = d3.select(this);
+      const srcId = typeof ld.source === 'object' ? ld.source.id : ld.source;
+      const tgtId = typeof ld.target === 'object' ? ld.target.id : ld.target;
+      if (matchedSet.has(srcId) && matchedSet.has(tgtId)) {
+        link.classed('highlighted', true).classed('faded', false);
+      } else {
+        link.classed('highlighted', false).classed('faded', true);
+      }
+    });
+  }
+
+  submit.addEventListener('click', scoreSignal);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') scoreSignal(); });
+}
+
+function initSystem() {
+  const layers = ['sys-layer-1','sys-layer-2','sys-layer-3'];
+  const connectors = ['sys-conn-1','sys-conn-2'];
+
+  layers.forEach((id, i) => {
+    setTimeout(() => document.getElementById(id).classList.add('visible'), 300 + i * 350);
+  });
+  connectors.forEach((id, i) => {
+    setTimeout(() => document.getElementById(id).classList.add('visible'), 500 + i * 350);
+  });
+}
+
+// ========== INIT ==========
+buildNav();
+initStep(0);
+</script>
+</body>
+</html>
