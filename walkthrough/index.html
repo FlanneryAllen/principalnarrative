@@ -57,6 +57,92 @@ body {
   --shadow-glow: 0 0 30px rgba(212, 135, 44, 0.12);
 }
 
+/* ========== AUDIO CONTROLS ========== */
+.audio-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 31, 56, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 135, 44, 0.2);
+  border-radius: 40px;
+  padding: 8px 16px;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+}
+.audio-controls.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.audio-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--copper);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+  flex-shrink: 0;
+}
+.audio-btn:hover {
+  background: rgba(212, 135, 44, 0.15);
+  color: var(--copper-light);
+}
+.audio-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.audio-btn-sm {
+  width: 28px;
+  height: 28px;
+}
+.audio-btn-sm svg {
+  width: 14px;
+  height: 14px;
+}
+.audio-progress-track {
+  width: 100px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+.audio-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--copper);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+.audio-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 32px;
+  text-align: center;
+}
+.audio-controls.playing .audio-icon-play { display: none; }
+.audio-controls.playing .audio-icon-pause { display: block; }
+.audio-controls:not(.playing) .audio-icon-play { display: block; }
+.audio-controls:not(.playing) .audio-icon-pause { display: none; }
+.audio-controls.muted .audio-icon-vol { display: none; }
+.audio-controls.muted .audio-icon-muted { display: block; }
+.audio-controls:not(.muted) .audio-icon-vol { display: block; }
+.audio-controls:not(.muted) .audio-icon-muted { display: none; }
+
 /* ========== TYPOGRAPHY ========== */
 h1, h2, h3, h4 { line-height: 1.15; text-wrap: balance; color: var(--text-primary); }
 p { text-wrap: pretty; max-width: 72ch; }
@@ -797,6 +883,22 @@ p { text-wrap: pretty; max-width: 72ch; }
   </div>
 </section>
 
+<!-- AUDIO CONTROLS -->
+<div class="audio-controls" id="audio-controls">
+  <button class="audio-btn" id="audio-toggle" aria-label="Toggle narration">
+    <svg class="audio-icon-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
+    <svg class="audio-icon-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <div class="audio-progress-track" id="audio-progress-track">
+    <div class="audio-progress-fill" id="audio-progress-fill"></div>
+  </div>
+  <span class="audio-time" id="audio-time">0:00</span>
+  <button class="audio-btn audio-btn-sm" id="audio-mute" aria-label="Toggle mute">
+    <svg class="audio-icon-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    <svg class="audio-icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+  </button>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn" id="nav-prev" aria-label="Previous step">
@@ -891,6 +993,8 @@ function goToStep(index) {
   el.scrollIntoView({ behavior: 'smooth' });
   updateNavState();
   initStep(index);
+  // Trigger audio hook if available
+  if (typeof onStepEnter === 'function') onStepEnter(index);
 }
 
 // Keyboard nav
@@ -907,6 +1011,8 @@ const observer = new IntersectionObserver(entries => {
       currentStep = idx;
       updateNavState();
       initStep(idx);
+      // Trigger audio hook if available
+      if (typeof onStepEnter === 'function') onStepEnter(idx);
     }
   });
 }, { threshold: 0.5 });
@@ -1345,6 +1451,140 @@ function initSystem() {
     setTimeout(() => document.getElementById(id).classList.add('visible'), 500 + i * 350);
   });
 }
+
+// ========== AUDIO ENGINE ==========
+const audioClips = {};
+const audioSources = [
+  'narration-step0.mp3',
+  'narration-step1.mp3',
+  'narration-step2.mp3',
+  'narration-step3.mp3',
+  'narration-step4.mp3',
+  'narration-step5.mp3',
+  'narration-step6.mp3'
+];
+
+let currentAudio = null;
+let audioPlaying = false;
+let audioMuted = false;
+let audioUserPaused = false;
+
+// Preload all clips
+audioSources.forEach((src, i) => {
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audioClips[i] = audio;
+});
+
+const audioControls = document.getElementById('audio-controls');
+const audioToggle = document.getElementById('audio-toggle');
+const audioMuteBtn = document.getElementById('audio-mute');
+const audioProgressTrack = document.getElementById('audio-progress-track');
+const audioProgressFill = document.getElementById('audio-progress-fill');
+const audioTimeEl = document.getElementById('audio-time');
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function updateAudioUI() {
+  if (!currentAudio) return;
+  const pct = currentAudio.duration ? (currentAudio.currentTime / currentAudio.duration) * 100 : 0;
+  audioProgressFill.style.width = `${pct}%`;
+  audioTimeEl.textContent = formatTime(currentAudio.currentTime);
+  if (audioPlaying) requestAnimationFrame(updateAudioUI);
+}
+
+function playStepAudio(stepIndex) {
+  // Stop current audio
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+
+  const clip = audioClips[stepIndex];
+  if (!clip) return;
+
+  currentAudio = clip;
+  currentAudio.muted = audioMuted;
+  audioProgressFill.style.width = '0%';
+  audioTimeEl.textContent = '0:00';
+
+  // Show controls on first interaction
+  audioControls.classList.add('visible');
+
+  if (!audioUserPaused) {
+    currentAudio.play().then(() => {
+      audioPlaying = true;
+      audioControls.classList.add('playing');
+      updateAudioUI();
+    }).catch(() => {
+      // Autoplay blocked — show controls so user can click play
+      audioPlaying = false;
+      audioControls.classList.remove('playing');
+    });
+  }
+
+  // When clip ends
+  currentAudio.onended = () => {
+    audioPlaying = false;
+    audioControls.classList.remove('playing');
+    audioProgressFill.style.width = '100%';
+  };
+}
+
+// Play/Pause toggle
+audioToggle.addEventListener('click', () => {
+  if (!currentAudio) {
+    // First click — start from current step
+    audioUserPaused = false;
+    playStepAudio(currentStep);
+    return;
+  }
+
+  if (audioPlaying) {
+    currentAudio.pause();
+    audioPlaying = false;
+    audioUserPaused = true;
+    audioControls.classList.remove('playing');
+  } else {
+    audioUserPaused = false;
+    currentAudio.play().then(() => {
+      audioPlaying = true;
+      audioControls.classList.add('playing');
+      updateAudioUI();
+    }).catch(() => {});
+  }
+});
+
+// Mute toggle
+audioMuteBtn.addEventListener('click', () => {
+  audioMuted = !audioMuted;
+  if (currentAudio) currentAudio.muted = audioMuted;
+  audioControls.classList.toggle('muted', audioMuted);
+});
+
+// Scrub
+audioProgressTrack.addEventListener('click', (e) => {
+  if (!currentAudio || !currentAudio.duration) return;
+  const rect = audioProgressTrack.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  currentAudio.currentTime = pct * currentAudio.duration;
+  audioProgressFill.style.width = `${pct * 100}%`;
+});
+
+// ========== WIRE AUDIO INTO NAVIGATION ==========
+let lastAudioStep = -1;
+function onStepEnter(index) {
+  if (index === lastAudioStep) return;
+  lastAudioStep = index;
+  playStepAudio(index);
+}
+
+// Show audio controls after short delay
+setTimeout(() => audioControls.classList.add('visible'), 1000);
 
 // ========== INIT ==========
 buildNav();
