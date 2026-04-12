@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "graphName": "Principal Narrative",
+    "generatedAt": "2026-04-12T12:00:00Z",
+    "version": "0.1.0"
+  },
+  "units": [
+    {
+      "id": "cs-mission",
+      "type": "core_story",
+      "layer": 0,
+      "assertion": "We make organizational narrative machine-readable for autonomous AI agents",
+      "intent": "Define company mission",
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0
+    },
+    {
+      "id": "cs-security",
+      "type": "core_story",
+      "layer": 0,
+      "assertion": "All customer data is encrypted at rest and in transit",
+      "intent": "Security commitment",
+      "dependencies": [],
+      "validationState": "ALIGNED",
+      "confidence": 1.0
+    },
+    {
+      "id": "pos-fastest",
+      "type": "positioning",
+      "layer": 1,
+      "assertion": "Fastest narrative coherence analysis in the market, sub-100ms queries",
+      "intent": "Performance positioning",
+      "dependencies": ["cs-mission"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9
+    },
+    {
+      "id": "pos-enterprise",
+      "type": "positioning",
+      "layer": 1,
+      "assertion": "Enterprise-grade security with SOC 2 Type II compliance",
+      "intent": "Security positioning",
+      "dependencies": ["cs-security"],
+      "validationState": "DRIFTED",
+      "confidence": 0.6
+    },
+    {
+      "id": "pn-dag",
+      "type": "product_narrative",
+      "layer": 2,
+      "assertion": "Narrative graph maintains DAG constraint with cycle detection",
+      "intent": "DAG enforcement",
+      "dependencies": ["cs-mission"],
+      "validationState": "ALIGNED",
+      "confidence": 0.95
+    },
+    {
+      "id": "pn-auth",
+      "type": "product_narrative",
+      "layer": 2,
+      "assertion": "Authentication uses OAuth 2.0 with MFA support",
+      "intent": "Auth implementation",
+      "dependencies": ["cs-security", "pos-enterprise"],
+      "validationState": "DRIFTED",
+      "confidence": 0.5
+    },
+    {
+      "id": "pn-query",
+      "type": "product_narrative",
+      "layer": 2,
+      "assertion": "Agents query narrative via SDK and receive machine-actionable constraints",
+      "intent": "Agent query interface",
+      "dependencies": ["pos-fastest"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9
+    },
+    {
+      "id": "op-cicd",
+      "type": "operational",
+      "layer": 3,
+      "assertion": "All code changes validated against narrative constraints before merge",
+      "intent": "CI/CD narrative validation",
+      "dependencies": ["pn-dag", "pn-query"],
+      "validationState": "ALIGNED",
+      "confidence": 0.85
+    },
+    {
+      "id": "op-audit",
+      "type": "operational",
+      "layer": 3,
+      "assertion": "Security audit logging on all authentication events",
+      "intent": "Audit compliance",
+      "dependencies": ["pn-auth"],
+      "validationState": "BROKEN",
+      "confidence": 0.2
+    },
+    {
+      "id": "ev-perf",
+      "type": "evidence",
+      "layer": 4,
+      "assertion": "P95 query latency: 47ms (benchmark: 2026-04-01)",
+      "intent": "Performance evidence",
+      "dependencies": ["pos-fastest"],
+      "validationState": "ALIGNED",
+      "confidence": 1.0
+    },
+    {
+      "id": "ev-soc2",
+      "type": "evidence",
+      "layer": 4,
+      "assertion": "SOC 2 Type II audit: in progress, expected completion Q3 2026",
+      "intent": "Compliance evidence",
+      "dependencies": ["pos-enterprise"],
+      "validationState": "DRIFTED",
+      "confidence": 0.4
+    },
+    {
+      "id": "comm-website",
+      "type": "communication",
+      "layer": 5,
+      "assertion": "Website homepage claims: enterprise-grade security, sub-100ms performance",
+      "intent": "Marketing website",
+      "dependencies": ["pos-fastest", "pos-enterprise"],
+      "validationState": "ALIGNED",
+      "confidence": 0.8
+    },
+    {
+      "id": "comm-blog",
+      "type": "communication",
+      "layer": 5,
+      "assertion": "Technical blog post: How we built narrative coherence analysis",
+      "intent": "Content marketing",
+      "dependencies": ["pn-dag", "pn-query"],
+      "validationState": "ALIGNED",
+      "confidence": 0.9
+    }
+  ],
+  "stakeholderPresets": {
+    "all": {
+      "label": "All Layers",
+      "types": ["core_story", "positioning", "product_narrative", "operational", "evidence", "communication"],
+      "description": "Complete narrative graph"
+    },
+    "board": {
+      "label": "Board",
+      "types": ["core_story", "positioning", "evidence"],
+      "description": "Strategic narrative coherence"
+    },
+    "engineering": {
+      "label": "Engineering",
+      "types": ["product_narrative", "operational", "evidence"],
+      "description": "Technical alignment and evidence"
+    },
+    "compliance": {
+      "label": "Compliance",
+      "types": ["operational", "evidence", "core_story"],
+      "description": "Regulatory and operational integrity"
+    },
+    "customer": {
+      "label": "Customer",
+      "types": ["product_narrative", "communication", "positioning"],
+      "description": "External-facing narrative"
+    },
+    "marketing": {
+      "label": "Marketing",
+      "types": ["positioning", "communication", "product_narrative"],
+      "description": "Messaging and positioning coherence"
+    }
+  },
+  "layerMeta": {
+    "core_story": { "label": "Core Story", "order": 0, "color": "#4f98a3" },
+    "positioning": { "label": "Positioning", "order": 1, "color": "#a86fdf" },
+    "product_narrative": { "label": "Product", "order": 2, "color": "#5591c7" },
+    "operational": { "label": "Operational", "order": 3, "color": "#edb336" },
+    "evidence": { "label": "Evidence", "order": 4, "color": "#6daa45" },
+    "communication": { "label": "Communication", "order": 5, "color": "#dd6974" }
+  }
+}
