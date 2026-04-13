@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
 const { checkContent, findFiles } = require('./check');
+const { createAlgebra, STAKEHOLDER_PRESETS, ALL_LAYERS } = require('./algebra');
 
 // ============================================================================
 // Config
@@ -90,34 +91,52 @@ function parseCanon() {
 }
 
 // ============================================================================
-// Clarion Call Engine (mirrors packages/agent/clarion-call.ts)
+// Clarion Call Engine — powered by Narrative Algebra (Σ Δ Ω ρ κ δ)
 // ============================================================================
 
 function runClarionCall(units, skills, trigger = 'demand') {
-  const drift = checkDrift(units);
+  // Build the real algebra from canon units
+  const { algebra } = createAlgebra(units);
+
+  // Algebra-powered metrics
+  const metrics = algebra.computeMetrics();
+  const driftResult = algebra.drift();
+  const coverResult = algebra.cover();
+
+  // Skill-based checks (terminology, tone, orphans)
+  const themeConflicts = checkThemeConflicts(units);
   const orphans = checkOrphanedDeps(units);
   const terminology = checkTerminology(units, skills);
   const tone = checkTone(units, skills);
 
-  const totalIssues = drift.length + orphans.length + terminology.length + tone.length;
-  const maxIssues = units.length * 4;
-  const score = maxIssues > 0
-    ? Math.round(Math.max(0, 100 - (totalIssues / maxIssues * 100)))
-    : 100;
+  // Coherence score is now the Narrative Coherence Index
+  const coherenceScore = Math.round(metrics.narrativeCoherenceIndex * 100);
 
   return {
     timestamp: new Date().toISOString(),
     trigger,
     totalUnits: units.length,
-    coherenceScore: score,
-    driftAlerts: drift,
+    coherenceScore,
+    // Algebra metrics
+    nci: metrics.narrativeCoherenceIndex,
+    coverageRatio: metrics.coverageRatio,
+    layerHealth: metrics.layerHealth,
+    totalEdges: metrics.totalEdges,
+    driftRate: driftResult.driftRate,
+    driftedUnits: driftResult.driftedUnits.map(u => u.id),
+    coverageByLayer: coverResult.byLayer,
+    gaps: coverResult.gaps.map(u => u.id),
+    orphanUnits: coverResult.orphans.map(u => u.id),
+    // Skill-based checks (backward compatible)
+    driftAlerts: themeConflicts,
     terminologyViolations: terminology,
     toneViolations: tone,
     orphanedDependencies: orphans,
   };
 }
 
-function checkDrift(units) {
+/** Check theme/tone conflicts between units and their dependencies */
+function checkThemeConflicts(units) {
   const alerts = [];
   const unitMap = new Map(units.map(u => [u.id, u]));
 
@@ -177,7 +196,6 @@ function checkTerminology(units, skills) {
   for (const unit of units) {
     const text = unit.assertion.toLowerCase();
 
-    // Forbidden terms
     for (const term of forbidden) {
       if (text.includes(term.toLowerCase())) {
         violations.push({
@@ -187,7 +205,6 @@ function checkTerminology(units, skills) {
       }
     }
 
-    // Brand violations
     for (const wrong of brandWrong) {
       if (unit.assertion.includes(wrong)) {
         violations.push({
@@ -197,7 +214,6 @@ function checkTerminology(units, skills) {
       }
     }
 
-    // Product name violations
     for (const product of products) {
       for (const wrong of (product.never || [])) {
         if (unit.assertion.includes(wrong)) {
@@ -237,8 +253,8 @@ function checkTone(units, skills) {
   return violations;
 }
 
-// Content review — checks arbitrary text (not a unit) against skills
-function reviewContent(text, skills) {
+/** Review arbitrary text against narrative graph + skills */
+function reviewContent(text, skills, units) {
   const violations = [];
   const lower = text.toLowerCase();
 
@@ -280,14 +296,26 @@ function reviewContent(text, skills) {
     }
   }
 
-  // Theme alignment
-  const coreThemes = ['visibility', 'builders', 'software', 'see', 'building', 'human', 'structure', 'motion', 'meaning'];
-  const hasRelevantTheme = coreThemes.some(t => lower.includes(t));
-  if (!hasRelevantTheme && text.length > 100) {
-    violations.push({ severity: 'warning', message: 'Content may not align with core narrative themes (visibility, builders, seeing more)' });
+  // Algebra-powered resonance (if units provided)
+  let resonance = null;
+  if (units && units.length > 0 && text.length > 0) {
+    const { algebra } = createAlgebra(units);
+    const res = algebra.resonate(text);
+    resonance = {
+      resonance: res.resonance,
+      relevance: res.relevance,
+      scope: res.scope,
+      urgency: res.urgency,
+      matchedUnits: res.matchedUnits.map(m => ({ id: m.unit.id, type: m.unit.type, similarity: m.similarity })),
+    };
+
+    // If resonance is very low, flag it
+    if (res.resonance === 0 && text.length > 100) {
+      violations.push({ severity: 'warning', message: 'Content has no resonance with narrative graph — may not align with organizational narrative' });
+    }
   }
 
-  return violations;
+  return { violations, resonance };
 }
 
 // ============================================================================
@@ -445,9 +473,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const canon = parseCanon();
-    const violations = reviewContent(body?.text || '', canon.skills);
+    const result = reviewContent(body?.text || '', canon.skills, canon.units);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ violations }));
+    res.end(JSON.stringify(result));
     return;
   }
 
@@ -530,6 +558,136 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- Algebra endpoints ----
+
+  if (url.pathname === '/api/metrics' && req.method === 'GET') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const metrics = algebra.computeMetrics();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(metrics));
+    return;
+  }
+
+  if (url.pathname === '/api/compose' && req.method === 'GET') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const stakeholder = url.searchParams.get('stakeholder');
+    if (!stakeholder || !STAKEHOLDER_PRESETS[stakeholder]) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `Invalid stakeholder. Available: ${Object.keys(STAKEHOLDER_PRESETS).join(', ')}` }));
+      return;
+    }
+    const subgraph = algebra.composeForStakeholder(stakeholder);
+    // Serialize units to avoid circular refs
+    const result = {
+      stakeholder,
+      unitCount: subgraph.units.length,
+      edgeCount: subgraph.edges.length,
+      units: subgraph.units.map(u => ({ id: u.id, type: u.type, assertion: u.assertion, validationState: u.validationState, confidence: u.confidence })),
+      edges: subgraph.edges,
+      provenance: subgraph.provenance,
+    };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (url.pathname === '/api/propagate' && req.method === 'GET') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const unitId = url.searchParams.get('unit');
+    if (!unitId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing ?unit= parameter' }));
+      return;
+    }
+    try {
+      const result = algebra.propagate(unitId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        changedUnit: { id: result.changedUnit.id, type: result.changedUnit.type, assertion: result.changedUnit.assertion },
+        affectedCount: result.affectedUnits.length,
+        scope: result.scope,
+        affectedUnits: result.affectedUnits.map(u => ({ id: u.id, type: u.type, assertion: u.assertion })),
+        byLayer: Object.fromEntries(Object.entries(result.byLayer).map(([k, v]) => [k, v.length])),
+      }));
+    } catch (err) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/drift' && req.method === 'GET') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const result = algebra.drift();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      driftRate: result.driftRate,
+      driftedUnits: result.driftedUnits.map(u => ({ id: u.id, type: u.type, assertion: u.assertion })),
+      byLayer: result.byLayer,
+    }));
+    return;
+  }
+
+  if (url.pathname === '/api/cover' && req.method === 'GET') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const result = algebra.cover();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      coverage: result.coverage,
+      byLayer: result.byLayer,
+      gaps: result.gaps.map(u => ({ id: u.id, type: u.type })),
+      orphans: result.orphans.map(u => ({ id: u.id, type: u.type })),
+    }));
+    return;
+  }
+
+  if (url.pathname === '/api/validate' && req.method === 'POST') {
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    // validateAll already ran in createAlgebra; re-run for fresh results
+    const results = algebra.validateAll();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ results }));
+    return;
+  }
+
+  if (url.pathname === '/api/resonate' && req.method === 'POST') {
+    let body;
+    try { body = await readBody(req); } catch (err) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
+    const signal = body?.signal || body?.text || '';
+    if (!signal) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing signal or text in request body' }));
+      return;
+    }
+    const canon = parseCanon();
+    const { algebra } = createAlgebra(canon.units);
+    const result = algebra.resonate(signal);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      resonance: result.resonance,
+      relevance: result.relevance,
+      scope: result.scope,
+      urgency: result.urgency,
+      matchedUnits: result.matchedUnits.map(m => ({
+        id: m.unit.id,
+        type: m.unit.type,
+        assertion: m.unit.assertion,
+        similarity: m.similarity,
+      })),
+    }));
+    return;
+  }
+
   // ---- SSE endpoint ----
 
   if (url.pathname === '/api/events' && req.method === 'GET') {
@@ -565,7 +723,12 @@ const server = http.createServer(async (req, res) => {
 
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found', routes: ['/api/canon', '/api/clarion-call', '/api/review', '/api/check', '/api/history', '/api/events', '/'] }));
+  res.end(JSON.stringify({ error: 'Not found', routes: [
+    '/api/canon', '/api/clarion-call', '/api/review', '/api/check', '/api/history',
+    '/api/metrics', '/api/compose?stakeholder=', '/api/propagate?unit=',
+    '/api/drift', '/api/cover', '/api/validate', '/api/resonate',
+    '/api/events', '/'
+  ] }));
 });
 
 // ============================================================================
