@@ -4,7 +4,10 @@
   "description": "Local API server + live dashboard for Clarion Call",
   "main": "server.js",
   "bin": {
-    "narrative-serve": "server.js"
+    "narrative": "cli.js",
+    "narrative-serve": "server.js",
+    "narrative-check": "check.js",
+    "narrative-init": "init.js"
   },
   "scripts": {
     "start": "node server.js"

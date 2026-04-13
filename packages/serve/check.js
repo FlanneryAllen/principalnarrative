@@ -453,6 +453,28 @@ function main() {
     console.log('');
   }
 
+  // Save to history
+  try {
+    const historyDir = path.join(NARRATIVE_DIR, 'history');
+    if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    fs.writeFileSync(
+      path.join(historyDir, `${ts}.json`),
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        command: 'check',
+        contentScore: weightedScore,
+        combined: weightedScore,
+        filesChecked: results.length,
+        totalWords,
+        totalViolations,
+        errors,
+        warnings,
+        topIssues: results.filter(r => r.score < 80).map(r => ({ file: r.file, score: r.score, violations: r.violations.length })),
+      }, null, 2) + '\n'
+    );
+  } catch {}
+
   // Exit code based on threshold
   if (THRESHOLD > 0) {
     const belowThreshold = results.filter(r => r.score < THRESHOLD);
@@ -466,8 +488,8 @@ function main() {
   }
 }
 
-// Also export for use as a module (server.js, GitHub Action)
-module.exports = { checkContent, findFiles, parseCanon };
+// Also export for use as a module (server.js, GitHub Action, cli.js)
+module.exports = { checkContent, findFiles, parseCanon, main };
 
 // Run if called directly
 if (require.main === module) {

@@ -39,15 +39,30 @@ A **clarion call** runs whenever canon changes:
 4. Score coherence (0–100)
 5. Surface drift alerts
 
+## Install
+
+```bash
+npm install            # from the repo root
+npx narrative help     # verify it works
+```
+
+Or link globally for development:
+
+```bash
+npm link
+narrative help
+```
+
 ## Quick Start
 
 ### 1. Initialize
 
 ```bash
-node packages/serve/init.js
+narrative init
 ```
 
 Answers a few questions, scaffolds `.narrative/` with starter YAML files.
+For CI or scripting, use `narrative init --defaults` to skip prompts.
 
 ### 2. Edit Your Canon
 
@@ -73,7 +88,7 @@ units:
 ### 3. Start the Dashboard
 
 ```bash
-node packages/serve/server.js
+narrative serve
 ```
 
 Open [http://localhost:3333](http://localhost:3333). You'll see:
@@ -82,28 +97,35 @@ Open [http://localhost:3333](http://localhost:3333). You'll see:
 - **Coherence score** — 0 to 100
 - **Live alerts** when something drifts
 - **Test assertion** — type bad copy, watch the score drop
-- **Content review** — paste a draft, get it scored against your canon
+- **Content check** — scan repo files against your canon, with per-file drill-down
+- **Content review** — paste a draft, get it scored
 
 Edit a YAML file. The dashboard updates instantly via SSE. No refresh.
+
+Use `--port` to change the default port:
+
+```bash
+narrative serve --port 4000
+```
 
 ### 4. Check Your Content
 
 Scan all markdown files in the repo against your canon and skills:
 
 ```bash
-node packages/serve/check.js
+narrative check
 ```
 
 Score a specific file or directory:
 
 ```bash
-node packages/serve/check.js README.md docs/
+narrative check README.md docs/
 ```
 
 Get JSON output (for CI pipelines):
 
 ```bash
-node packages/serve/check.js --json --threshold 70
+narrative check --json --threshold 70
 ```
 
 Each file is scored against 5 lenses: terminology, tone, brand names,
@@ -114,7 +136,28 @@ scores below the given number.
 The dashboard also has a **Content Check** tab that runs this scan
 via the API and shows clickable file results.
 
-### 5. Add the GitHub Action
+### 5. Quick Status
+
+Get a one-line coherence summary without starting the server:
+
+```bash
+narrative status
+```
+
+Output:
+
+```
+  narrative status
+  ────────────────
+  ✓ Combined:  98/100 ↑ from 96
+    Canon:    100/100 (7 units, 0 issues)
+    Content:  96/100 (62 files, 78 violations)
+```
+
+The `↑`/`↓` trend compares to the last recorded score. Use `--json`
+for machine-readable output.
+
+### 6. Add the GitHub Action
 
 Copy `.github/workflows/clarion-call.yml` to your repo. It runs the clarion
 call on every PR that touches `.narrative/`, README files, or docs.
@@ -126,6 +169,46 @@ The action:
 - Comments on the PR with both canon score and content score
 - Includes a per-file score table for changed files
 - Fails the check if the combined score drops below 60
+
+## CLI Reference
+
+```
+narrative <command> [options]
+
+Commands:
+  init                Scaffold .narrative/ for a new project
+  serve               Start dashboard + API server
+  check [files...]    Scan .md files against canon + skills
+  status              Quick coherence score (canon + content)
+  help                Show help
+
+Options:
+  --dir <path>        Project root (default: .)
+  --port <num>        Server port (default: 3333)
+  --json              JSON output for check/status
+  --threshold <n>     Fail if any file scores below n
+  --defaults          Non-interactive mode for init
+  --version           Show version
+```
+
+All commands default to the current directory. Use `--dir` to point
+at a different project root.
+
+## Score History
+
+Every `check` and `status` run saves a timestamped JSON snapshot to
+`.narrative/history/`. This directory is git-ignored by default.
+
+History powers:
+- The `↑`/`↓` trend indicator in `narrative status`
+- Future: dashboard score-over-time chart
+
+To inspect history:
+
+```bash
+ls .narrative/history/
+cat .narrative/history/2026-04-13T16-30-00.json
+```
 
 ## Narrative Units
 
@@ -203,7 +286,7 @@ When running `narrative serve`, these endpoints are available:
 ### Example: Score a test assertion
 
 ```bash
-curl -X POST http://localhost:3333/api/clarion-call \
+curl -s -X POST http://localhost:3333/api/clarion-call \
   -H 'Content-Type: application/json' \
   -d '{"testAssertion": "We leverage AI to disrupt the paradigm"}'
 ```
@@ -211,28 +294,42 @@ curl -X POST http://localhost:3333/api/clarion-call \
 ### Example: Review content
 
 ```bash
-curl -X POST http://localhost:3333/api/review \
+curl -s -X POST http://localhost:3333/api/review \
   -H 'Content-Type: application/json' \
   -d '{"text": "PrincipalAI enables organizations to streamline workflows"}'
+```
+
+### Example: Check all files
+
+```bash
+curl -s http://localhost:3333/api/check | jq '.summary'
 ```
 
 ## Architecture
 
 ```
-.narrative/          ← YAML source of truth (Git-controlled)
-     │
-     ├── canon-parser    ← Reads YAML, produces NarrativeUnit objects
-     ├── clarion-call    ← Engine: drift, terminology, tone, orphan checks
-     ├── check           ← Content scanner: reads .md files, scores against skills
-     ├── watcher         ← fs.watch triggers clarion calls on change
-     └── server          ← HTTP API + SSE + dashboard
-           │
-           ├── /api/canon         ← Read
-           ├── /api/clarion-call  ← Check
-           ├── /api/review        ← Score content
-           ├── /api/check         ← Scan files
-           ├── /api/events        ← Live push
-           └── /                  ← Dashboard (auto-detects API)
+narrative              ← Unified CLI entry point
+  │
+  ├── init             ← Scaffold .narrative/ with starter YAML
+  ├── check            ← Content scanner: reads .md files, scores against skills
+  ├── status           ← Quick score with history trend
+  └── serve            ← HTTP API + SSE + dashboard
+        │
+        ├── canon-parser     ← Reads YAML, produces NarrativeUnit objects
+        ├── clarion-call     ← Engine: drift, terminology, tone, orphan checks
+        ├── watcher          ← fs.watch triggers clarion calls on change
+        │
+        ├── /api/canon         ← Read
+        ├── /api/clarion-call  ← Check
+        ├── /api/review        ← Score content
+        ├── /api/check         ← Scan files
+        ├── /api/events        ← Live push
+        └── /                  ← Dashboard (auto-detects API)
+
+.narrative/            ← YAML source of truth (Git-controlled)
+  ├── canon/           ← Declared narrative units
+  ├── skills/          ← Evaluation rules (tone, terminology)
+  └── history/         ← Score snapshots (git-ignored)
 ```
 
 The dashboard works in two modes:
@@ -244,9 +341,9 @@ The dashboard works in two modes:
 | Package | What |
 |---------|------|
 | `packages/agent/` | Canon parser, clarion call engine, file watcher |
-| `packages/serve/` | HTTP server, content checker, init command, dashboard serving |
-| `packages/cli/` | CLI with interactive commands |
+| `packages/serve/` | Unified CLI (`cli.js`), HTTP server, content checker, init scaffolding |
 | `packages/core/` | Narrative algebra, graph operations |
 | `clarion-dashboard/` | Single-page dashboard (HTML + D3) |
 | `.github/workflows/` | GitHub Action for PR checks |
 | `.narrative/` | Your narrative source files |
+| `.narrative/history/` | Auto-generated score snapshots (git-ignored) |
