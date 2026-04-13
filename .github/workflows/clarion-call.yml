@@ -1,0 +1,252 @@
+name: Clarion Call
+
+on:
+  pull_request:
+    paths:
+      - '.narrative/**'
+      - 'README.md'
+      - 'docs/**'
+      - '*.md'
+
+jobs:
+  clarion-call:
+    name: Narrative Coherence Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install yaml
+
+      - name: Run Clarion Call
+        id: clarion
+        run: |
+          node << 'SCRIPT'
+          const fs = require('fs');
+          const path = require('path');
+          const YAML = require('yaml');
+
+          // ── Parse canon ────────────────────────────────────────
+          const narrativeDir = '.narrative';
+          const units = [];
+          const skills = {};
+
+          // Canon files
+          const canonDir = path.join(narrativeDir, 'canon');
+          if (fs.existsSync(canonDir)) {
+            for (const file of fs.readdirSync(canonDir).filter(f => f.endsWith('.yml'))) {
+              try {
+                const parsed = YAML.parse(fs.readFileSync(path.join(canonDir, file), 'utf-8'));
+                if (parsed?.units) {
+                  for (const u of parsed.units) {
+                    units.push({
+                      id: u.id,
+                      type: u.type,
+                      assertion: (u.assertion || '').trim(),
+                      intent: u.intent || {},
+                      dependencies: u.dependencies || [],
+                      source_file: file,
+                    });
+                  }
+                }
+              } catch (e) {
+                console.error(`Error parsing ${file}: ${e.message}`);
+              }
+            }
+          }
+
+          // Skills files
+          const skillsDir = path.join(narrativeDir, 'skills');
+          if (fs.existsSync(skillsDir)) {
+            for (const file of fs.readdirSync(skillsDir).filter(f => f.endsWith('.yml'))) {
+              try {
+                const parsed = YAML.parse(fs.readFileSync(path.join(skillsDir, file), 'utf-8'));
+                if (parsed?.voice) skills.voice = parsed.voice;
+                if (parsed?.terminology) skills.terminology = parsed.terminology;
+                if (parsed?.brand) skills.brand = parsed.brand;
+                if (parsed?.products) skills.products = parsed.products;
+              } catch (e) {
+                console.error(`Error parsing ${file}: ${e.message}`);
+              }
+            }
+          }
+
+          if (units.length === 0) {
+            console.log('No narrative units found. Skipping clarion call.');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'skip=true\n');
+            process.exit(0);
+          }
+
+          // ── Run checks ─────────────────────────────────────────
+          const alerts = [];
+          const unitMap = new Map(units.map(u => [u.id, u]));
+          const unitIds = new Set(units.map(u => u.id));
+
+          for (const u of units) {
+            const text = u.assertion.toLowerCase();
+
+            // Orphaned deps
+            for (const dep of u.dependencies) {
+              if (!unitIds.has(dep)) {
+                alerts.push({ type: 'ORPHAN', unitId: u.id, severity: 'error',
+                  message: `Missing dependency: "${dep}"` });
+              }
+            }
+
+            // Theme conflicts
+            for (const depId of u.dependencies) {
+              const parent = unitMap.get(depId);
+              if (!parent) continue;
+              const childThemes = u.intent?.constraints?.content?.required_themes || [];
+              const parentForbidden = parent.intent?.constraints?.content?.forbidden_themes || [];
+              const conflicts = childThemes.filter(t => parentForbidden.includes(t));
+              if (conflicts.length > 0) {
+                alerts.push({ type: 'DRIFT', unitId: u.id, severity: 'error',
+                  message: `Theme conflict: [${conflicts.join(', ')}] forbidden by parent "${depId}"` });
+              }
+            }
+
+            // Forbidden terms
+            for (const term of (skills.terminology?.forbidden || [])) {
+              if (text.includes(term.toLowerCase())) {
+                alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'warning',
+                  message: `Forbidden term: "${term}"` });
+              }
+            }
+
+            // Brand violations
+            for (const wrong of (skills.brand?.never || [])) {
+              if (u.assertion.includes(wrong)) {
+                alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'error',
+                  message: `Wrong brand name: "${wrong}" → use "${skills.brand.company_name}"` });
+              }
+            }
+
+            // Product name violations
+            for (const product of (skills.products || [])) {
+              for (const wrong of (product.never || [])) {
+                if (u.assertion.includes(wrong)) {
+                  alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'error',
+                    message: `Wrong product name: "${wrong}" → use "${product.name}"` });
+                }
+              }
+            }
+
+            // Tone
+            const badPatterns = [
+              'cutting-edge','ai-powered','leverage','unlock','unprecedented',
+              'maximize','revolutionize','game-changing','best-in-class','synergy',
+              'holistic','paradigm','comprehensive solution','enables organizations',
+              'empower','disrupt','streamline','optimize','accelerate','drive value',
+            ];
+            for (const pattern of badPatterns) {
+              if (text.includes(pattern)) {
+                alerts.push({ type: 'TONE', unitId: u.id, severity: 'warning',
+                  message: `Tone: "${pattern}" sounds like marketing-speak` });
+              }
+            }
+          }
+
+          // Score
+          const totalIssues = alerts.length;
+          const maxIssues = units.length * 4;
+          const score = maxIssues > 0
+            ? Math.round(Math.max(0, 100 - (totalIssues / maxIssues * 100)))
+            : 100;
+
+          const errors = alerts.filter(a => a.severity === 'error');
+          const warnings = alerts.filter(a => a.severity === 'warning');
+
+          // ── Build comment ──────────────────────────────────────
+          let icon = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🔴';
+          let comment = `## 📣 Clarion Call — Narrative Coherence\n\n`;
+          comment += `| Metric | Value |\n|--------|-------|\n`;
+          comment += `| Score | ${icon} **${score} / 100** |\n`;
+          comment += `| Units | ${units.length} |\n`;
+          comment += `| Drift | ${alerts.filter(a => a.type === 'DRIFT').length} |\n`;
+          comment += `| Violations | ${alerts.filter(a => a.type !== 'DRIFT').length} |\n\n`;
+
+          if (alerts.length === 0) {
+            comment += `✅ **Narrative is coherent.** All units pass checks.\n`;
+          } else {
+            if (errors.length > 0) {
+              comment += `### Errors\n\n`;
+              for (const a of errors) {
+                comment += `- ❌ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
+              }
+              comment += '\n';
+            }
+            if (warnings.length > 0) {
+              comment += `### Warnings\n\n`;
+              for (const a of warnings) {
+                comment += `- ⚠️ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
+              }
+              comment += '\n';
+            }
+          }
+
+          comment += `\n---\n*Checked ${units.length} narrative units from \`.narrative/canon/\`*`;
+
+          // Write outputs
+          fs.writeFileSync('/tmp/clarion-comment.md', comment);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `skip=false\n`);
+
+          // Console summary
+          console.log(`\nClarion Call: ${score}/100`);
+          console.log(`Units: ${units.length} | Errors: ${errors.length} | Warnings: ${warnings.length}`);
+          if (alerts.length > 0) {
+            for (const a of alerts) {
+              const icon = a.severity === 'error' ? '✗' : '~';
+              console.log(`  ${icon} [${a.type}] ${a.unitId}: ${a.message}`);
+            }
+          }
+
+          // Fail if score is below threshold
+          if (score < 60) {
+            console.log('\n❌ Coherence score below 60. Failing check.');
+            process.exit(1);
+          }
+          SCRIPT
+
+      - name: Comment on PR
+        if: steps.clarion.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('/tmp/clarion-comment.md', 'utf-8');
+
+            // Find existing clarion call comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.body.includes('📣 Clarion Call') && c.user.type === 'Bot'
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+            }
