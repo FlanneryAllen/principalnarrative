@@ -33,6 +33,34 @@ const path = require('path');
 const { URL, URLSearchParams } = require('url');
 const YAML = require('yaml');
 
+// Load .env file if present (no npm dependency needed)
+(function loadEnv() {
+  const envPaths = [
+    path.join(__dirname, '.env'),
+    path.join(__dirname, '..', '..', '.env'),
+    path.join(process.cwd(), '.env'),
+  ];
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx === -1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        // Strip surrounding quotes
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) process.env[key] = val;
+      }
+      break; // use first .env found
+    }
+  }
+})();
+
 const { createAlgebra, STAKEHOLDER_PRESETS, ALL_LAYERS } = require('./algebra');
 const { checkContent } = require('./check');
 
