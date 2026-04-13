@@ -1,0 +1,61 @@
+# Core Story — the root narrative that everything else must align with
+# Only the narrative owner (VP Comms, CEO, founder) should merge changes to this file.
+# Changes here trigger a Clarion Call — a full coherence check across all downstream units.
+
+version: "1.0"
+last_updated: "2026-04-13"
+owner: "julie@principal-ade.com"
+
+units:
+  - id: core_visibility
+    type: core_story
+    assertion: >
+      Software is the most consequential creative work on earth,
+      and nobody can see it happening. Principal AI makes it visible.
+    intent:
+      objective: Make software development observable as a human activity, not just a technical process
+      constraints:
+        content:
+          required_themes: [visibility, builders, software_development, human_perspective]
+          forbidden_themes: [surveillance, productivity_tracking, performance_scoring]
+          tone: professional
+    evidence_required:
+      - users_describe_product_as_visibility_tool
+      - content_centers_builders_not_managers
+    dependencies: []
+    confidence: 1.0
+
+  - id: core_three_dimensions
+    type: core_story
+    assertion: >
+      Three dimensions of visibility: Structure (what it's made of),
+      Motion (how it changes), Meaning (whether it worked).
+    intent:
+      objective: Organize all products under the Structure/Motion/Meaning framework
+      constraints:
+        content:
+          required_themes: [structure, motion, meaning, three_dimensions]
+          forbidden_themes: [feature_list, product_comparison]
+    evidence_required:
+      - all_products_map_to_one_dimension
+      - website_uses_three_dimension_framework
+    dependencies: [core_visibility]
+    confidence: 1.0
+
+  - id: core_builder_love
+    type: core_story
+    assertion: >
+      The best builders don't want to code less. They want to see more.
+      We build for the humans who direct agents, not the agents themselves.
+    intent:
+      objective: Position Principal AI as pro-builder, not anti-agent
+      constraints:
+        content:
+          required_themes: [builder_empowerment, seeing_more, human_centered]
+          forbidden_themes: [replacing_developers, ai_fear, productivity_optimization]
+          tone: professional
+    evidence_required:
+      - marketing_uses_builder_language
+      - product_designed_for_humans_not_agents
+    dependencies: [core_visibility]
+    confidence: 1.0

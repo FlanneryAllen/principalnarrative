@@ -25,6 +25,7 @@ import {
 import { StorySignalMiner, StoryCapture } from '@narrative/signal';
 import { NarrativeValidator } from '@narrative/validator';
 import { MarkdownToNarrativeConverter } from '@narrative/integrations';
+import { ClarionCallEngine, CanonParser, NarrativeWatcher } from '@narrative/agent';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -72,6 +73,9 @@ async function mainMenu() {
         { name: '📐 NCI Report', value: 'algebra-nci' },
         { name: '🔀 Drift Report', value: 'algebra-drift' },
         { name: '🎯 Resonate Signal', value: 'algebra-resonate' },
+        new inquirer.Separator(chalk.gray('── Narrative Agent ──')),
+        { name: '📣 Clarion Call', value: 'clarion-call' },
+        { name: '👁  Watch Mode', value: 'watch' },
         new inquirer.Separator(chalk.gray('────────────────────')),
         { name: '🔧 Manage Units', value: 'manage' },
         { name: '❌ Exit', value: 'exit' },
@@ -119,6 +123,12 @@ async function mainMenu() {
       break;
     case 'algebra-resonate':
       await algebraResonate();
+      break;
+    case 'clarion-call':
+      await runClarionCall();
+      break;
+    case 'watch':
+      await runWatch();
       break;
     case 'manage':
       await manageUnits();
@@ -1287,6 +1297,78 @@ async function algebraResonate() {
     spinner.fail(chalk.red('Resonance computation failed'));
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));
   }
+}
+
+// ============================================================================
+// Narrative Agent commands
+// ============================================================================
+
+async function runClarionCall() {
+  console.log(boxen(
+    chalk.bold.yellow('📣 CLARION CALL') + '\n' +
+    chalk.gray('Narrative coherence check'),
+    { padding: 1, borderStyle: 'round', borderColor: 'yellow' }
+  ));
+
+  const narrativeDir = path.resolve('.narrative');
+  if (!fs.existsSync(narrativeDir)) {
+    console.log(chalk.red('\n  No .narrative/ directory found.'));
+    console.log(chalk.gray('  Create one with canon/ and skills/ subdirectories.'));
+    return;
+  }
+
+  const spinner = ora('Running clarion call...').start();
+
+  try {
+    const engine = new ClarionCallEngine(narrativeDir);
+    const result = engine.run('demand');
+    spinner.stop();
+
+    // Print the summary
+    console.log('');
+    console.log(result.summary);
+    console.log('');
+
+    // Colored score
+    const scoreColor = result.coherenceScore >= 80 ? chalk.green :
+                       result.coherenceScore >= 60 ? chalk.yellow : chalk.red;
+    console.log(`  Coherence: ${scoreColor(result.coherenceScore + '/100')}`);
+    console.log(`  Units: ${result.totalUnits}`);
+    console.log(`  Drift alerts: ${result.driftAlerts.length}`);
+    console.log(`  Terminology: ${result.terminologyViolations.length}`);
+    console.log(`  Tone: ${result.toneViolations.length}`);
+    console.log(`  Orphans: ${result.orphanedDependencies.length}`);
+    console.log('');
+
+  } catch (error) {
+    spinner.fail(chalk.red('Clarion call failed'));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+async function runWatch() {
+  console.log(boxen(
+    chalk.bold.cyan('👁  WATCH MODE') + '\n' +
+    chalk.gray('Monitoring .narrative/ for changes'),
+    { padding: 1, borderStyle: 'round', borderColor: 'cyan' }
+  ));
+
+  const narrativeDir = path.resolve('.narrative');
+  if (!fs.existsSync(narrativeDir)) {
+    console.log(chalk.red('\n  No .narrative/ directory found.'));
+    return;
+  }
+
+  const watcher = new NarrativeWatcher(narrativeDir);
+
+  watcher.onAlert((result) => {
+    if (result.driftAlerts.length > 0 || result.terminologyViolations.length > 0) {
+      console.log(chalk.yellow(`\n⚠ Issues found — coherence: ${result.coherenceScore}/100`));
+    }
+  });
+
+  // This blocks — it's a persistent watch
+  await watcher.start();
 }
 
 // Main entry point

@@ -1,0 +1,43 @@
+# Terminology — canonical names and usage rules
+# The agent checks all content against this list.
+
+version: "1.0"
+last_updated: "2026-04-13"
+
+brand:
+  company_name: "Principal AI"
+  never: ["Principal ADE", "PrincipalAI", "principal.ai", "Principal A.I."]
+  website: "principal-ade.com"
+  note: "The domain uses ADE but the brand name is Principal AI. Never use ADE in copy."
+
+products:
+  - name: "File City"
+    dimension: Structure
+    description: "Codebase visualization — the living map"
+    never: ["FileCity", "File city", "filecity"]
+
+  - name: "Principal Feed"
+    dimension: Motion
+    description: "Live stream of software evolution"
+    never: ["The Feed", "Activity Feed", "feed"]
+    note: "Always use 'Principal Feed' on first reference"
+
+  - name: "Story-Based Monitoring"
+    dimension: Meaning
+    description: "Behavioral validation — define intent, verify outcome"
+    never: ["SBM", "story monitoring", "narrative monitoring"]
+
+concepts:
+  - name: "narrative unit"
+    definition: "The atomic primitive for expressing intent at any scale"
+    usage: "Lowercase. Plural: narrative units."
+    never: ["Narrative Unit", "NarrativeUnit (in copy)", "story block"]
+
+  - name: "clarion call"
+    definition: "A triggered coherence check that propagates through the narrative graph"
+    usage: "Lowercase. A system operation, not a feature name."
+    never: ["Clarion Call", "ClarionCall (in copy)"]
+
+  - name: "narrative graph"
+    definition: "The living map of every narrative unit and their relationships"
+    usage: "Lowercase unless starting a sentence."

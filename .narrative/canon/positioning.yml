@@ -1,0 +1,76 @@
+# Positioning — market-facing claims that must stay aligned with core story
+# Changes here trigger a Clarion Call against core-story.yml
+
+version: "1.0"
+last_updated: "2026-04-13"
+owner: "julie@principal-ade.com"
+
+units:
+  - id: pos_file_city
+    type: positioning
+    assertion: >
+      For the love of seeing the whole thing. Your entire codebase,
+      rendered as a living map. Watch it light up when something changes.
+    intent:
+      objective: Position File City as the Structure dimension of visibility
+      constraints:
+        content:
+          required_themes: [structure, codebase_visualization, living_map, change_detection]
+          forbidden_themes: [code_quality_scoring, developer_ranking]
+          tone: professional
+    evidence_required:
+      - file_city_page_uses_this_copy
+      - homepage_section_matches
+    dependencies: [core_three_dimensions, core_builder_love]
+    confidence: 1.0
+
+  - id: pos_feed
+    type: positioning
+    assertion: >
+      For the love of following the work. A live stream of how software evolves.
+      Across your repos, your team, and the builders shaping the code you depend on.
+    intent:
+      objective: Position Principal Feed as the Motion dimension of visibility
+      constraints:
+        content:
+          required_themes: [motion, evolution, live_stream, cross_repo]
+          forbidden_themes: [activity_monitoring, time_tracking, performance_review]
+          tone: professional
+    evidence_required:
+      - feed_page_uses_this_copy
+      - homepage_section_matches
+    dependencies: [core_three_dimensions, core_builder_love]
+    confidence: 1.0
+
+  - id: pos_story_monitoring
+    type: positioning
+    assertion: >
+      For the love of knowing it worked. Define what should happen.
+      See whether it did. The gap between those two things is the only thing that matters.
+    intent:
+      objective: Position Story-Based Monitoring as the Meaning dimension of visibility
+      constraints:
+        content:
+          required_themes: [meaning, verification, intent_vs_outcome, behavioral_validation]
+          forbidden_themes: [traditional_monitoring, log_aggregation, alert_fatigue]
+          tone: professional
+    evidence_required:
+      - story_monitoring_page_uses_this_copy
+      - homepage_section_matches
+    dependencies: [core_three_dimensions, core_builder_love]
+    confidence: 1.0
+
+  - id: pos_closing
+    type: positioning
+    assertion: >
+      Structure. Motion. Meaning. Three dimensions of visibility.
+      One environment built for the humans who direct agents.
+    intent:
+      objective: Unify the three products into a single closing message
+      constraints:
+        content:
+          required_themes: [unified_platform, three_dimensions, human_centered]
+    evidence_required:
+      - homepage_closing_uses_this_copy
+    dependencies: [pos_file_city, pos_feed, pos_story_monitoring]
+    confidence: 1.0

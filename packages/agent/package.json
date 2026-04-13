@@ -1,0 +1,22 @@
+{
+  "name": "@narrative/agent",
+  "version": "0.1.0",
+  "description": "Narrative Agent — continuous coherence monitoring for organizational narrative",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node test-agent.js"
+  },
+  "dependencies": {
+    "@narrative/core": "workspace:*",
+    "yaml": "^2.3.4",
+    "chokidar": "^3.5.3",
+    "chalk": "^4.1.2",
+    "glob": "^10.3.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.0.0"
+  }
+}

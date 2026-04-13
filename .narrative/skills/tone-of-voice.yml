@@ -1,0 +1,93 @@
+# Tone of Voice — how Principal AI communicates
+# These are evaluation lenses the agent applies when reviewing content.
+# Not narrative units themselves — they're constraints on HOW units get expressed.
+
+version: "1.0"
+last_updated: "2026-04-13"
+owner: "julie@principal-ade.com"
+
+voice:
+  name: "Principal AI Voice"
+  summary: >
+    Confident without being loud. Technical without being cold.
+    We talk like builders who care about craft. Not like a marketing team.
+
+  principles:
+    - id: sound_human
+      rule: "Write like a person who builds software, not like a brand"
+      examples:
+        good:
+          - "Your entire codebase, rendered as a living map."
+          - "The gap between those two things is the only thing that matters."
+        bad:
+          - "Leverage our cutting-edge AI-powered platform to maximize developer velocity."
+          - "Unlock unprecedented visibility into your software development lifecycle."
+
+    - id: no_ai_hype
+      rule: "Never position against AI or lean into AI anxiety. We're pro-builder, not anti-agent."
+      examples:
+        good:
+          - "The best builders don't want to code less. They want to see more."
+        bad:
+          - "Take back control from AI agents."
+          - "Don't let AI write your code without supervision."
+
+    - id: short_and_specific
+      rule: "Short sentences. Concrete nouns. No filler words. Say the thing."
+      examples:
+        good:
+          - "Define what should happen. See whether it did."
+          - "Watch it light up when something changes."
+        bad:
+          - "Our comprehensive solution enables organizations to effectively monitor and validate agent-generated code outputs."
+
+    - id: love_framing
+      rule: "Product headlines use 'For the love of...' framing. It positions features as things builders already care about."
+      examples:
+        good:
+          - "For the love of seeing the whole thing."
+          - "For the love of following the work."
+        bad:
+          - "File City: Codebase Visualization Platform"
+          - "Introducing Principal Feed: Your Activity Stream"
+
+    - id: no_em_dashes_in_headlines
+      rule: "No em dashes in headlines or taglines."
+
+    - id: builder_not_developer
+      rule: "Prefer 'builder' over 'developer' when talking about the people who use our product. 'Developer' is fine in technical contexts."
+
+terminology:
+  preferred:
+    - term: "story-based monitoring"
+      context: "The product category for behavioral validation"
+      avoid: ["intent-first telemetry (public)", "behavioral monitoring"]
+
+    - term: "narrative unit"
+      context: "The atomic primitive for expressing intent at any altitude"
+      avoid: ["story block", "behavior contract", "intent declaration"]
+
+    - term: "story-based development"
+      context: "The company-level category — use on LinkedIn, pitch deck, website"
+      tier: 1
+
+    - term: "story-based telemetry"
+      context: "The data layer — technical audiences only"
+      tier: 2
+
+    - term: "intent-first telemetry"
+      context: "INTERNAL ONLY. Do not use publicly."
+      tier: 3
+
+  forbidden:
+    - "leverage"
+    - "cutting-edge"
+    - "unlock"
+    - "empower" 
+    - "revolutionize"
+    - "game-changing"
+    - "best-in-class"
+    - "synergy"
+    - "holistic"
+    - "paradigm"
+    - "disrupt"
