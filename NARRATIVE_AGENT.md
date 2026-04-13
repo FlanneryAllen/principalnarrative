@@ -86,16 +86,46 @@ Open [http://localhost:3333](http://localhost:3333). You'll see:
 
 Edit a YAML file. The dashboard updates instantly via SSE. No refresh.
 
-### 4. Add the GitHub Action
+### 4. Check Your Content
+
+Scan all markdown files in the repo against your canon and skills:
+
+```bash
+node packages/serve/check.js
+```
+
+Score a specific file or directory:
+
+```bash
+node packages/serve/check.js README.md docs/
+```
+
+Get JSON output (for CI pipelines):
+
+```bash
+node packages/serve/check.js --json --threshold 70
+```
+
+Each file is scored against 5 lenses: terminology, tone, brand names,
+product names, and theme alignment. The output shows per-file scores
+with line-level violations. The `--threshold` flag fails if any file
+scores below the given number.
+
+The dashboard also has a **Content Check** tab that runs this scan
+via the API and shows clickable file results.
+
+### 5. Add the GitHub Action
 
 Copy `.github/workflows/clarion-call.yml` to your repo. It runs the clarion
 call on every PR that touches `.narrative/`, README files, or docs.
 
 The action:
 - Parses your canon and skill files
-- Runs all coherence checks
-- Comments on the PR with the score and any violations
-- Fails the check if the score drops below 60
+- Runs all coherence checks on narrative units
+- Scans changed `.md` files for content violations
+- Comments on the PR with both canon score and content score
+- Includes a per-file score table for changed files
+- Fails the check if the combined score drops below 60
 
 ## Narrative Units
 
@@ -164,6 +194,9 @@ When running `narrative serve`, these endpoints are available:
 | GET | `/api/canon` | Returns all parsed units + skills from disk |
 | POST | `/api/clarion-call` | Runs the engine, returns score + alerts |
 | POST | `/api/review` | Scores arbitrary text against canon + skills |
+| GET | `/api/check` | Scans all .md files, returns per-file scores |
+| GET | `/api/check?file=README.md` | Scan a specific file |
+| POST | `/api/check` | Score inline content: `{"content": "..."}` |
 | GET | `/api/events` | SSE stream — pushes live updates on file change |
 | GET | `/` | Serves the dashboard |
 
@@ -190,12 +223,14 @@ curl -X POST http://localhost:3333/api/review \
      │
      ├── canon-parser    ← Reads YAML, produces NarrativeUnit objects
      ├── clarion-call    ← Engine: drift, terminology, tone, orphan checks
+     ├── check           ← Content scanner: reads .md files, scores against skills
      ├── watcher         ← fs.watch triggers clarion calls on change
      └── server          ← HTTP API + SSE + dashboard
            │
            ├── /api/canon         ← Read
            ├── /api/clarion-call  ← Check
            ├── /api/review        ← Score content
+           ├── /api/check         ← Scan files
            ├── /api/events        ← Live push
            └── /                  ← Dashboard (auto-detects API)
 ```
@@ -209,7 +244,7 @@ The dashboard works in two modes:
 | Package | What |
 |---------|------|
 | `packages/agent/` | Canon parser, clarion call engine, file watcher |
-| `packages/serve/` | HTTP server, init command, dashboard serving |
+| `packages/serve/` | HTTP server, content checker, init command, dashboard serving |
 | `packages/cli/` | CLI with interactive commands |
 | `packages/core/` | Narrative algebra, graph operations |
 | `clarion-dashboard/` | Single-page dashboard (HTML + D3) |

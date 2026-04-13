@@ -7,6 +7,7 @@ on:
       - 'README.md'
       - 'docs/**'
       - '*.md'
+      - '**/*.md'
 
 jobs:
   clarion-call:
@@ -16,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for diff
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,6 +27,16 @@ jobs:
 
       - name: Install dependencies
         run: npm install yaml
+
+      - name: Get changed files
+        id: changed
+        run: |
+          # Get list of changed .md files in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.md' '**/*.md' '.narrative/**' | head -100)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "count=$(echo "$CHANGED_FILES" | grep -c . || true)" >> $GITHUB_OUTPUT
 
       - name: Run Clarion Call
         id: clarion
@@ -84,7 +97,7 @@ jobs:
             process.exit(0);
           }
 
-          // ── Run checks ─────────────────────────────────────────
+          // ── Run canon checks (same as before) ──────────────────
           const alerts = [];
           const unitMap = new Map(units.map(u => [u.id, u]));
           const unitIds = new Set(units.map(u => u.id));
@@ -154,37 +167,145 @@ jobs:
             }
           }
 
-          // Score
+          // Canon score
           const totalIssues = alerts.length;
           const maxIssues = units.length * 4;
-          const score = maxIssues > 0
+          const canonScore = maxIssues > 0
             ? Math.round(Math.max(0, 100 - (totalIssues / maxIssues * 100)))
             : 100;
+
+          // ── Run content check on changed .md files ──────────────
+          const changedFilesRaw = process.env.CHANGED_FILES || '';
+          const changedFiles = changedFilesRaw.split('\n').filter(f => f.trim() && f.endsWith('.md'));
+
+          // Content check engine (inline — matches check.js logic)
+          function checkContent(content, sk) {
+            const violations = [];
+            const lower = content.toLowerCase();
+            const wc = content.split(/\s+/).filter(Boolean).length;
+            if (wc < 10) return { score: 100, violations: [], wordCount: wc };
+
+            // Forbidden terms
+            for (const term of (sk.terminology?.forbidden || [])) {
+              const tl = term.toLowerCase();
+              let idx = lower.indexOf(tl);
+              while (idx !== -1) {
+                const line = content.substring(0, idx).split('\n').length;
+                violations.push({ severity: 'warning', message: `Forbidden: "${term}"`, line, penalty: 3 });
+                idx = lower.indexOf(tl, idx + tl.length);
+              }
+            }
+
+            // Brand
+            for (const wrong of (sk.brand?.never || [])) {
+              let idx = content.indexOf(wrong);
+              while (idx !== -1) {
+                violations.push({ severity: 'error', message: `Brand: "${wrong}" → "${sk.brand.company_name}"`, line: content.substring(0, idx).split('\n').length, penalty: 8 });
+                idx = content.indexOf(wrong, idx + wrong.length);
+              }
+            }
+
+            // Products
+            for (const product of (sk.products || [])) {
+              for (const wrong of (product.never || [])) {
+                if (wrong.length < 4) continue;
+                let idx = content.indexOf(wrong);
+                while (idx !== -1) {
+                  violations.push({ severity: 'error', message: `Product: "${wrong}" → "${product.name}"`, line: content.substring(0, idx).split('\n').length, penalty: 5 });
+                  idx = content.indexOf(wrong, idx + wrong.length);
+                }
+              }
+            }
+
+            // Tone
+            const bp = [
+              'cutting-edge','ai-powered','leverage','unlock','unprecedented',
+              'maximize','revolutionize','game-changing','best-in-class','synergy',
+              'holistic','paradigm','comprehensive solution','enables organizations',
+              'empower','disrupt','streamline','optimize','accelerate','drive value',
+              'next-generation','world-class','seamless','end-to-end','thought leader',
+              'robust','scalable solution','actionable insights',
+            ];
+            for (const p of bp) {
+              let idx = lower.indexOf(p);
+              while (idx !== -1) {
+                const before = content.substring(0, idx);
+                const cbc = (before.match(/```/g) || []).length;
+                if (cbc % 2 === 0) {
+                  violations.push({ severity: 'warning', message: `Tone: "${p}"`, line: before.split('\n').length, penalty: 2 });
+                }
+                idx = lower.indexOf(p, idx + p.length);
+              }
+            }
+
+            // Score
+            const totalPenalty = violations.reduce((s, v) => s + v.penalty, 0);
+            const cap = Math.max(30, Math.ceil(wc / 10));
+            const norm = Math.min(totalPenalty, cap);
+            const score = Math.max(0, Math.round(100 - (norm / cap * 100)));
+            return { score, violations, wordCount: wc };
+          }
+
+          const fileResults = [];
+          for (const file of changedFiles) {
+            if (!fs.existsSync(file)) continue;
+            // Skip .narrative/ YAML files from content check
+            if (file.startsWith('.narrative/')) continue;
+            const content = fs.readFileSync(file, 'utf-8');
+            const result = checkContent(content, skills);
+            fileResults.push({ file, ...result });
+          }
+
+          fileResults.sort((a, b) => a.score - b.score);
+
+          const totalWords = fileResults.reduce((s, r) => s + r.wordCount, 0);
+          const contentScore = totalWords > 0
+            ? Math.round(fileResults.reduce((s, r) => s + r.score * r.wordCount, 0) / totalWords)
+            : 100;
+
+          // Combined score: average of canon and content (if content files exist)
+          const combinedScore = fileResults.length > 0
+            ? Math.round((canonScore + contentScore) / 2)
+            : canonScore;
 
           const errors = alerts.filter(a => a.severity === 'error');
           const warnings = alerts.filter(a => a.severity === 'warning');
 
           // ── Build comment ──────────────────────────────────────
-          let icon = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🔴';
+          let icon = combinedScore >= 80 ? '🟢' : combinedScore >= 60 ? '🟡' : '🔴';
           let comment = `## 📣 Clarion Call — Narrative Coherence\n\n`;
           comment += `| Metric | Value |\n|--------|-------|\n`;
-          comment += `| Score | ${icon} **${score} / 100** |\n`;
-          comment += `| Units | ${units.length} |\n`;
-          comment += `| Drift | ${alerts.filter(a => a.type === 'DRIFT').length} |\n`;
-          comment += `| Violations | ${alerts.filter(a => a.type !== 'DRIFT').length} |\n\n`;
+          comment += `| Combined Score | ${icon} **${combinedScore} / 100** |\n`;
+          comment += `| Canon Score | ${canonScore} / 100 |\n`;
 
+          if (fileResults.length > 0) {
+            comment += `| Content Score | ${contentScore} / 100 |\n`;
+          }
+
+          comment += `| Narrative Units | ${units.length} |\n`;
+          comment += `| Canon Drift | ${alerts.filter(a => a.type === 'DRIFT').length} |\n`;
+          comment += `| Canon Violations | ${alerts.filter(a => a.type !== 'DRIFT').length} |\n`;
+
+          if (fileResults.length > 0) {
+            comment += `| Files Scanned | ${fileResults.length} |\n`;
+            comment += `| Content Violations | ${fileResults.reduce((s, r) => s + r.violations.length, 0)} |\n`;
+          }
+
+          comment += `\n`;
+
+          // Canon section
           if (alerts.length === 0) {
-            comment += `✅ **Narrative is coherent.** All units pass checks.\n`;
+            comment += `### Canon\n✅ **Narrative graph is coherent.** All ${units.length} units pass.\n\n`;
           } else {
             if (errors.length > 0) {
-              comment += `### Errors\n\n`;
+              comment += `### Canon Errors\n\n`;
               for (const a of errors) {
                 comment += `- ❌ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
               }
               comment += '\n';
             }
             if (warnings.length > 0) {
-              comment += `### Warnings\n\n`;
+              comment += `### Canon Warnings\n\n`;
               for (const a of warnings) {
                 comment += `- ⚠️ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
               }
@@ -192,29 +313,69 @@ jobs:
             }
           }
 
-          comment += `\n---\n*Checked ${units.length} narrative units from \`.narrative/canon/\`*`;
+          // Content scan section
+          if (fileResults.length > 0) {
+            comment += `### Content Scan\n\n`;
+            comment += `| File | Score | Violations |\n|------|-------|------------|\n`;
+            for (const r of fileResults) {
+              const fIcon = r.score >= 80 ? '✅' : r.score >= 60 ? '⚠️' : '❌';
+              const vCount = r.violations.length > 0
+                ? `${r.violations.filter(v => v.severity === 'error').length}E ${r.violations.filter(v => v.severity === 'warning').length}W`
+                : '—';
+              comment += `| ${fIcon} \`${r.file}\` | ${r.score}/100 | ${vCount} |\n`;
+            }
+            comment += '\n';
+
+            // Show top issues for flagged files
+            const flagged = fileResults.filter(r => r.score < 80 && r.violations.length > 0);
+            if (flagged.length > 0) {
+              comment += `<details>\n<summary>📋 Content violations in flagged files</summary>\n\n`;
+              for (const r of flagged.slice(0, 5)) {
+                comment += `**${r.file}** (${r.score}/100)\n`;
+                for (const v of r.violations.slice(0, 10)) {
+                  const vi = v.severity === 'error' ? '❌' : '⚠️';
+                  comment += `- ${vi} Line ${v.line}: ${v.message}\n`;
+                }
+                if (r.violations.length > 10) {
+                  comment += `- ... and ${r.violations.length - 10} more\n`;
+                }
+                comment += '\n';
+              }
+              comment += `</details>\n\n`;
+            }
+          }
+
+          comment += `\n---\n*Clarion Call checked ${units.length} narrative units and ${fileResults.length} content files*`;
 
           // Write outputs
           fs.writeFileSync('/tmp/clarion-comment.md', comment);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${combinedScore}\n`);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `skip=false\n`);
 
           // Console summary
-          console.log(`\nClarion Call: ${score}/100`);
-          console.log(`Units: ${units.length} | Errors: ${errors.length} | Warnings: ${warnings.length}`);
+          console.log(`\nClarion Call: ${combinedScore}/100 (canon: ${canonScore}, content: ${contentScore})`);
+          console.log(`Units: ${units.length} | Files: ${fileResults.length} | Errors: ${errors.length} | Warnings: ${warnings.length}`);
           if (alerts.length > 0) {
             for (const a of alerts) {
               const icon = a.severity === 'error' ? '✗' : '~';
               console.log(`  ${icon} [${a.type}] ${a.unitId}: ${a.message}`);
             }
           }
+          if (fileResults.length > 0) {
+            for (const r of fileResults) {
+              const fi = r.score >= 80 ? '✓' : r.score >= 60 ? '~' : '✗';
+              console.log(`  ${fi} ${r.file}: ${r.score}/100 (${r.violations.length} violations)`);
+            }
+          }
 
-          // Fail if score is below threshold
-          if (score < 60) {
-            console.log('\n❌ Coherence score below 60. Failing check.');
+          // Fail if combined score is below threshold
+          if (combinedScore < 60) {
+            console.log('\n❌ Combined score below 60. Failing check.');
             process.exit(1);
           }
           SCRIPT
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
 
       - name: Comment on PR
         if: steps.clarion.outputs.skip != 'true'

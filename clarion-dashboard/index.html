@@ -272,7 +272,47 @@ body {
   background: var(--navy-light);
   border-top: 1px solid var(--border);
   display: flex;
+  flex-direction: column;
+  max-height: 280px;
+}
+
+.bottom-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--copper); border-bottom-color: var(--copper); }
+
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.tab-content.active {
+  display: flex;
   align-items: stretch;
+}
+
+.bottom-pane {
+  flex: 1;
+  padding: 16px 24px;
+  overflow-y: auto;
 }
 
 .bottom-tab {
@@ -450,6 +490,9 @@ body {
   border-radius: 50%;
 }
 
+/* Check row hover */
+.check-row:hover { background: rgba(255,255,255,0.03); }
+
 /* File changed flash */
 @keyframes flash {
   0% { background: rgba(212,135,44,0.15); }
@@ -528,23 +571,52 @@ body {
 
   <!-- Bottom panel -->
   <div class="bottom-panel">
-    <div class="bottom-tab">
-      <h3><span class="icon">&#x26A1;</span> Test Assertion</h3>
-      <div class="test-input">
-        <input type="text" id="test-assertion"
-               placeholder="e.g. Principal AI leverages cutting-edge AI to maximize developer velocity">
-        <button class="test-btn" onclick="testAssertion()">Score</button>
-      </div>
-      <div class="review-results" id="assertion-results"></div>
+    <div class="bottom-tabs">
+      <button class="tab-btn active" data-tab="check" onclick="switchTab('check')">&#x1F4C2; Content Check</button>
+      <button class="tab-btn" data-tab="test" onclick="switchTab('test')">&#x26A1; Test Assertion</button>
+      <button class="tab-btn" data-tab="review" onclick="switchTab('review')">&#x1F4DD; Content Review</button>
     </div>
-    <div class="bottom-tab">
-      <h3><span class="icon">&#x1F4DD;</span> Content Review</h3>
-      <div class="test-input">
-        <textarea id="content-review" rows="2"
-                  placeholder="Paste a draft blog post, press release, or marketing copy..."></textarea>
-        <button class="test-btn" onclick="reviewContent()">Review</button>
+
+    <!-- Content Check tab (file scanner) -->
+    <div class="tab-content active" id="tab-check">
+      <div class="bottom-pane" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;color:var(--text-dim);">Scan repo files against canon &amp; skills</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="check-status" style="font-size:11px;font-family:var(--mono);color:var(--text-muted);"></span>
+            <button class="test-btn" onclick="runContentCheck()" id="check-btn">Scan Files</button>
+          </div>
+        </div>
+        <div id="check-results" style="flex:1;overflow-y:auto;font-size:12px;line-height:1.6;">
+          <div style="color:var(--text-muted);padding:20px 0;text-align:center;">
+            <span id="check-placeholder">Click "Scan Files" to check all .md files against narrative canon</span>
+          </div>
+        </div>
       </div>
-      <div class="review-results" id="content-results"></div>
+    </div>
+
+    <!-- Test Assertion tab -->
+    <div class="tab-content" id="tab-test">
+      <div class="bottom-pane" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="test-input">
+          <input type="text" id="test-assertion"
+                 placeholder="e.g. Principal AI leverages cutting-edge AI to maximize developer velocity">
+          <button class="test-btn" onclick="testAssertion()">Score</button>
+        </div>
+        <div class="review-results" id="assertion-results"></div>
+      </div>
+    </div>
+
+    <!-- Content Review tab -->
+    <div class="tab-content" id="tab-review">
+      <div class="bottom-pane" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="test-input">
+          <textarea id="content-review" rows="2"
+                    placeholder="Paste a draft blog post, press release, or marketing copy..."></textarea>
+          <button class="test-btn" onclick="reviewContent()">Review</button>
+        </div>
+        <div class="review-results" id="content-results"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1038,6 +1110,120 @@ function reviewContentLocal(text) {
 }
 
 // ============================================================================
+// Tab switching
+// ============================================================================
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ============================================================================
+// Content Check (file scanner)
+// ============================================================================
+
+let checkResults = null;
+
+async function runContentCheck() {
+  const btn = document.getElementById('check-btn');
+  const statusEl = document.getElementById('check-status');
+  const resultsEl = document.getElementById('check-results');
+
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+  statusEl.textContent = '';
+
+  if (isLiveMode) {
+    try {
+      const res = await fetch(`${API_BASE}/api/check`);
+      checkResults = await res.json();
+    } catch (err) {
+      resultsEl.innerHTML = `<div style="color:var(--red);padding:12px;">API error: ${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Scan Files';
+      return;
+    }
+  } else {
+    // Standalone mode — no file access
+    resultsEl.innerHTML = '<div style="color:var(--text-muted);padding:20px 0;text-align:center;">Content scanning requires a live connection.<br>Run <code style="color:var(--copper);">node packages/serve/server.js</code> to enable.</div>';
+    btn.disabled = false;
+    btn.textContent = 'Scan Files';
+    return;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Scan Files';
+  renderCheckResults();
+}
+
+function renderCheckResults() {
+  if (!checkResults) return;
+  const { overallScore, filesChecked, totalViolations, files } = checkResults;
+  const resultsEl = document.getElementById('check-results');
+  const statusEl = document.getElementById('check-status');
+
+  const icon = overallScore >= 80 ? '\u2713' : overallScore >= 60 ? '~' : '\u2717';
+  const color = overallScore >= 80 ? 'var(--green)' : overallScore >= 60 ? 'var(--yellow)' : 'var(--red)';
+
+  statusEl.innerHTML = `<span style="color:${color};">${icon} ${overallScore}/100</span> &middot; ${filesChecked} files &middot; ${totalViolations} violations`;
+
+  // Build file table
+  let html = '<table style="width:100%;border-collapse:collapse;">';
+  html += '<tr style="color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:1px;">';
+  html += '<td style="padding:6px 8px;">File</td>';
+  html += '<td style="padding:6px 8px;text-align:right;width:70px;">Score</td>';
+  html += '<td style="padding:6px 8px;text-align:right;width:60px;">Words</td>';
+  html += '<td style="padding:6px 8px;text-align:right;width:80px;">Issues</td>';
+  html += '</tr>';
+
+  for (const f of files) {
+    const fIcon = f.score >= 80 ? '\u2713' : f.score >= 60 ? '~' : '\u2717';
+    const fColor = f.score >= 80 ? 'var(--green)' : f.score >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const errors = f.violations.filter(v => v.severity === 'error').length;
+    const warnings = f.violations.filter(v => v.severity === 'warning').length;
+    const issueText = f.violations.length === 0 ? '<span style="color:var(--text-muted);">\u2014</span>' : `<span style="color:var(--red);">${errors}E</span> <span style="color:var(--yellow);">${warnings}W</span>`;
+
+    html += `<tr class="check-row" style="border-top:1px solid var(--border);cursor:${f.violations.length > 0 ? 'pointer' : 'default'};" ${f.violations.length > 0 ? `onclick="toggleFileDetail(this,'${f.file.replace(/'/g, "\\'")}')"`  : ''}>`;
+    html += `<td style="padding:6px 8px;font-family:var(--mono);font-size:11px;"><span style="color:${fColor};margin-right:6px;">${fIcon}</span>${f.file}</td>`;
+    html += `<td style="padding:6px 8px;text-align:right;font-family:var(--mono);color:${fColor};">${f.score}/100</td>`;
+    html += `<td style="padding:6px 8px;text-align:right;font-family:var(--mono);color:var(--text-muted);">${f.wordCount}</td>`;
+    html += `<td style="padding:6px 8px;text-align:right;font-family:var(--mono);">${issueText}</td>`;
+    html += '</tr>';
+  }
+  html += '</table>';
+  resultsEl.innerHTML = html;
+}
+
+function toggleFileDetail(rowEl, fileName) {
+  // Remove any existing detail row
+  const existing = rowEl.nextElementSibling;
+  if (existing && existing.classList.contains('detail-row')) {
+    existing.remove();
+    return;
+  }
+
+  const file = checkResults.files.find(f => f.file === fileName);
+  if (!file || file.violations.length === 0) return;
+
+  const detailRow = document.createElement('tr');
+  detailRow.classList.add('detail-row');
+  let html = '<td colspan="4" style="padding:8px 8px 8px 28px;background:var(--navy);">';
+  for (const v of file.violations.slice(0, 12)) {
+    const vColor = v.severity === 'error' ? 'var(--red)' : 'var(--yellow)';
+    const lineRef = v.line > 0 ? ` <span style="color:var(--text-muted);">:${v.line}</span>` : '';
+    html += `<div style="padding:2px 0;color:${vColor};">${v.severity === 'error' ? '\u2717' : '~'} ${v.message}${lineRef}</div>`;
+  }
+  if (file.violations.length > 12) {
+    html += `<div style="padding:2px 0;color:var(--text-muted);">... and ${file.violations.length - 12} more</div>`;
+  }
+  html += '</td>';
+  detailRow.innerHTML = html;
+  rowEl.after(detailRow);
+}
+
+// ============================================================================
 // UI Updates
 // ============================================================================
 
@@ -1308,6 +1494,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initGraph();
   runClarionCall();
+
+  // Auto-scan files in live mode
+  if (isLiveMode) {
+    runContentCheck();
+  } else {
+    document.getElementById('check-placeholder').textContent = 'Content scanning requires a live connection. Run narrative serve to enable.';
+  }
 
   document.getElementById('test-assertion').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') testAssertion();

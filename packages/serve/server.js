@@ -13,6 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const YAML = require('yaml');
+const { checkContent, findFiles } = require('./check');
 
 // ============================================================================
 // Config
@@ -417,6 +418,58 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- Content check: scan actual files ----
+
+  if (url.pathname === '/api/check' && req.method === 'GET') {
+    const canon = parseCanon();
+    const target = url.searchParams.get('file');
+    const targets = target ? [target] : [];
+
+    // Find files relative to PROJECT_DIR
+    let filePaths;
+    if (targets.length > 0) {
+      filePaths = targets.map(t => path.resolve(PROJECT_DIR, t)).filter(f => fs.existsSync(f));
+    } else {
+      filePaths = findFiles([], PROJECT_DIR).slice(0, 200); // cap for safety
+    }
+
+    const results = [];
+    for (const fp of filePaths) {
+      const content = fs.readFileSync(fp, 'utf-8');
+      const rel = path.relative(PROJECT_DIR, fp);
+      const result = checkContent(content, canon.skills, rel);
+      results.push({ file: rel, ...result });
+    }
+
+    results.sort((a, b) => a.score - b.score);
+
+    const totalWords = results.reduce((s, r) => s + r.wordCount, 0);
+    const overallScore = totalWords > 0
+      ? Math.round(results.reduce((s, r) => s + r.score * r.wordCount, 0) / totalWords)
+      : 100;
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      overallScore,
+      filesChecked: results.length,
+      totalViolations: results.reduce((s, r) => s + r.violations.length, 0),
+      files: results,
+    }));
+    return;
+  }
+
+  if (url.pathname === '/api/check' && req.method === 'POST') {
+    const body = await readBody(req);
+    const canon = parseCanon();
+    // Check inline content against skills
+    const content = body?.content || body?.text || '';
+    const filename = body?.filename || 'inline';
+    const result = checkContent(content, canon.skills, filename);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ file: filename, ...result }));
+    return;
+  }
+
   // ---- SSE endpoint ----
 
   if (url.pathname === '/api/events' && req.method === 'GET') {
@@ -447,7 +500,7 @@ const server = http.createServer(async (req, res) => {
 
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found', routes: ['/api/canon', '/api/clarion-call', '/api/review', '/api/events', '/'] }));
+  res.end(JSON.stringify({ error: 'Not found', routes: ['/api/canon', '/api/clarion-call', '/api/review', '/api/check', '/api/events', '/'] }));
 });
 
 // ============================================================================
