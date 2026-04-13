@@ -470,6 +470,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- History endpoint ----
+
+  if (url.pathname === '/api/history' && req.method === 'GET') {
+    const historyDir = path.join(NARRATIVE_DIR, 'history');
+    const entries = [];
+    if (fs.existsSync(historyDir)) {
+      const files = fs.readdirSync(historyDir).filter(f => f.endsWith('.json')).sort();
+      // Return last 50 entries
+      for (const file of files.slice(-50)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(path.join(historyDir, file), 'utf-8'));
+          entries.push(data);
+        } catch {}
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ entries }));
+    return;
+  }
+
   // ---- SSE endpoint ----
 
   if (url.pathname === '/api/events' && req.method === 'GET') {
@@ -500,7 +520,7 @@ const server = http.createServer(async (req, res) => {
 
   // 404
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Not found', routes: ['/api/canon', '/api/clarion-call', '/api/review', '/api/check', '/api/events', '/'] }));
+  res.end(JSON.stringify({ error: 'Not found', routes: ['/api/canon', '/api/clarion-call', '/api/review', '/api/check', '/api/history', '/api/events', '/'] }));
 });
 
 // ============================================================================

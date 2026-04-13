@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history for diff
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,310 +26,83 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install yaml
+        run: npm install
 
-      - name: Get changed files
+      - name: Get changed .md files
         id: changed
         run: |
-          # Get list of changed .md files in this PR
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.md' '**/*.md' '.narrative/**' | head -100)
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "count=$(echo "$CHANGED_FILES" | grep -c . || true)" >> $GITHUB_OUTPUT
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.md' '**/*.md' | head -100)
+          echo "count=$(echo "$CHANGED" | grep -c . || true)" >> $GITHUB_OUTPUT
+          # Save for per-file scan
+          echo "$CHANGED" > /tmp/changed-files.txt
 
-      - name: Run Clarion Call
-        id: clarion
+      - name: Run full check
+        id: check-all
+        run: |
+          # Run narrative check in JSON mode
+          npx narrative check --json > /tmp/check-all.json 2>&1 || true
+          npx narrative status --json > /tmp/status.json 2>&1 || true
+
+      - name: Run check on changed files only
+        id: check-changed
+        if: steps.changed.outputs.count != '0'
+        run: |
+          # Check only files that changed in this PR
+          FILES=$(cat /tmp/changed-files.txt | tr '\n' ' ')
+          if [ -n "$FILES" ]; then
+            npx narrative check $FILES --json > /tmp/check-changed.json 2>&1 || true
+          fi
+
+      - name: Build PR comment
+        id: comment
         run: |
           node << 'SCRIPT'
           const fs = require('fs');
-          const path = require('path');
-          const YAML = require('yaml');
 
-          // ── Parse canon ────────────────────────────────────────
-          const narrativeDir = '.narrative';
-          const units = [];
-          const skills = {};
+          // Read results
+          let status = {};
+          let checkAll = {};
+          let checkChanged = null;
 
-          // Canon files
-          const canonDir = path.join(narrativeDir, 'canon');
-          if (fs.existsSync(canonDir)) {
-            for (const file of fs.readdirSync(canonDir).filter(f => f.endsWith('.yml'))) {
-              try {
-                const parsed = YAML.parse(fs.readFileSync(path.join(canonDir, file), 'utf-8'));
-                if (parsed?.units) {
-                  for (const u of parsed.units) {
-                    units.push({
-                      id: u.id,
-                      type: u.type,
-                      assertion: (u.assertion || '').trim(),
-                      intent: u.intent || {},
-                      dependencies: u.dependencies || [],
-                      source_file: file,
-                    });
-                  }
-                }
-              } catch (e) {
-                console.error(`Error parsing ${file}: ${e.message}`);
-              }
-            }
-          }
+          try { status = JSON.parse(fs.readFileSync('/tmp/status.json', 'utf-8')); } catch {}
+          try { checkAll = JSON.parse(fs.readFileSync('/tmp/check-all.json', 'utf-8')); } catch {}
+          try { checkChanged = JSON.parse(fs.readFileSync('/tmp/check-changed.json', 'utf-8')); } catch {}
 
-          // Skills files
-          const skillsDir = path.join(narrativeDir, 'skills');
-          if (fs.existsSync(skillsDir)) {
-            for (const file of fs.readdirSync(skillsDir).filter(f => f.endsWith('.yml'))) {
-              try {
-                const parsed = YAML.parse(fs.readFileSync(path.join(skillsDir, file), 'utf-8'));
-                if (parsed?.voice) skills.voice = parsed.voice;
-                if (parsed?.terminology) skills.terminology = parsed.terminology;
-                if (parsed?.brand) skills.brand = parsed.brand;
-                if (parsed?.products) skills.products = parsed.products;
-              } catch (e) {
-                console.error(`Error parsing ${file}: ${e.message}`);
-              }
-            }
-          }
+          const combined = status.combined ?? 100;
+          const canonScore = status.canonScore ?? 100;
+          const contentScore = status.contentScore ?? 100;
+          const units = status.units ?? 0;
+          const violations = status.violations ?? 0;
+          const files = status.files ?? 0;
 
-          if (units.length === 0) {
-            console.log('No narrative units found. Skipping clarion call.');
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'skip=true\n');
-            process.exit(0);
-          }
-
-          // ── Run canon checks (same as before) ──────────────────
-          const alerts = [];
-          const unitMap = new Map(units.map(u => [u.id, u]));
-          const unitIds = new Set(units.map(u => u.id));
-
-          for (const u of units) {
-            const text = u.assertion.toLowerCase();
-
-            // Orphaned deps
-            for (const dep of u.dependencies) {
-              if (!unitIds.has(dep)) {
-                alerts.push({ type: 'ORPHAN', unitId: u.id, severity: 'error',
-                  message: `Missing dependency: "${dep}"` });
-              }
-            }
-
-            // Theme conflicts
-            for (const depId of u.dependencies) {
-              const parent = unitMap.get(depId);
-              if (!parent) continue;
-              const childThemes = u.intent?.constraints?.content?.required_themes || [];
-              const parentForbidden = parent.intent?.constraints?.content?.forbidden_themes || [];
-              const conflicts = childThemes.filter(t => parentForbidden.includes(t));
-              if (conflicts.length > 0) {
-                alerts.push({ type: 'DRIFT', unitId: u.id, severity: 'error',
-                  message: `Theme conflict: [${conflicts.join(', ')}] forbidden by parent "${depId}"` });
-              }
-            }
-
-            // Forbidden terms
-            for (const term of (skills.terminology?.forbidden || [])) {
-              if (text.includes(term.toLowerCase())) {
-                alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'warning',
-                  message: `Forbidden term: "${term}"` });
-              }
-            }
-
-            // Brand violations
-            for (const wrong of (skills.brand?.never || [])) {
-              if (u.assertion.includes(wrong)) {
-                alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'error',
-                  message: `Wrong brand name: "${wrong}" → use "${skills.brand.company_name}"` });
-              }
-            }
-
-            // Product name violations
-            for (const product of (skills.products || [])) {
-              for (const wrong of (product.never || [])) {
-                if (u.assertion.includes(wrong)) {
-                  alerts.push({ type: 'TERMINOLOGY', unitId: u.id, severity: 'error',
-                    message: `Wrong product name: "${wrong}" → use "${product.name}"` });
-                }
-              }
-            }
-
-            // Tone
-            const badPatterns = [
-              'cutting-edge','ai-powered','leverage','unlock','unprecedented',
-              'maximize','revolutionize','game-changing','best-in-class','synergy',
-              'holistic','paradigm','comprehensive solution','enables organizations',
-              'empower','disrupt','streamline','optimize','accelerate','drive value',
-            ];
-            for (const pattern of badPatterns) {
-              if (text.includes(pattern)) {
-                alerts.push({ type: 'TONE', unitId: u.id, severity: 'warning',
-                  message: `Tone: "${pattern}" sounds like marketing-speak` });
-              }
-            }
-          }
-
-          // Canon score
-          const totalIssues = alerts.length;
-          const maxIssues = units.length * 4;
-          const canonScore = maxIssues > 0
-            ? Math.round(Math.max(0, 100 - (totalIssues / maxIssues * 100)))
-            : 100;
-
-          // ── Run content check on changed .md files ──────────────
-          const changedFilesRaw = process.env.CHANGED_FILES || '';
-          const changedFiles = changedFilesRaw.split('\n').filter(f => f.trim() && f.endsWith('.md'));
-
-          // Content check engine (inline — matches check.js logic)
-          function checkContent(content, sk) {
-            const violations = [];
-            const lower = content.toLowerCase();
-            const wc = content.split(/\s+/).filter(Boolean).length;
-            if (wc < 10) return { score: 100, violations: [], wordCount: wc };
-
-            // Forbidden terms
-            for (const term of (sk.terminology?.forbidden || [])) {
-              const tl = term.toLowerCase();
-              let idx = lower.indexOf(tl);
-              while (idx !== -1) {
-                const line = content.substring(0, idx).split('\n').length;
-                violations.push({ severity: 'warning', message: `Forbidden: "${term}"`, line, penalty: 3 });
-                idx = lower.indexOf(tl, idx + tl.length);
-              }
-            }
-
-            // Brand
-            for (const wrong of (sk.brand?.never || [])) {
-              let idx = content.indexOf(wrong);
-              while (idx !== -1) {
-                violations.push({ severity: 'error', message: `Brand: "${wrong}" → "${sk.brand.company_name}"`, line: content.substring(0, idx).split('\n').length, penalty: 8 });
-                idx = content.indexOf(wrong, idx + wrong.length);
-              }
-            }
-
-            // Products
-            for (const product of (sk.products || [])) {
-              for (const wrong of (product.never || [])) {
-                if (wrong.length < 4) continue;
-                let idx = content.indexOf(wrong);
-                while (idx !== -1) {
-                  violations.push({ severity: 'error', message: `Product: "${wrong}" → "${product.name}"`, line: content.substring(0, idx).split('\n').length, penalty: 5 });
-                  idx = content.indexOf(wrong, idx + wrong.length);
-                }
-              }
-            }
-
-            // Tone
-            const bp = [
-              'cutting-edge','ai-powered','leverage','unlock','unprecedented',
-              'maximize','revolutionize','game-changing','best-in-class','synergy',
-              'holistic','paradigm','comprehensive solution','enables organizations',
-              'empower','disrupt','streamline','optimize','accelerate','drive value',
-              'next-generation','world-class','seamless','end-to-end','thought leader',
-              'robust','scalable solution','actionable insights',
-            ];
-            for (const p of bp) {
-              let idx = lower.indexOf(p);
-              while (idx !== -1) {
-                const before = content.substring(0, idx);
-                const cbc = (before.match(/```/g) || []).length;
-                if (cbc % 2 === 0) {
-                  violations.push({ severity: 'warning', message: `Tone: "${p}"`, line: before.split('\n').length, penalty: 2 });
-                }
-                idx = lower.indexOf(p, idx + p.length);
-              }
-            }
-
-            // Score
-            const totalPenalty = violations.reduce((s, v) => s + v.penalty, 0);
-            const cap = Math.max(30, Math.ceil(wc / 10));
-            const norm = Math.min(totalPenalty, cap);
-            const score = Math.max(0, Math.round(100 - (norm / cap * 100)));
-            return { score, violations, wordCount: wc };
-          }
-
-          const fileResults = [];
-          for (const file of changedFiles) {
-            if (!fs.existsSync(file)) continue;
-            // Skip .narrative/ YAML files from content check
-            if (file.startsWith('.narrative/')) continue;
-            const content = fs.readFileSync(file, 'utf-8');
-            const result = checkContent(content, skills);
-            fileResults.push({ file, ...result });
-          }
-
-          fileResults.sort((a, b) => a.score - b.score);
-
-          const totalWords = fileResults.reduce((s, r) => s + r.wordCount, 0);
-          const contentScore = totalWords > 0
-            ? Math.round(fileResults.reduce((s, r) => s + r.score * r.wordCount, 0) / totalWords)
-            : 100;
-
-          // Combined score: average of canon and content (if content files exist)
-          const combinedScore = fileResults.length > 0
-            ? Math.round((canonScore + contentScore) / 2)
-            : canonScore;
-
-          const errors = alerts.filter(a => a.severity === 'error');
-          const warnings = alerts.filter(a => a.severity === 'warning');
-
-          // ── Build comment ──────────────────────────────────────
-          let icon = combinedScore >= 80 ? '🟢' : combinedScore >= 60 ? '🟡' : '🔴';
+          // Build comment
+          const icon = combined >= 80 ? '🟢' : combined >= 60 ? '🟡' : '🔴';
           let comment = `## 📣 Clarion Call — Narrative Coherence\n\n`;
           comment += `| Metric | Value |\n|--------|-------|\n`;
-          comment += `| Combined Score | ${icon} **${combinedScore} / 100** |\n`;
+          comment += `| Combined Score | ${icon} **${combined} / 100** |\n`;
           comment += `| Canon Score | ${canonScore} / 100 |\n`;
+          comment += `| Content Score | ${contentScore} / 100 |\n`;
+          comment += `| Narrative Units | ${units} |\n`;
+          comment += `| Files Scanned | ${files} |\n`;
+          comment += `| Violations | ${violations} |\n\n`;
 
-          if (fileResults.length > 0) {
-            comment += `| Content Score | ${contentScore} / 100 |\n`;
-          }
-
-          comment += `| Narrative Units | ${units.length} |\n`;
-          comment += `| Canon Drift | ${alerts.filter(a => a.type === 'DRIFT').length} |\n`;
-          comment += `| Canon Violations | ${alerts.filter(a => a.type !== 'DRIFT').length} |\n`;
-
-          if (fileResults.length > 0) {
-            comment += `| Files Scanned | ${fileResults.length} |\n`;
-            comment += `| Content Violations | ${fileResults.reduce((s, r) => s + r.violations.length, 0)} |\n`;
-          }
-
-          comment += `\n`;
-
-          // Canon section
-          if (alerts.length === 0) {
-            comment += `### Canon\n✅ **Narrative graph is coherent.** All ${units.length} units pass.\n\n`;
-          } else {
-            if (errors.length > 0) {
-              comment += `### Canon Errors\n\n`;
-              for (const a of errors) {
-                comment += `- ❌ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
-              }
-              comment += '\n';
-            }
-            if (warnings.length > 0) {
-              comment += `### Canon Warnings\n\n`;
-              for (const a of warnings) {
-                comment += `- ⚠️ **${a.type}** \`${a.unitId}\` — ${a.message}\n`;
-              }
-              comment += '\n';
-            }
-          }
-
-          // Content scan section
-          if (fileResults.length > 0) {
-            comment += `### Content Scan\n\n`;
+          // Per-file table for changed files
+          if (checkChanged?.files?.length > 0) {
+            comment += `### Changed Files in This PR\n\n`;
             comment += `| File | Score | Violations |\n|------|-------|------------|\n`;
-            for (const r of fileResults) {
+            for (const r of checkChanged.files.sort((a, b) => a.score - b.score)) {
               const fIcon = r.score >= 80 ? '✅' : r.score >= 60 ? '⚠️' : '❌';
-              const vCount = r.violations.length > 0
-                ? `${r.violations.filter(v => v.severity === 'error').length}E ${r.violations.filter(v => v.severity === 'warning').length}W`
-                : '—';
+              const errs = r.violations?.filter(v => v.severity === 'error').length || 0;
+              const warns = r.violations?.filter(v => v.severity === 'warning').length || 0;
+              const vCount = r.violations?.length > 0 ? `${errs}E ${warns}W` : '—';
               comment += `| ${fIcon} \`${r.file}\` | ${r.score}/100 | ${vCount} |\n`;
             }
             comment += '\n';
 
-            // Show top issues for flagged files
-            const flagged = fileResults.filter(r => r.score < 80 && r.violations.length > 0);
+            // Show violations for flagged files
+            const flagged = checkChanged.files.filter(r => r.score < 80 && r.violations?.length > 0);
             if (flagged.length > 0) {
-              comment += `<details>\n<summary>📋 Content violations in flagged files</summary>\n\n`;
+              comment += `<details>\n<summary>📋 Violations in flagged files</summary>\n\n`;
               for (const r of flagged.slice(0, 5)) {
                 comment += `**${r.file}** (${r.score}/100)\n`;
                 for (const v of r.violations.slice(0, 10)) {
@@ -343,49 +116,36 @@ jobs:
               }
               comment += `</details>\n\n`;
             }
+          } else if (combined >= 80) {
+            comment += `✅ **Narrative is coherent.** All ${units} units pass.\n\n`;
           }
 
-          comment += `\n---\n*Clarion Call checked ${units.length} narrative units and ${fileResults.length} content files*`;
+          // Trend
+          if (status.previous != null) {
+            const trend = combined > status.previous ? '↑' : combined < status.previous ? '↓' : '→';
+            comment += `*Trend: ${trend} from ${status.previous}/100*\n\n`;
+          }
 
-          // Write outputs
+          comment += `---\n*Checked ${units} narrative units and ${files} content files via \`narrative check\`*`;
+
           fs.writeFileSync('/tmp/clarion-comment.md', comment);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${combinedScore}\n`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `skip=false\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${combined}\n`);
 
-          // Console summary
-          console.log(`\nClarion Call: ${combinedScore}/100 (canon: ${canonScore}, content: ${contentScore})`);
-          console.log(`Units: ${units.length} | Files: ${fileResults.length} | Errors: ${errors.length} | Warnings: ${warnings.length}`);
-          if (alerts.length > 0) {
-            for (const a of alerts) {
-              const icon = a.severity === 'error' ? '✗' : '~';
-              console.log(`  ${icon} [${a.type}] ${a.unitId}: ${a.message}`);
-            }
-          }
-          if (fileResults.length > 0) {
-            for (const r of fileResults) {
-              const fi = r.score >= 80 ? '✓' : r.score >= 60 ? '~' : '✗';
-              console.log(`  ${fi} ${r.file}: ${r.score}/100 (${r.violations.length} violations)`);
-            }
-          }
+          console.log(`Clarion Call: ${combined}/100 (canon: ${canonScore}, content: ${contentScore})`);
 
-          // Fail if combined score is below threshold
-          if (combinedScore < 60) {
+          if (combined < 60) {
             console.log('\n❌ Combined score below 60. Failing check.');
             process.exit(1);
           }
           SCRIPT
-        env:
-          CHANGED_FILES: ${{ steps.changed.outputs.files }}
 
       - name: Comment on PR
-        if: steps.clarion.outputs.skip != 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const comment = fs.readFileSync('/tmp/clarion-comment.md', 'utf-8');
 
-            // Find existing clarion call comment to update
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,

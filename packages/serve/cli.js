@@ -8,6 +8,7 @@
  *   narrative check             Scan all .md files against canon
  *   narrative check <file>      Scan specific files or directories
  *   narrative status            Quick coherence score (no server needed)
+ *   narrative watch             Re-run check on every file save
  *   narrative help              Show this help
  *
  * Options:
@@ -77,6 +78,8 @@ async function main() {
       return runCheck();
     case 'status':
       return runStatus();
+    case 'watch':
+      return runWatch();
     case 'help':
     case '--help':
     case '-h':
@@ -244,6 +247,96 @@ function runStatus() {
   }
 }
 
+// ── watch ─────────────────────────────────────────────────────────────────────
+
+function runWatch() {
+  const { main: checkMain } = require('./check');
+
+  function getArg(name, fallback) {
+    const i = restArgs.indexOf(name);
+    return i !== -1 && restArgs[i + 1] ? restArgs[i + 1] : fallback;
+  }
+  const projectDir = path.resolve(getArg('--dir', '.'));
+  const narrativeDir = path.join(projectDir, '.narrative');
+
+  if (!fs.existsSync(narrativeDir)) {
+    console.error('\n  No .narrative/ directory found. Run `narrative init` first.\n');
+    process.exit(1);
+  }
+
+  // Extensions to watch
+  const watchExts = new Set(['.md', '.mdx', '.txt', '.yml', '.yaml']);
+
+  // Debounce
+  let timer = null;
+  let lastRun = 0;
+  const DEBOUNCE_MS = 500;
+
+  function runCheckQuiet() {
+    const now = Date.now();
+    if (now - lastRun < DEBOUNCE_MS) return;
+    lastRun = now;
+
+    // Clear and re-run
+    const ts = new Date().toLocaleTimeString();
+    console.log(`\n  ── ${ts} ──────────────────────────────────────`);
+
+    // Re-run check by spawning fresh — avoids require cache issues
+    const { execSync } = require('child_process');
+    try {
+      const out = execSync(
+        `node ${JSON.stringify(path.join(__dirname, 'check.js'))} --dir ${JSON.stringify(projectDir)}`,
+        { cwd: projectDir, encoding: 'utf-8', timeout: 30000 }
+      );
+      process.stdout.write(out);
+    } catch (err) {
+      // check.js exits 1 if threshold fails, still show output
+      if (err.stdout) process.stdout.write(err.stdout);
+      if (err.stderr) process.stderr.write(err.stderr);
+    }
+  }
+
+  console.log(BRAND);
+  console.log('  Watching for changes... (Ctrl+C to stop)');
+  console.log(`  Dir: ${projectDir}`);
+  console.log('');
+
+  // Initial run
+  runCheckQuiet();
+
+  // Watch project directory recursively
+  const watchers = [];
+
+  function watchDir(dir) {
+    try {
+      const watcher = fs.watch(dir, { recursive: true }, (eventType, filename) => {
+        if (!filename) return;
+        const ext = path.extname(filename).toLowerCase();
+        if (!watchExts.has(ext)) return;
+
+        // Skip history files
+        if (filename.includes('history')) return;
+
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(runCheckQuiet, DEBOUNCE_MS);
+      });
+      watchers.push(watcher);
+    } catch (err) {
+      // recursive watch not supported on all platforms, fall back
+      console.error(`  Warning: recursive watch not available, watching top-level only`);
+    }
+  }
+
+  watchDir(projectDir);
+
+  // Keep alive
+  process.on('SIGINT', () => {
+    console.log('\n  Stopped watching.\n');
+    for (const w of watchers) w.close();
+    process.exit(0);
+  });
+}
+
 // ── history ───────────────────────────────────────────────────────────────────
 
 function saveHistory(narrativeDir, data) {
@@ -271,6 +364,7 @@ function showHelp() {
     serve               Start dashboard + API server
     check [files...]    Scan .md files against canon + skills
     status              Quick coherence score (canon + content)
+    watch               Re-run check on every file save
     help                Show this help
 
   Options:
@@ -288,6 +382,7 @@ function showHelp() {
     narrative check README.md docs/
     narrative check --json --threshold 70
     narrative status
+    narrative watch
 `);
 }
 

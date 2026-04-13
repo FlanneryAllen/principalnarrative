@@ -267,6 +267,42 @@ body {
 }
 
 /* Bottom panel */
+/* Sparkline */
+.history-sparkline {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.history-sparkline h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.sparkline-container {
+  height: 48px;
+  position: relative;
+}
+.sparkline-container svg {
+  width: 100%;
+  height: 100%;
+}
+.sparkline-empty {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 12px 0;
+}
+.sparkline-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  margin-top: 4px;
+}
+
 .bottom-panel {
   grid-column: 1 / -1;
   background: var(--navy-light);
@@ -553,6 +589,12 @@ body {
           <div class="label">Violations</div>
         </div>
       </div>
+    </div>
+
+    <div class="history-sparkline" id="history-sparkline">
+      <h4>Score History</h4>
+      <div class="sparkline-container" id="sparkline-chart"></div>
+      <div class="sparkline-label" id="sparkline-labels"></div>
     </div>
 
     <div class="source-info" id="source-info" style="display:none">
@@ -1474,6 +1516,122 @@ function hideTooltip() {
 // Init
 // ============================================================================
 
+// ── Sparkline ────────────────────────────────────────────────────────────
+
+async function loadHistory() {
+  if (!isLiveMode) {
+    document.getElementById('sparkline-chart').innerHTML = '<div class="sparkline-empty">History requires a live connection</div>';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/history`);
+    const data = await res.json();
+    renderSparkline(data.entries || []);
+  } catch {
+    document.getElementById('sparkline-chart').innerHTML = '<div class="sparkline-empty">No history yet</div>';
+  }
+}
+
+function renderSparkline(entries) {
+  const container = document.getElementById('sparkline-chart');
+  const labels = document.getElementById('sparkline-labels');
+
+  if (entries.length < 2) {
+    container.innerHTML = '<div class="sparkline-empty">Run narrative check a few times to see trends</div>';
+    labels.innerHTML = '';
+    return;
+  }
+
+  // Use combined score, fall back to contentScore
+  const points = entries.map((e, i) => ({
+    x: i,
+    y: e.combined ?? e.contentScore ?? 0,
+    ts: e.timestamp,
+    cmd: e.command || '?',
+  }));
+
+  const width = container.clientWidth || 340;
+  const height = 48;
+  const pad = { top: 4, bottom: 4, left: 2, right: 2 };
+
+  const xScale = d3.scaleLinear()
+    .domain([0, points.length - 1])
+    .range([pad.left, width - pad.right]);
+
+  const yMin = Math.max(0, d3.min(points, d => d.y) - 10);
+  const yMax = Math.min(100, d3.max(points, d => d.y) + 5);
+  const yScale = d3.scaleLinear()
+    .domain([yMin, yMax])
+    .range([height - pad.bottom, pad.top]);
+
+  const line = d3.line()
+    .x(d => xScale(d.x))
+    .y(d => yScale(d.y))
+    .curve(d3.curveMonotoneX);
+
+  const area = d3.area()
+    .x(d => xScale(d.x))
+    .y0(height - pad.bottom)
+    .y1(d => yScale(d.y))
+    .curve(d3.curveMonotoneX);
+
+  container.innerHTML = '';
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'none');
+
+  // Gradient fill
+  const grad = svg.append('defs').append('linearGradient')
+    .attr('id', 'sparkline-grad')
+    .attr('x1', '0').attr('y1', '0')
+    .attr('x2', '0').attr('y2', '1');
+  grad.append('stop').attr('offset', '0%').attr('stop-color', 'var(--copper)').attr('stop-opacity', 0.3);
+  grad.append('stop').attr('offset', '100%').attr('stop-color', 'var(--copper)').attr('stop-opacity', 0.02);
+
+  svg.append('path')
+    .datum(points)
+    .attr('d', area)
+    .attr('fill', 'url(#sparkline-grad)');
+
+  svg.append('path')
+    .datum(points)
+    .attr('d', line)
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--copper)')
+    .attr('stroke-width', 2);
+
+  // Dots for each point
+  svg.selectAll('.spark-dot')
+    .data(points)
+    .enter().append('circle')
+    .attr('class', 'spark-dot')
+    .attr('cx', d => xScale(d.x))
+    .attr('cy', d => yScale(d.y))
+    .attr('r', points.length <= 10 ? 3 : 1.5)
+    .attr('fill', d => d.y >= 80 ? 'var(--green)' : d.y >= 60 ? 'var(--yellow)' : 'var(--red)')
+    .attr('stroke', 'var(--navy-light)')
+    .attr('stroke-width', 1);
+
+  // Current score label at the end
+  const last = points[points.length - 1];
+  svg.append('text')
+    .attr('x', xScale(last.x) - 4)
+    .attr('y', yScale(last.y) - 6)
+    .attr('fill', 'var(--text)')
+    .attr('font-size', '10px')
+    .attr('font-family', 'var(--mono)')
+    .attr('text-anchor', 'end')
+    .text(last.y);
+
+  // Labels
+  const first = points[0];
+  const firstDate = new Date(first.ts);
+  const lastDate = new Date(last.ts);
+  const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  labels.innerHTML = `<span>${fmt(firstDate)}</span><span>${entries.length} runs</span><span>${fmt(lastDate)}</span>`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Try to connect to live API
   const connected = await tryConnectAPI();
@@ -1494,6 +1652,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initGraph();
   runClarionCall();
+  loadHistory();
 
   // Auto-scan files in live mode
   if (isLiveMode) {

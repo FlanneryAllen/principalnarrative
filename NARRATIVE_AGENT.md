@@ -157,7 +157,19 @@ Output:
 The `↑`/`↓` trend compares to the last recorded score. Use `--json`
 for machine-readable output.
 
-### 6. Add the GitHub Action
+### 6. Watch Mode
+
+Re-run the content check automatically whenever a file changes:
+
+```bash
+narrative watch
+```
+
+This is the equivalent of `tsc --watch` for your narrative. It watches
+all `.md`, `.yml`, and `.yaml` files, debounces rapid saves, and
+re-runs the full content check with each change. No server required.
+
+### 7. Add the GitHub Action
 
 Copy `.github/workflows/clarion-call.yml` to your repo. It runs the clarion
 call on every PR that touches `.narrative/`, README files, or docs.
@@ -180,6 +192,7 @@ Commands:
   serve               Start dashboard + API server
   check [files...]    Scan .md files against canon + skills
   status              Quick coherence score (canon + content)
+  watch               Re-run check on every file save
   help                Show help
 
 Options:
@@ -280,8 +293,9 @@ When running `narrative serve`, these endpoints are available:
 | GET | `/api/check` | Scans all .md files, returns per-file scores |
 | GET | `/api/check?file=README.md` | Scan a specific file |
 | POST | `/api/check` | Score inline content: `{"content": "..."}` |
+| GET | `/api/history` | Score history (last 50 entries from `.narrative/history/`) |
 | GET | `/api/events` | SSE stream — pushes live updates on file change |
-| GET | `/` | Serves the dashboard |
+| GET | `/` | Serves the dashboard (includes score history sparkline) |
 
 ### Example: Score a test assertion
 
