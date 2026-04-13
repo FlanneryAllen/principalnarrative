@@ -63,6 +63,12 @@ const YAML = require('yaml');
 
 const { createAlgebra, STAKEHOLDER_PRESETS, ALL_LAYERS } = require('./algebra');
 const { checkContent } = require('./check');
+const {
+  GitHubAdapter, MemoryAdapter,
+  unitsToYaml, skillsToTerminologyYaml, skillsToToneYaml,
+  githubGet, githubPost, githubPutFile, fetchRepoCanon,
+} = require('./store');
+const { mineNarrativeUnits } = require('./storymining');
 
 // ============================================================================
 // Config
@@ -91,6 +97,9 @@ const repoCache = new Map();
 
 /** @type {Map<string, Set<http.ServerResponse>>} sessionId → SSE connections */
 const sseClients = new Map();
+
+/** @type {Map<string, MemoryAdapter>} workspaceId → MemoryAdapter store */
+const workspaces = new Map();
 
 // ============================================================================
 // Session Management — HMAC-SHA256 signed cookies
@@ -171,223 +180,7 @@ function checkRateLimit(session) {
   return session.rateLimit.count <= RATE_LIMIT_MAX;
 }
 
-// ============================================================================
-// GitHub API — stdlib https only
-// ============================================================================
-
-function httpsRequest(options, postData) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => { body += chunk; });
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(body) });
-        } catch {
-          resolve({ status: res.statusCode, headers: res.headers, body });
-        }
-      });
-    });
-    req.on('error', reject);
-    if (postData) req.write(postData);
-    req.end();
-  });
-}
-
-function githubGet(apiPath, token) {
-  return httpsRequest({
-    hostname: 'api.github.com',
-    path: apiPath,
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'NarrativeAgent/1.0',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  });
-}
-
-function githubPost(hostname, apiPath, data, headers = {}) {
-  const postData = typeof data === 'string' ? data : new URLSearchParams(data).toString();
-  return httpsRequest({
-    hostname,
-    path: apiPath,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': Buffer.byteLength(postData),
-      'Accept': 'application/json',
-      'User-Agent': 'NarrativeAgent/1.0',
-      ...headers,
-    },
-  }, postData);
-}
-
-/**
- * Write a file to a GitHub repo via the Contents API (create or update).
- * Handles getting the current SHA for updates automatically.
- */
-async function githubPutFile(owner, repo, filePath, content, message, token) {
-  // Get current file SHA (needed for updates)
-  const existing = await githubGet(`/repos/${owner}/${repo}/contents/${filePath}`, token);
-  const sha = existing.status === 200 ? existing.body.sha : undefined;
-
-  const body = JSON.stringify({
-    message,
-    content: Buffer.from(content).toString('base64'),
-    ...(sha ? { sha } : {}),
-  });
-
-  return httpsRequest({
-    hostname: 'api.github.com',
-    path: `/repos/${owner}/${repo}/contents/${filePath}`,
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
-      'User-Agent': 'NarrativeAgent/1.0',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  }, body);
-}
-
-/**
- * Convert units array back to YAML for a canon file.
- */
-function unitsToYaml(units, metadata = {}) {
-  const doc = {
-    version: metadata.version || '1.0',
-    last_updated: new Date().toISOString().slice(0, 10),
-    ...(metadata.owner ? { owner: metadata.owner } : {}),
-    units: units.map(u => {
-      const unit = { id: u.id, type: u.type, assertion: u.assertion };
-      if (u.intent && Object.keys(u.intent).length > 0) unit.intent = u.intent;
-      if (u.evidence_required && u.evidence_required.length > 0) unit.evidence_required = u.evidence_required;
-      unit.dependencies = u.dependencies || [];
-      unit.confidence = u.confidence ?? 1.0;
-      return unit;
-    }),
-  };
-  return YAML.stringify(doc, { lineWidth: 120 });
-}
-
-/**
- * Convert skills data back to YAML for terminology and tone files.
- */
-function skillsToTerminologyYaml(skills) {
-  const doc = {
-    version: '1.0',
-    last_updated: new Date().toISOString().slice(0, 10),
-  };
-  if (skills.brand) doc.brand = skills.brand;
-  if (skills.products) doc.products = skills.products;
-  if (skills.concepts) doc.concepts = skills.concepts;
-  if (skills.terminology) {
-    doc.terminology = {};
-    if (skills.terminology.preferred) doc.terminology.preferred = skills.terminology.preferred;
-    if (skills.terminology.forbidden) doc.terminology.forbidden = skills.terminology.forbidden;
-  }
-  return YAML.stringify(doc, { lineWidth: 120 });
-}
-
-function skillsToToneYaml(skills) {
-  const doc = {
-    version: '1.0',
-    last_updated: new Date().toISOString().slice(0, 10),
-    ...(skills.owner ? { owner: skills.owner } : {}),
-  };
-  if (skills.voice) doc.voice = skills.voice;
-  if (skills.terminology) {
-    doc.terminology = {};
-    if (skills.terminology.preferred) doc.terminology.preferred = skills.terminology.preferred;
-    if (skills.terminology.forbidden) doc.terminology.forbidden = skills.terminology.forbidden;
-  }
-  return YAML.stringify(doc, { lineWidth: 120 });
-}
-
-/**
- * Fetch .narrative/ canon and skills from a GitHub repo via the Contents API.
- * Returns the same { units, skills, files, errors } shape as parseCanon() in server.js.
- */
-async function fetchRepoCanon(owner, repo, token) {
-  const result = { units: [], skills: {}, files: [], errors: [] };
-
-  // Helper: list directory contents
-  async function listDir(dirPath) {
-    const res = await githubGet(`/repos/${owner}/${repo}/contents/${dirPath}`, token);
-    if (res.status === 404) return [];
-    if (res.status !== 200) {
-      result.errors.push({ file: dirPath, error: `GitHub API ${res.status}` });
-      return [];
-    }
-    return Array.isArray(res.body) ? res.body : [];
-  }
-
-  // Helper: get file content (base64 decoded)
-  async function getFileContent(filePath) {
-    const res = await githubGet(`/repos/${owner}/${repo}/contents/${filePath}`, token);
-    if (res.status !== 200) {
-      result.errors.push({ file: filePath, error: `GitHub API ${res.status}` });
-      return null;
-    }
-    if (res.body.encoding === 'base64' && res.body.content) {
-      return Buffer.from(res.body.content, 'base64').toString('utf-8');
-    }
-    result.errors.push({ file: filePath, error: 'Unexpected encoding' });
-    return null;
-  }
-
-  // Parse canon files
-  const canonFiles = await listDir('.narrative/canon');
-  for (const file of canonFiles) {
-    if (!file.name.match(/\.ya?ml$/)) continue;
-    const content = await getFileContent(file.path);
-    if (!content) continue;
-    result.files.push(file.path);
-    try {
-      const parsed = YAML.parse(content);
-      if (parsed?.units) {
-        for (const unit of parsed.units) {
-          result.units.push({
-            id: unit.id,
-            type: unit.type,
-            assertion: (unit.assertion || '').trim(),
-            intent: unit.intent || {},
-            dependencies: unit.dependencies || [],
-            confidence: unit.confidence ?? 1.0,
-            evidence_required: unit.evidence_required || [],
-            source_file: file.name,
-          });
-        }
-      }
-    } catch (err) {
-      result.errors.push({ file: file.path, error: err.message });
-    }
-  }
-
-  // Parse skill files
-  const skillFiles = await listDir('.narrative/skills');
-  for (const file of skillFiles) {
-    if (!file.name.match(/\.ya?ml$/)) continue;
-    const content = await getFileContent(file.path);
-    if (!content) continue;
-    result.files.push(file.path);
-    try {
-      const parsed = YAML.parse(content);
-      if (parsed?.voice) result.skills.voice = parsed.voice;
-      if (parsed?.terminology) result.skills.terminology = parsed.terminology;
-      if (parsed?.brand) result.skills.brand = parsed.brand;
-      if (parsed?.products) result.skills.products = parsed.products;
-    } catch (err) {
-      result.errors.push({ file: file.path, error: err.message });
-    }
-  }
-
-  return result;
-}
+// GitHub API helpers, YAML serializers, and fetchRepoCanon are imported from store.js
 
 /**
  * Run a full clarion call on canon data (mirrors server.js runClarionCall).
@@ -1243,6 +1036,95 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ---- StoryMining API ----
+
+    if (pathname === '/api/mine' && req.method === 'POST') {
+      let body;
+      try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+      const { text, sourceType, repoFullName } = body || {};
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        json(res, 400, { error: 'Missing or empty text field' });
+        return;
+      }
+
+      // If repo provided, load existing graph for dependency matching
+      let existingGraph;
+      if (repoFullName && session.connectedRepos.has(repoFullName)) {
+        const [rOwner, rRepo] = repoFullName.split('/');
+        try {
+          const data = await getRepoData(rOwner, rRepo, session.githubToken);
+          existingGraph = data.canon.units;
+        } catch { /* proceed without existing graph */ }
+      }
+
+      const result = mineNarrativeUnits(text, { sourceType, existingGraph });
+      json(res, 200, result);
+      return;
+    }
+
+    // ---- Workspace API (memory-backed, no GitHub needed) ----
+
+    if (pathname === '/api/workspaces' && req.method === 'POST') {
+      let body;
+      try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+      const name = body?.name || 'Untitled Workspace';
+      const store = new MemoryAdapter(name);
+      workspaces.set(store.id, store);
+      json(res, 201, { id: store.id, name: store.name, type: 'memory' });
+      return;
+    }
+
+    if (pathname.startsWith('/api/workspaces/') && pathname !== '/api/workspaces/') {
+      const parts = pathname.slice('/api/workspaces/'.length).split('/');
+      const workspaceId = parts[0];
+      const wsRest = parts.slice(1).join('/');
+      const store = workspaces.get(workspaceId);
+
+      if (!store) {
+        json(res, 404, { error: `Workspace ${workspaceId} not found` });
+        return;
+      }
+
+      // GET /api/workspaces/:id/canon
+      if (wsRest === 'canon' && req.method === 'GET') {
+        const data = await store.load();
+        json(res, 200, data);
+        return;
+      }
+
+      // POST /api/workspaces/:id/units/save
+      if (wsRest === 'units/save' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { units: newUnits, filename, metadata } = body || {};
+        if (!newUnits || !Array.isArray(newUnits) || newUnits.length === 0) {
+          json(res, 400, { error: 'Missing or empty units array' });
+          return;
+        }
+        const result = await store.saveUnits(newUnits, filename, metadata || {});
+        json(res, 200, result);
+        return;
+      }
+
+      // POST /api/workspaces/:id/mine
+      if (wsRest === 'mine' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { text, sourceType } = body || {};
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+          json(res, 400, { error: 'Missing or empty text field' });
+          return;
+        }
+        const existing = await store.load();
+        const result = mineNarrativeUnits(text, { sourceType, existingGraph: existing.units });
+        json(res, 200, result);
+        return;
+      }
+
+      json(res, 404, { error: `Unknown workspace route: ${wsRest}` });
+      return;
+    }
+
     // 404
     json(res, 404, { error: 'Not found' });
 
@@ -1290,6 +1172,7 @@ module.exports = {
   sessions,
   repoCache,
   sseClients,
+  workspaces,
   signSession,
   verifySession,
   verifyWebhookSignature,
@@ -1306,9 +1189,14 @@ module.exports = {
   // For testing route handler directly
   RATE_LIMIT_MAX,
   RATE_LIMIT_WINDOW,
-  // Editor helpers
+  // Editor helpers (re-exported from store.js)
   unitsToYaml,
   skillsToTerminologyYaml,
   skillsToToneYaml,
   githubPutFile,
+  // Store classes (re-exported from store.js)
+  GitHubAdapter,
+  MemoryAdapter,
+  // StoryMining (re-exported from storymining.js)
+  mineNarrativeUnits,
 };

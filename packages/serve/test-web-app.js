@@ -24,13 +24,18 @@ const {
   sessions,
   repoCache,
   server,
+  workspaces,
   RATE_LIMIT_MAX,
   unitsToYaml,
   skillsToTerminologyYaml,
   skillsToToneYaml,
+  MemoryAdapter,
+  mineNarrativeUnits,
 } = require('./web-app');
 
 const { createAlgebra, STAKEHOLDER_PRESETS, ALL_LAYERS } = require('./algebra');
+const { splitSentences, classifyLayer, findDependencies, generateUnitId } = require('./storymining');
+const { NarrativeStore, GitHubAdapter } = require('./store');
 
 // ============================================================================
 // Test Framework (same pattern as test-algebra.js)
@@ -401,6 +406,293 @@ test('skillsToToneYaml produces valid YAML', () => {
 });
 
 // ============================================================================
+// MemoryAdapter Tests
+// ============================================================================
+
+console.log('\n  MemoryAdapter');
+console.log('  ' + '─'.repeat(40));
+
+test('MemoryAdapter create and getInfo', () => {
+  const store = new MemoryAdapter('test-workspace');
+  const info = store.getInfo();
+  assertEqual(info.type, 'memory', 'Type should be memory');
+  assertEqual(info.name, 'test-workspace', 'Name should match');
+  assert(store.id.length > 0, 'Should have an ID');
+});
+
+test('MemoryAdapter load returns empty initial state', async () => {
+  const store = new MemoryAdapter('empty');
+  const data = await store.load();
+  assert(Array.isArray(data.units), 'units is array');
+  assertEqual(data.units.length, 0, 'No units initially');
+  assert(typeof data.skills === 'object', 'skills is object');
+  assert(Array.isArray(data.files), 'files is array');
+  assert(Array.isArray(data.errors), 'errors is array');
+  assertEqual(data.errors.length, 0, 'No errors');
+});
+
+test('MemoryAdapter saveUnits and load round-trip', async () => {
+  const store = new MemoryAdapter('save-test');
+  const units = [
+    { id: 'u1', type: 'core_story', assertion: 'Test assertion one', dependencies: [], confidence: 1.0 },
+    { id: 'u2', type: 'positioning', assertion: 'Test assertion two', dependencies: ['u1'], confidence: 0.9 },
+  ];
+  const result = await store.saveUnits(units, 'test.yml');
+  assert(result.saved, 'Should be saved');
+  assertEqual(result.file, 'test.yml', 'File should match');
+
+  const data = await store.load();
+  assertEqual(data.units.length, 2, 'Should have 2 units');
+  assertEqual(data.units[0].id, 'u1', 'First unit ID');
+  assertEqual(data.units[1].dependencies[0], 'u1', 'Dependency preserved');
+});
+
+test('MemoryAdapter saveUnits replaces units from same file', async () => {
+  const store = new MemoryAdapter('replace-test');
+  await store.saveUnits([{ id: 'a', type: 'core_story', assertion: 'A', dependencies: [] }], 'f1.yml');
+  await store.saveUnits([{ id: 'b', type: 'positioning', assertion: 'B', dependencies: [] }], 'f2.yml');
+  // Now replace f1.yml
+  await store.saveUnits([{ id: 'a2', type: 'core_story', assertion: 'A2', dependencies: [] }], 'f1.yml');
+  const data = await store.load();
+  assertEqual(data.units.length, 2, 'Should have 2 units (replaced f1, kept f2)');
+  const ids = data.units.map(u => u.id).sort();
+  assert(ids.includes('a2'), 'Should have a2');
+  assert(ids.includes('b'), 'Should have b');
+  assert(!ids.includes('a'), 'Should NOT have a (replaced)');
+});
+
+test('MemoryAdapter saveSkills terminology', async () => {
+  const store = new MemoryAdapter('skills-test');
+  await store.saveSkills('terminology', {
+    brand: { company_name: 'Acme', never: ['ACME'] },
+    terminology: { forbidden: ['synergy'] },
+  });
+  const data = await store.load();
+  assertEqual(data.skills.brand.company_name, 'Acme', 'Brand saved');
+  assertIncludes(data.skills.terminology.forbidden, 'synergy', 'Forbidden terms saved');
+});
+
+test('MemoryAdapter saveSkills tone', async () => {
+  const store = new MemoryAdapter('tone-test');
+  await store.saveSkills('tone', {
+    voice: { name: 'Test Voice', summary: 'Be clear.' },
+  });
+  const data = await store.load();
+  assertEqual(data.skills.voice.name, 'Test Voice', 'Voice saved');
+});
+
+test('MemoryAdapter saveSkills rejects unknown type', async () => {
+  const store = new MemoryAdapter('bad-type');
+  try {
+    await store.saveSkills('invalid', {});
+    assert(false, 'Should have thrown');
+  } catch (err) {
+    assert(err.message.includes('Unknown skills type'), 'Error message');
+  }
+});
+
+test('MemoryAdapter setup creates full canon', async () => {
+  const store = new MemoryAdapter('setup-test');
+  const result = await store.setup({
+    coreStory: [{ id: 'cs1', type: 'core_story', assertion: 'Core', dependencies: [], confidence: 1.0 }],
+    positioning: [{ id: 'pos1', type: 'positioning', assertion: 'Pos', dependencies: ['cs1'], confidence: 0.9 }],
+    brand: { company_name: 'Test Co', never: ['testco'] },
+    forbidden: ['buzzword'],
+    voicePrinciples: [{ id: 'p1', rule: 'Be direct' }],
+    owner: 'test@test.com',
+  });
+  assert(result.files.length >= 3, 'Should create multiple files');
+  assertIncludes(result.files, 'core-story.yml', 'Has core story');
+  assertIncludes(result.files, 'positioning.yml', 'Has positioning');
+  assertIncludes(result.files, 'terminology.yml', 'Has terminology');
+  assertIncludes(result.files, 'tone-of-voice.yml', 'Has tone');
+  assertEqual(result.errors.length, 0, 'No errors');
+
+  const data = await store.load();
+  assertEqual(data.units.length, 2, 'Has 2 units');
+  assert(data.skills.brand, 'Has brand skills');
+  assert(data.skills.voice, 'Has voice skills');
+});
+
+test('NarrativeStore base class throws on unimplemented methods', () => {
+  const base = new NarrativeStore();
+  try { base.getInfo(); assert(false, 'Should throw'); } catch (e) { assert(e.message.includes('must be implemented'), 'Error message'); }
+});
+
+test('GitHubAdapter getInfo returns git type', () => {
+  const adapter = new GitHubAdapter('owner', 'repo', 'token');
+  const info = adapter.getInfo();
+  assertEqual(info.type, 'git', 'Type');
+  assertEqual(info.name, 'owner/repo', 'Name');
+});
+
+// ============================================================================
+// StoryMining Tests
+// ============================================================================
+
+console.log('\n  StoryMining');
+console.log('  ' + '─'.repeat(40));
+
+test('mineNarrativeUnits returns empty for empty text', () => {
+  const result = mineNarrativeUnits('');
+  assertEqual(result.candidates.length, 0, 'No candidates');
+  assertEqual(result.coverage.gaps.length, 6, 'All 6 layers are gaps');
+});
+
+test('mineNarrativeUnits returns empty for null/undefined', () => {
+  const result = mineNarrativeUnits(null);
+  assertEqual(result.candidates.length, 0, 'No candidates for null');
+});
+
+test('mineNarrativeUnits extracts from press release text', () => {
+  const pressRelease = `
+    Cisco today announced a new cloud security platform that delivers
+    unprecedented protection for enterprise customers. The platform provides
+    real-time threat detection and automated response capabilities.
+
+    Cisco achieved a 45% reduction in security incidents across 500 customers
+    in the first quarter. Our mission is to power an inclusive future for all.
+
+    Unlike legacy solutions, Cisco is the only vendor providing end-to-end
+    visibility across hybrid cloud environments.
+  `;
+  const result = mineNarrativeUnits(pressRelease, { sourceType: 'press_release' });
+  assert(result.candidates.length > 0, 'Should find candidates');
+
+  // Should find evidence (45% reduction)
+  const evidenceCandidates = result.candidates.filter(c => c.type === 'evidence');
+  assert(evidenceCandidates.length > 0, 'Should find evidence layer candidates (metrics)');
+
+  // Should find communication or positioning
+  const types = new Set(result.candidates.map(c => c.type));
+  assert(types.size > 1, 'Should find multiple layer types');
+
+  // Coverage should show some layers covered
+  const coveredLayers = Object.entries(result.coverage.layers).filter(([, v]) => v > 0);
+  assert(coveredLayers.length >= 2, 'Should cover at least 2 layers');
+});
+
+test('mineNarrativeUnits classifies core_story signals', () => {
+  const text = 'Our mission is to make software development visible to everyone. We exist to bring transparency to the most consequential creative work on earth.';
+  const result = mineNarrativeUnits(text, { sourceType: 'strategy' });
+  assert(result.candidates.length > 0, 'Should find candidates');
+  const coreStory = result.candidates.filter(c => c.type === 'core_story');
+  assert(coreStory.length > 0, 'Should classify as core_story');
+});
+
+test('mineNarrativeUnits classifies evidence signals with metrics', () => {
+  const text = 'Our customers achieved a 67% improvement in deployment frequency. Revenue increased by $2.4M in Q3 after adopting the platform.';
+  const result = mineNarrativeUnits(text);
+  const evidence = result.candidates.filter(c => c.type === 'evidence');
+  assert(evidence.length > 0, 'Should find evidence candidates');
+});
+
+test('mineNarrativeUnits classifies positioning signals', () => {
+  const text = 'Unlike traditional monitoring tools, we are the first to provide real-time narrative alignment. Our competitive advantage lies in mathematical coherence measurement.';
+  const result = mineNarrativeUnits(text);
+  const positioning = result.candidates.filter(c => c.type === 'positioning');
+  assert(positioning.length > 0, 'Should find positioning candidates');
+});
+
+test('mineNarrativeUnits proposes dependencies to existing graph', () => {
+  const existingUnits = [
+    { id: 'core_visibility', assertion: 'Software development is invisible. We make it visible.' },
+    { id: 'pos_platform', assertion: 'The platform provides real-time visibility into development.' },
+  ];
+  const text = 'We build tools for software development visibility. Our platform makes development work transparent.';
+  const result = mineNarrativeUnits(text, { existingGraph: existingUnits });
+  const withDeps = result.candidates.filter(c => c.dependencies.length > 0);
+  assert(withDeps.length > 0, 'Should propose dependencies');
+});
+
+test('mineNarrativeUnits coverage shows gaps', () => {
+  const text = 'Our mission is to help everyone. We believe in transparency.';
+  const result = mineNarrativeUnits(text);
+  assert(result.coverage.gaps.length > 0, 'Should have gaps for layers not covered');
+  assert(result.coverage.gaps.length < 6, 'Should cover at least one layer');
+});
+
+test('splitSentences handles bullet points and newlines', () => {
+  const text = '- First bullet point here\n- Second bullet point here\n\nNew paragraph starts here.';
+  const sentences = splitSentences(text);
+  assert(sentences.length >= 2, 'Should split into multiple sentences');
+  assert(!sentences[0].startsWith('-'), 'Should strip bullet markers');
+});
+
+test('classifyLayer returns valid layer and confidence', () => {
+  const result = classifyLayer('Our mission is to transform how organizations work', 'strategy');
+  assert(result.layer, 'Should have a layer');
+  assert(typeof result.confidence === 'number', 'Confidence is number');
+  assert(result.confidence >= 0 && result.confidence <= 1, 'Confidence in range');
+  assert(result.reasoning, 'Should have reasoning');
+});
+
+test('generateUnitId produces unique IDs', () => {
+  const id1 = generateUnitId('First assertion about something', 'core_story');
+  const id2 = generateUnitId('Second assertion about another thing', 'core_story');
+  assert(id1 !== id2, 'Different assertions get different IDs');
+  assert(id1.startsWith('cs_'), 'core_story prefix');
+});
+
+test('findDependencies returns empty for no existing units', () => {
+  const deps = findDependencies('Some assertion', []);
+  assertEqual(deps.length, 0, 'No deps for empty graph');
+});
+
+// ============================================================================
+// StoryMining + Algebra Integration Tests
+// ============================================================================
+
+console.log('\n  StoryMining + Algebra Integration');
+console.log('  ' + '─'.repeat(40));
+
+test('mine → ingest → algebra → NCI computes', async () => {
+  // 1. Mine narrative units from text
+  const text = `
+    Our purpose is to make organizational narratives mathematically precise.
+    We believe every company needs a single source of truth for its story.
+    The platform provides real-time narrative coherence measurement.
+    Our customers achieved 90% improvement in messaging consistency.
+  `;
+  const mined = mineNarrativeUnits(text, { sourceType: 'strategy' });
+  assert(mined.candidates.length > 0, 'Should mine candidates');
+
+  // 2. Create a MemoryAdapter workspace and ingest mined units
+  const store = new MemoryAdapter('integration-test');
+  const units = mined.candidates.map(c => ({
+    id: c.id, type: c.type, assertion: c.assertion,
+    intent: {}, dependencies: c.dependencies, confidence: c.confidence,
+  }));
+  await store.saveUnits(units, 'mined.yml');
+
+  // 3. Load and run algebra
+  const data = await store.load();
+  assert(data.units.length > 0, 'Should have units after ingest');
+
+  const { algebra } = createAlgebra(data.units);
+  const metrics = algebra.computeMetrics();
+  assert(typeof metrics.narrativeCoherenceIndex === 'number', 'NCI should compute');
+  assert(metrics.narrativeCoherenceIndex >= 0 && metrics.narrativeCoherenceIndex <= 1, 'NCI in valid range');
+  assert(metrics.totalUnits === data.units.length, 'All units counted');
+});
+
+test('mine → clarion call works end-to-end', async () => {
+  const text = 'We exist to help teams communicate clearly. Our platform enables narrative alignment. The tool provides automated coherence scoring.';
+  const mined = mineNarrativeUnits(text);
+  const units = mined.candidates.map(c => ({
+    id: c.id, type: c.type, assertion: c.assertion,
+    intent: {}, dependencies: c.dependencies, confidence: c.confidence,
+  }));
+
+  if (units.length > 0) {
+    const result = runClarionCall(units, {});
+    assert(typeof result.nci === 'number', 'NCI computed');
+    assert(typeof result.coherenceScore === 'number', 'Coherence score computed');
+    assertEqual(result.totalUnits, units.length, 'Unit count matches');
+  }
+});
+
+// ============================================================================
 // HTTP Server Tests (quick functional tests)
 // ============================================================================
 
@@ -668,9 +960,151 @@ async function runHttpTests() {
     assert(res.body.error.includes('core story'), 'Error message');
   });
 
+  // ---- StoryMining API Tests ----
+
+  await testAsync('POST /api/mine extracts candidates from text', async () => {
+    const res = await httpRequest({
+      path: '/api/mine',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({
+      text: 'Our mission is to make software visible. We achieved a 50% improvement in team alignment. The platform provides real-time dashboards.',
+      sourceType: 'strategy',
+    }));
+    assertEqual(res.status, 200, 'Status');
+    assert(Array.isArray(res.body.candidates), 'Has candidates array');
+    assert(res.body.candidates.length > 0, 'Should find candidates');
+    assert(res.body.coverage, 'Has coverage');
+    assert(res.body.coverage.layers, 'Has layers');
+  });
+
+  await testAsync('POST /api/mine rejects empty text', async () => {
+    const res = await httpRequest({
+      path: '/api/mine',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ text: '' }));
+    assertEqual(res.status, 400, 'Status');
+    assert(res.body.error.includes('Missing'), 'Error message');
+  });
+
+  await testAsync('POST /api/mine with repoFullName uses existing graph', async () => {
+    // Re-seed repo cache
+    testSession.connectedRepos.add('test/repo');
+    repoCache.set('test/repo', {
+      canon: { units: TEST_UNITS, skills: TEST_SKILLS, files: [], errors: [] },
+      lastCheck: runClarionCall(TEST_UNITS, TEST_SKILLS),
+      history: [],
+    });
+    const res = await httpRequest({
+      path: '/api/mine',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({
+      text: 'Software development visibility is crucial for organizational alignment.',
+      repoFullName: 'test/repo',
+    }));
+    assertEqual(res.status, 200, 'Status');
+    assert(Array.isArray(res.body.candidates), 'Has candidates');
+  });
+
+  // ---- Workspace API Tests ----
+
+  await testAsync('POST /api/workspaces creates a new workspace', async () => {
+    const res = await httpRequest({
+      path: '/api/workspaces',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ name: 'Test Workspace' }));
+    assertEqual(res.status, 201, 'Status');
+    assert(res.body.id, 'Has workspace ID');
+    assertEqual(res.body.name, 'Test Workspace', 'Name matches');
+    assertEqual(res.body.type, 'memory', 'Type is memory');
+    // Store workspace ID for subsequent tests
+    state_testWorkspaceId = res.body.id;
+  });
+
+  await testAsync('GET /api/workspaces/:id/canon returns empty data', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/canon`,
+      method: 'GET',
+      headers: { Cookie: cookie },
+    });
+    assertEqual(res.status, 200, 'Status');
+    assert(Array.isArray(res.body.units), 'Has units array');
+    assertEqual(res.body.units.length, 0, 'Empty initially');
+  });
+
+  await testAsync('POST /api/workspaces/:id/units/save saves units', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/units/save`,
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({
+      units: [{ id: 'ws_u1', type: 'core_story', assertion: 'Test', dependencies: [], confidence: 1.0 }],
+      filename: 'core.yml',
+    }));
+    assertEqual(res.status, 200, 'Status');
+    assert(res.body.saved, 'Should be saved');
+  });
+
+  await testAsync('GET /api/workspaces/:id/canon returns saved units', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/canon`,
+      method: 'GET',
+      headers: { Cookie: cookie },
+    });
+    assertEqual(res.status, 200, 'Status');
+    assertEqual(res.body.units.length, 1, 'Has 1 unit');
+    assertEqual(res.body.units[0].id, 'ws_u1', 'Unit ID matches');
+  });
+
+  await testAsync('POST /api/workspaces/:id/units/save rejects empty units', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/units/save`,
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ units: [], filename: 'test.yml' }));
+    assertEqual(res.status, 400, 'Status');
+  });
+
+  await testAsync('POST /api/workspaces/:id/mine mines and returns candidates', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/mine`,
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({
+      text: 'We believe in making development visible. Our platform provides real-time insights.',
+      sourceType: 'strategy',
+    }));
+    assertEqual(res.status, 200, 'Status');
+    assert(Array.isArray(res.body.candidates), 'Has candidates');
+  });
+
+  await testAsync('POST /api/workspaces/:id/mine rejects empty text', async () => {
+    const res = await httpRequest({
+      path: `/api/workspaces/${state_testWorkspaceId}/mine`,
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ text: '' }));
+    assertEqual(res.status, 400, 'Status');
+  });
+
+  await testAsync('GET /api/workspaces/:nonexistent/canon returns 404', async () => {
+    const res = await httpRequest({
+      path: '/api/workspaces/nonexistent/canon',
+      method: 'GET',
+      headers: { Cookie: cookie },
+    });
+    assertEqual(res.status, 404, 'Status');
+  });
+
   // Clean up
   server.close();
 }
+
+// Variable to pass workspace ID between async tests
+let state_testWorkspaceId;
 
 // ============================================================================
 // Run all tests
