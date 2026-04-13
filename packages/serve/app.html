@@ -176,6 +176,8 @@ body {
   background: var(--navy-light);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .header-left {
@@ -216,6 +218,26 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.autosave-indicator {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--copper);
+  font-family: var(--mono);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.autosave-indicator.visible { display: flex; opacity: 1; }
+.autosave-indicator.saving { color: var(--yellow); }
+.autosave-indicator.saved { color: var(--green); }
+.autosave-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .sse-indicator {
@@ -386,6 +408,7 @@ body {
   padding: 0 28px;
   background: var(--navy-light);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -865,6 +888,958 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
 
 /* ============================================================
+   ONBOARDING WIZARD
+   ============================================================ */
+.wizard-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--navy);
+  z-index: 200;
+  overflow-y: auto;
+}
+.wizard-overlay.active { display: flex; flex-direction: column; }
+
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.wizard-brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--navy-mid);
+  border: 1.5px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+.wizard-step-dot.active { background: var(--copper); border-color: var(--copper); width: 24px; border-radius: 4px; }
+.wizard-step-dot.done { background: var(--green); border-color: var(--green); }
+
+.wizard-skip {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+.wizard-skip:hover { color: var(--text-secondary); background: var(--navy-mid); }
+
+.wizard-body {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px 100px;
+}
+
+.wizard-steps-container {
+  width: 100%;
+  max-width: 680px;
+  position: relative;
+  min-height: 400px;
+}
+
+.wizard-step {
+  display: none;
+  animation: wiz-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.wizard-step.active { display: block; }
+.wizard-step.exit { animation: wiz-out 0.25s ease-in both; display: block; }
+
+@keyframes wiz-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes wiz-in-back {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes wiz-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-30px); }
+}
+
+.wizard-step-number {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 10px;
+}
+
+.wizard-step h2 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.wizard-step .wizard-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 36px;
+  max-width: 520px;
+}
+
+/* Form elements */
+.wiz-field {
+  margin-bottom: 20px;
+}
+
+.wiz-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.wiz-textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 14px 16px;
+  background: var(--navy-light);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  transition: border-color var(--transition), min-height 0.2s;
+  overflow: hidden;
+}
+.wiz-textarea:focus { border-color: var(--copper); }
+.wiz-textarea::placeholder { color: var(--text-dim); }
+
+.wiz-input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--navy-light);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.wiz-input:focus { border-color: var(--copper); }
+.wiz-input::placeholder { color: var(--text-dim); }
+.wiz-input.mono { font-family: var(--mono); font-size: 13px; color: var(--copper); }
+
+.wiz-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.wiz-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.wiz-btn-primary {
+  padding: 12px 28px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wiz-btn-primary:hover { background: var(--copper-light); transform: translateY(-1px); }
+.wiz-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.wiz-btn-secondary {
+  padding: 12px 20px;
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.wiz-btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+
+.wiz-btn-ghost {
+  padding: 12px 16px;
+  background: none;
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.wiz-btn-ghost:hover { color: var(--text-secondary); }
+
+/* Positioning unit block */
+.wiz-unit-block {
+  background: var(--navy-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  transition: border-color var(--transition);
+}
+.wiz-unit-block:hover { border-color: var(--border-light); }
+
+.wiz-unit-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.wiz-unit-block-num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+.wiz-delete-btn {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  font-size: 16px;
+  line-height: 1;
+}
+.wiz-delete-btn:hover { background: var(--red-dim); color: var(--red); }
+
+.wiz-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: none;
+  border: 1.5px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  transition: all var(--transition);
+  margin-bottom: 20px;
+}
+.wiz-add-btn:hover { border-color: var(--copper); color: var(--copper); }
+
+/* Checkboxes */
+.wiz-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.wiz-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 12px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+.wiz-checkbox-item input { display: none; }
+.wiz-checkbox-item.checked {
+  background: var(--copper-glow);
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* Tag input */
+.tag-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--navy-light);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  align-items: center;
+  transition: border-color var(--transition);
+  cursor: text;
+}
+.tag-input-wrap:focus-within { border-color: var(--copper); }
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 10px;
+  background: var(--navy-mid);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.tag-chip .tag-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  line-height: 1;
+  font-size: 14px;
+  transition: color var(--transition);
+}
+.tag-chip .tag-remove:hover { color: var(--red); }
+
+.tag-input-field {
+  flex: 1;
+  min-width: 80px;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+}
+.tag-input-field::placeholder { color: var(--text-dim); }
+
+/* Wizard saving step */
+.wiz-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 32px 0;
+}
+
+.wiz-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  transition: all 0.4s ease;
+}
+.wiz-progress-item.active { opacity: 1; color: var(--text); }
+.wiz-progress-item.done { opacity: 1; color: var(--green); }
+.wiz-progress-item.running { opacity: 1; color: var(--copper); }
+
+.wiz-progress-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   EDITOR TAB
+   ============================================================ */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  height: 100%;
+  min-height: calc(100vh - 110px);
+}
+
+.editor-units-pane {
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  position: relative;
+  padding-bottom: 80px; /* space for save bar */
+}
+
+.editor-graph-pane {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 110px);
+  overflow: hidden;
+  background: var(--navy-light);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-graph-title {
+  padding: 16px 20px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.editor-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.editor-graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.editor-graph-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+#editorGraphContainer {
+  flex: 1;
+  overflow: hidden;
+}
+#editorGraphContainer svg { width: 100%; height: 100%; }
+
+/* Sub-tabs within editor */
+.editor-subtabs {
+  display: flex;
+  gap: 1px;
+  padding: 0 24px;
+  background: var(--navy-light);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.editor-subtab-btn {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--sans);
+}
+.editor-subtab-btn:hover { color: var(--text-secondary); }
+.editor-subtab-btn.active { color: var(--copper); border-bottom-color: var(--copper); }
+
+.editor-subtab-content { display: none; }
+.editor-subtab-content.active { display: block; }
+
+/* Unit groups */
+.unit-group {
+  padding: 20px 24px 8px;
+}
+
+.unit-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.unit-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unit-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.unit-group-count {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+  background: var(--navy-mid);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: var(--mono);
+}
+
+/* Editor unit cards */
+.editor-unit-card {
+  background: var(--navy-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0;
+  margin-bottom: 12px;
+  transition: border-color var(--transition);
+  overflow: hidden;
+}
+.editor-unit-card:hover { border-color: var(--border-light); }
+.editor-unit-card.dirty { border-color: var(--copper); }
+
+.editor-unit-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  background: var(--navy-mid);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-unit-id-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--copper);
+  min-width: 0;
+}
+.editor-unit-id-input::placeholder { color: var(--text-dim); }
+
+.editor-unit-type-select {
+  background: var(--navy);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: var(--sans);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.editor-unit-type-select:focus { border-color: var(--copper); }
+.editor-unit-type-select option { background: var(--navy-mid); }
+
+.editor-unit-delete-btn {
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.editor-unit-delete-btn:hover { background: var(--red-dim); color: var(--red); }
+
+.editor-unit-body {
+  padding: 14px;
+}
+
+.editor-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.editor-assertion {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--navy);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  transition: border-color var(--transition);
+  overflow: hidden;
+  min-height: 60px;
+}
+.editor-assertion:focus { border-color: var(--copper); }
+.editor-assertion::placeholder { color: var(--text-dim); }
+
+.editor-deps-section {
+  margin-top: 12px;
+}
+
+.editor-deps-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.editor-dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: var(--mono);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  user-select: none;
+  transition: all var(--transition);
+  background: var(--navy-mid);
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+.editor-dep-chip.selected {
+  background: var(--copper-glow);
+  color: var(--copper);
+  border-color: var(--copper);
+}
+
+/* Collapsible intent */
+.editor-intent-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 6px 0;
+  margin-top: 12px;
+  transition: color var(--transition);
+}
+.editor-intent-toggle:hover { color: var(--text-secondary); }
+.editor-intent-toggle .toggle-arrow {
+  transition: transform 0.2s ease;
+  font-size: 10px;
+}
+.editor-intent-toggle.open .toggle-arrow { transform: rotate(90deg); }
+
+.editor-intent-body {
+  display: none;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+.editor-intent-body.open { display: block; }
+
+.editor-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.editor-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--navy);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.editor-select:focus { border-color: var(--copper); }
+.editor-select option { background: var(--navy-mid); }
+
+/* Confidence slider */
+.confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.confidence-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--navy-mid);
+  outline: none;
+  cursor: pointer;
+}
+.confidence-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--copper);
+  cursor: pointer;
+  border: 2px solid var(--navy-light);
+  box-shadow: 0 0 6px rgba(212,135,44,0.4);
+}
+.confidence-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--copper);
+  cursor: pointer;
+  border: 2px solid var(--navy-light);
+}
+.confidence-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--copper);
+  width: 36px;
+  text-align: right;
+}
+
+/* Add unit button */
+.editor-add-unit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: 1.5px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-bottom: 20px;
+}
+.editor-add-unit-btn:hover { border-color: var(--copper); color: var(--copper); }
+
+/* Save bar */
+.editor-save-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--navy-light);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 50;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.editor-save-bar.visible { transform: translateY(0); }
+
+.editor-save-bar-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.editor-save-bar-info strong { color: var(--copper); }
+
+.editor-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.editor-save-btn:hover { background: var(--copper-light); }
+.editor-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.editor-save-btn.saving {
+  background: var(--navy-mid);
+  border: 1.5px solid var(--border-light);
+  color: var(--text-secondary);
+}
+.editor-save-btn.success {
+  background: var(--green);
+  color: var(--navy);
+}
+
+/* Brand editor */
+.brand-editor { padding: 24px; max-width: 680px; }
+
+.brand-section {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-section:last-child { border-bottom: none; }
+
+.brand-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-product-block {
+  background: var(--navy-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.brand-product-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+/* Voice editor */
+.voice-editor { padding: 24px; max-width: 680px; }
+
+.voice-principle-block {
+  background: var(--navy-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.voice-principle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.voice-principle-num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--purple);
+}
+
+.voice-examples-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.voice-example-wrap {
+  background: var(--navy);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.voice-example-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 10px;
+}
+.voice-example-label.good { background: var(--green-dim); color: var(--green); }
+.voice-example-label.bad { background: var(--red-dim); color: var(--red); }
+.voice-example-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--sans);
+  line-height: 1.5;
+  resize: none;
+  min-height: 56px;
+}
+.voice-example-input::placeholder { color: var(--text-dim); }
+
+/* Editor input base */
+.editor-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--navy);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.editor-input:focus { border-color: var(--copper); }
+.editor-input::placeholder { color: var(--text-dim); }
+
+.editor-save-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 1024px) {
@@ -878,6 +1853,21 @@ body {
   .login-features { grid-template-columns: 1fr; }
   .stakeholder-grid { grid-template-columns: repeat(2, 1fr); }
   .resonate-scores { grid-template-columns: repeat(2, 1fr); }
+  .editor-layout { grid-template-columns: 1fr; }
+  .editor-graph-pane {
+    position: static;
+    height: 300px;
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 640px) {
+  .wizard-body { padding: 24px 16px 80px; }
+  .wizard-step h2 { font-size: 24px; }
+  .wiz-actions { flex-wrap: wrap; }
+  .editor-row-2 { grid-template-columns: 1fr; }
+  .voice-examples-row { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -917,6 +1907,182 @@ body {
 </div>
 
 <!-- ============================================================
+     Onboarding Wizard Overlay
+     ============================================================ -->
+<div id="wizardOverlay" class="wizard-overlay">
+  <div class="wizard-header">
+    <div class="wizard-brand">Narrative Agent</div>
+    <div class="wizard-progress">
+      <div class="wizard-step-dot active" data-wiz-dot="1"></div>
+      <div class="wizard-step-dot" data-wiz-dot="2"></div>
+      <div class="wizard-step-dot" data-wiz-dot="3"></div>
+      <div class="wizard-step-dot" data-wiz-dot="4"></div>
+      <div class="wizard-step-dot" data-wiz-dot="5"></div>
+    </div>
+    <button class="wizard-skip" id="wizardSkipBtn">Skip setup</button>
+  </div>
+
+  <div class="wizard-body">
+    <div class="wizard-steps-container">
+
+      <!-- Step 1: Core Story -->
+      <div class="wizard-step active" id="wizStep1">
+        <div class="wizard-step-number">Step 1 of 4</div>
+        <h2>What's your core story?</h2>
+        <p class="wizard-sub">The one thing everyone in your organization must say the same way.</p>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Core assertion</label>
+          <textarea class="wiz-textarea" id="wizCoreAssertion"
+            placeholder="e.g. Software development is invisible. We make it visible."
+            rows="3" oninput="autoGrow(this); wizUpdateCoreId()"></textarea>
+          <div class="wiz-hint">State it as a declarative sentence. This is the root of your narrative graph.</div>
+        </div>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Unit ID</label>
+          <input type="text" class="wiz-input mono" id="wizCoreId"
+            placeholder="core_main" oninput="wizState.coreStory.id = this.value">
+          <div class="wiz-hint">Auto-generated from your assertion. You can edit it.</div>
+        </div>
+
+        <div class="wiz-actions">
+          <button class="wiz-btn-primary" onclick="wizGoTo(2)">
+            Next: Positioning
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="wiz-btn-ghost" onclick="wizSkip()">Skip this step</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Positioning -->
+      <div class="wizard-step" id="wizStep2">
+        <div class="wizard-step-number">Step 2 of 4 — Optional</div>
+        <h2>How do you position it?</h2>
+        <p class="wizard-sub">Market-facing claims that support your core story.</p>
+
+        <div id="wizPositioningBlocks"></div>
+
+        <button class="wiz-add-btn" onclick="wizAddPositioning()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add positioning claim
+        </button>
+
+        <div class="wiz-actions">
+          <button class="wiz-btn-primary" onclick="wizGoTo(3)">
+            Next: Brand Rules
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="wiz-btn-secondary" onclick="wizGoTo(1, true)">Back</button>
+          <button class="wiz-btn-ghost" onclick="wizGoTo(3)">Skip</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Brand Rules -->
+      <div class="wizard-step" id="wizStep3">
+        <div class="wizard-step-number">Step 3 of 4 — Optional</div>
+        <h2>Protect your brand</h2>
+        <p class="wizard-sub">Names that must never be misspelled. Terms that should never appear.</p>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Company name</label>
+          <input type="text" class="wiz-input" id="wizCompanyName" placeholder="e.g. Narrative Agent"
+            oninput="wizState.brand.companyName = this.value">
+        </div>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Never write it as</label>
+          <div class="tag-input-wrap" id="wizNeverWrap" onclick="this.querySelector('.tag-input-field').focus()">
+            <input class="tag-input-field" placeholder="Type a wrong variant, press Enter…"
+              onkeydown="tagInputKeydown(event, 'wizNeverTags', 'wizNeverWrap')">
+          </div>
+          <div class="wiz-hint">Common misspellings or wrong capitalizations to reject.</div>
+        </div>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Forbidden terms</label>
+          <div class="tag-input-wrap" id="wizForbiddenWrap" onclick="this.querySelector('.tag-input-field').focus()">
+            <input class="tag-input-field" placeholder="Type a forbidden term, press Enter…"
+              onkeydown="tagInputKeydown(event, 'wizForbiddenTags', 'wizForbiddenWrap')">
+          </div>
+        </div>
+
+        <div class="wiz-field">
+          <label class="wiz-label">Products</label>
+          <div id="wizProductBlocks"></div>
+          <button class="wiz-add-btn" onclick="wizAddProduct()" style="margin-top: 0;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add product
+          </button>
+        </div>
+
+        <div class="wiz-actions">
+          <button class="wiz-btn-primary" onclick="wizGoTo(4)">
+            Next: Voice
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="wiz-btn-secondary" onclick="wizGoTo(2, true)">Back</button>
+          <button class="wiz-btn-ghost" onclick="wizGoTo(4)">Skip</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Voice -->
+      <div class="wizard-step" id="wizStep4">
+        <div class="wizard-step-number">Step 4 of 4 — Optional</div>
+        <h2>How should it sound?</h2>
+        <p class="wizard-sub">Voice principles that define your tone.</p>
+
+        <div id="wizVoiceBlocks"></div>
+
+        <button class="wiz-add-btn" onclick="wizAddVoice()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add voice principle
+        </button>
+
+        <div class="wiz-actions">
+          <button class="wiz-btn-primary" id="wizLaunchBtn" onclick="wizLaunch()">
+            Save &amp; Launch
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 3L3 13M3 3h10v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="wiz-btn-secondary" onclick="wizGoTo(3, true)">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Saving -->
+      <div class="wizard-step" id="wizStep5">
+        <div class="wizard-step-number">Setting up your narrative</div>
+        <h2>Building your narrative graph…</h2>
+        <p class="wizard-sub">Hang tight while we create your YAML files and run the first coherence check.</p>
+
+        <div class="wiz-progress-list" id="wizProgressList">
+          <div class="wiz-progress-item" data-wiz-prog="core">
+            <div class="wiz-progress-icon">◦</div>
+            <span>Creating core-story.yml</span>
+          </div>
+          <div class="wiz-progress-item" data-wiz-prog="positioning">
+            <div class="wiz-progress-icon">◦</div>
+            <span>Creating positioning.yml</span>
+          </div>
+          <div class="wiz-progress-item" data-wiz-prog="terminology">
+            <div class="wiz-progress-icon">◦</div>
+            <span>Creating terminology.yml</span>
+          </div>
+          <div class="wiz-progress-item" data-wiz-prog="tone">
+            <div class="wiz-progress-icon">◦</div>
+            <span>Creating tone-of-voice.yml</span>
+          </div>
+          <div class="wiz-progress-item" data-wiz-prog="coherence">
+            <div class="wiz-progress-icon">◦</div>
+            <span>Running first coherence check…</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      App (authenticated)
      ============================================================ -->
 <div id="app" class="app">
@@ -929,6 +2095,10 @@ body {
       </select>
     </div>
     <div class="header-right">
+      <div id="autosaveIndicator" class="autosave-indicator">
+        <div class="autosave-dot"></div>
+        <span id="autosaveLabel">Unsaved changes</span>
+      </div>
       <div class="sse-indicator">
         <div id="sseDot" class="sse-dot"></div>
         <span id="sseLabel">Disconnected</span>
@@ -954,6 +2124,7 @@ body {
     <div id="dashboardView" class="dashboard">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="editor">Editor</button>
         <button class="tab-btn" data-tab="compose">Compose</button>
         <button class="tab-btn" data-tab="resonate">Resonate</button>
         <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
@@ -1010,6 +2181,50 @@ body {
         </div>
       </div>
 
+      <!-- Editor Tab -->
+      <div id="tab-editor" class="tab-content">
+        <div style="display: flex; flex-direction: column; height: 100%;">
+          <!-- Sub-tabs -->
+          <div class="editor-subtabs">
+            <button class="editor-subtab-btn active" data-subtab="units" onclick="switchEditorSubtab('units', this)">Units</button>
+            <button class="editor-subtab-btn" data-subtab="brand" onclick="switchEditorSubtab('brand', this)">Brand &amp; Terminology</button>
+            <button class="editor-subtab-btn" data-subtab="voice" onclick="switchEditorSubtab('voice', this)">Voice &amp; Tone</button>
+          </div>
+
+          <!-- Units sub-tab -->
+          <div id="editorSubtab-units" class="editor-subtab-content active" style="flex:1;">
+            <div class="editor-layout">
+              <!-- Left: Unit cards -->
+              <div class="editor-units-pane" id="editorUnitsPaneEl">
+                <div id="editorUnitsContent">
+                  <div class="loading"><div class="spinner"></div></div>
+                </div>
+              </div>
+              <!-- Right: Live graph -->
+              <div class="editor-graph-pane">
+                <div class="editor-graph-title">Live Narrative Graph</div>
+                <div class="editor-graph-legend" id="editorGraphLegend"></div>
+                <div id="editorGraphContainer"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Brand sub-tab -->
+          <div id="editorSubtab-brand" class="editor-subtab-content">
+            <div class="brand-editor" id="brandEditorContent">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Voice sub-tab -->
+          <div id="editorSubtab-voice" class="editor-subtab-content">
+            <div class="voice-editor" id="voiceEditorContent">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Compose Tab -->
       <div id="tab-compose" class="tab-content">
         <div class="compose-tab">
@@ -1042,6 +2257,14 @@ body {
       </div>
     </div>
   </div>
+</div>
+
+<!-- Save bar (global, shown when editor has dirty units) -->
+<div class="editor-save-bar" id="editorSaveBar">
+  <div class="editor-save-bar-info">
+    <strong id="dirtyCount">0</strong> unsaved changes
+  </div>
+  <button class="editor-save-btn" id="editorSaveBtn" onclick="editorSaveAll()">Save All</button>
 </div>
 
 <script>
@@ -1077,6 +2300,10 @@ const LAYER_LABELS = {
   evidence: 'Evidence',
   communication: 'Comms',
 };
+
+const LAYER_TYPES = Object.keys(LAYER_COLORS);
+
+const TONE_OPTIONS = ['professional', 'casual', 'technical', 'inspirational', 'authoritative', 'conversational'];
 
 /* ============================================================
    Initialize
@@ -1200,6 +2427,17 @@ async function connectRepo(owner, repo) {
     const repoObj = state.repos.find(r => r.full_name === fullName);
     if (repoObj) repoObj.connected = true;
 
+    // Check if wizard is needed (no .narrative dir → units === 0)
+    if (data.canon && data.canon.units === 0) {
+      // Show wizard
+      state.currentRepo = fullName;
+      document.getElementById('repoPicker').classList.remove('active');
+      document.getElementById('dashboardView').classList.add('active');
+      updateRepoSelect();
+      showWizard();
+      return;
+    }
+
     await selectRepo(fullName);
   } catch (err) {
     console.error('Connect error:', err);
@@ -1302,7 +2540,7 @@ function renderMetrics(metrics, drift, cover) {
    ============================================================ */
 function renderLayerHealth(layerHealth) {
   const container = document.getElementById('layerHealth');
-  const layers = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
+  const layers = LAYER_TYPES;
 
   container.innerHTML = layers.map(layer => {
     const h = layerHealth[layer] || { nci: 0, unitCount: 0 };
@@ -1323,14 +2561,12 @@ function renderLayerHealth(layerHealth) {
 }
 
 /* ============================================================
-   Narrative Graph (D3.js)
+   Narrative Graph (D3.js) — Overview
    ============================================================ */
 function renderGraph(metrics) {
   const container = document.getElementById('graphContainer');
   container.innerHTML = '';
 
-  // Build nodes and links from layerHealth data
-  // We need the actual units — fetch them from the metrics endpoint
   if (!state.currentRepo) return;
 
   const [owner, repo] = state.currentRepo.split('/');
@@ -1338,11 +2574,9 @@ function renderGraph(metrics) {
   fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=board`)
     .then(r => r.json())
     .then(boardData => {
-      // Get ALL units by fetching all stakeholder views
       return fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=engineering`)
         .then(r => r.json())
         .then(engData => {
-          // Merge unique units
           const allUnits = new Map();
           const allEdges = [];
           for (const data of [boardData, engData]) {
@@ -1352,12 +2586,12 @@ function renderGraph(metrics) {
           drawGraph(Array.from(allUnits.values()), allEdges, container);
         });
     })
-    .catch(err => {
+    .catch(() => {
       container.innerHTML = '<div class="empty-state">Could not load graph</div>';
     });
 }
 
-function drawGraph(units, edges, container) {
+function drawGraph(units, edges, container, opts = {}) {
   const width = container.clientWidth || 600;
   const height = container.clientHeight || 400;
 
@@ -1367,7 +2601,7 @@ function drawGraph(units, edges, container) {
 
   const defs = svg.append('defs');
   defs.append('marker')
-    .attr('id', 'arrow')
+    .attr('id', (opts.arrowId || 'arrow'))
     .attr('viewBox', '0 0 10 10')
     .attr('refX', 20).attr('refY', 5)
     .attr('markerWidth', 6).attr('markerHeight', 6)
@@ -1375,10 +2609,9 @@ function drawGraph(units, edges, container) {
     .append('path').attr('d', 'M0,0 L10,5 L0,10 Z')
     .attr('fill', 'rgba(255,255,255,0.2)');
 
-  // Unique edges
   const edgeSet = new Set();
   const uniqueEdges = edges.filter(e => {
-    const key = `${e.from}->${e.to}`;
+    const key = `${e.from || e.source}->${e.to || e.target}`;
     if (edgeSet.has(key)) return false;
     edgeSet.add(key);
     return true;
@@ -1387,14 +2620,14 @@ function drawGraph(units, edges, container) {
   const nodeIds = new Set(units.map(u => u.id));
 
   const links = uniqueEdges
-    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
-    .map(e => ({ source: e.from, target: e.to }));
+    .filter(e => nodeIds.has(e.from || e.source) && nodeIds.has(e.to || e.target))
+    .map(e => ({ source: e.from || e.source, target: e.to || e.target }));
 
   const nodes = units.map(u => ({
     id: u.id,
     type: u.type,
     state: u.validationState,
-    assertion: u.assertion,
+    assertion: u.assertion || '',
   }));
 
   const simulation = d3.forceSimulation(nodes)
@@ -1408,7 +2641,7 @@ function drawGraph(units, edges, container) {
     .data(links)
     .join('line')
     .attr('class', 'graph-link')
-    .attr('marker-end', 'url(#arrow)');
+    .attr('marker-end', `url(#${opts.arrowId || 'arrow'})`);
 
   const node = svg.append('g')
     .selectAll('g')
@@ -1437,7 +2670,6 @@ function drawGraph(units, edges, container) {
     .attr('dy', 26)
     .text(d => d.id.replace(/_/g, ' '));
 
-  // Tooltip on hover
   node.append('title')
     .text(d => `${d.id}\n${d.type}\n${d.assertion}`);
 
@@ -1449,6 +2681,8 @@ function drawGraph(units, edges, container) {
       .attr('y2', d => d.target.y);
     node.attr('transform', d => `translate(${d.x},${d.y})`);
   });
+
+  return { simulation, link, node, svg };
 }
 
 /* ============================================================
@@ -1458,7 +2692,6 @@ function renderUnits(metrics) {
   if (!state.currentRepo) return;
   const [owner, repo] = state.currentRepo.split('/');
 
-  // Fetch units from validate endpoint
   fetch(`/api/repos/${owner}/${repo}/validate`, { method: 'POST' })
     .then(r => r.json())
     .then(data => {
@@ -1484,7 +2717,13 @@ function setupTabs() {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      const tabId = 'tab-' + btn.dataset.tab;
+      document.getElementById(tabId).classList.add('active');
+
+      // Initialize editor when its tab is activated
+      if (btn.dataset.tab === 'editor') {
+        initEditor();
+      }
     });
   });
 }
@@ -1649,8 +2888,7 @@ function renderDrift(drift, cover) {
     </div>
   `;
 
-  // Coverage by layer
-  const layers = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
+  const layers = LAYER_TYPES;
   coverEl.innerHTML = `
     <div class="panel-title">Coverage by Layer</div>
     ${layers.map(layer => {
@@ -1687,7 +2925,6 @@ function connectSSE() {
     try {
       const data = JSON.parse(e.data);
       if (data.repo === state.currentRepo) {
-        // Refresh dashboard
         selectRepo(state.currentRepo);
       }
     } catch {}
@@ -1699,6 +2936,1207 @@ function connectSSE() {
   };
 
   state.sse = es;
+}
+
+/* ============================================================
+   ONBOARDING WIZARD
+   ============================================================ */
+const wizState = {
+  step: 1,
+  coreStory: { id: '', assertion: '' },
+  positioning: [],          // [{ id, assertion, dependsOn: [] }]
+  brand: {
+    companyName: '',
+    neverWriteAs: [],
+    products: [],           // [{ name, neverWriteAs: [] }]
+    forbiddenTerms: [],
+  },
+  voice: [],                // [{ id, rule, goodExample, badExample }]
+};
+
+// Tag storage (keyed by field name)
+const tagData = {};
+
+function showWizard() {
+  // Reset wizard state
+  wizState.step = 1;
+  wizState.coreStory = { id: '', assertion: '' };
+  wizState.positioning = [];
+  wizState.brand = { companyName: '', neverWriteAs: [], products: [], forbiddenTerms: [] };
+  wizState.voice = [];
+
+  const overlay = document.getElementById('wizardOverlay');
+  overlay.classList.add('active');
+
+  // Reset step visuals
+  document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active', 'exit'));
+  document.getElementById('wizStep1').classList.add('active');
+  updateWizardDots(1);
+
+  // Wire skip btn
+  document.getElementById('wizardSkipBtn').onclick = wizSkip;
+
+  // Init positioning with one block
+  wizAddPositioning();
+  // Init voice with one block
+  wizAddVoice();
+}
+
+function wizGoTo(step, isBack = false) {
+  const currentStep = document.getElementById(`wizStep${wizState.step}`);
+  const nextStep = document.getElementById(`wizStep${step}`);
+
+  currentStep.classList.add('exit');
+  setTimeout(() => {
+    currentStep.classList.remove('active', 'exit');
+    nextStep.classList.add('active');
+    if (isBack) {
+      nextStep.style.animation = 'none';
+      nextStep.offsetHeight; // reflow
+      nextStep.style.animation = 'wiz-in-back 0.35s cubic-bezier(0.22, 1, 0.36, 1) both';
+    } else {
+      nextStep.style.animation = '';
+    }
+    wizState.step = step;
+    updateWizardDots(step);
+  }, 220);
+}
+
+function updateWizardDots(step) {
+  document.querySelectorAll('[data-wiz-dot]').forEach(dot => {
+    const n = parseInt(dot.dataset.wizDot);
+    dot.classList.remove('active', 'done');
+    if (n < step) dot.classList.add('done');
+    else if (n === step) dot.classList.add('active');
+  });
+}
+
+function wizUpdateCoreId() {
+  const assertion = document.getElementById('wizCoreAssertion').value;
+  wizState.coreStory.assertion = assertion;
+  const id = generateId(assertion) || 'core_main';
+  wizState.coreStory.id = id;
+  document.getElementById('wizCoreId').value = id;
+}
+
+function generateId(text) {
+  if (!text) return '';
+  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  // Take first word + second word (if exists), prefix with context
+  const base = words.slice(0, 2).join('_');
+  return base;
+}
+
+/* Positioning blocks */
+function wizAddPositioning() {
+  const idx = wizState.positioning.length;
+  wizState.positioning.push({ id: '', assertion: '', dependsOn: [] });
+  renderPositioningBlocks();
+}
+
+function wizRemovePositioning(idx) {
+  wizState.positioning.splice(idx, 1);
+  renderPositioningBlocks();
+}
+
+function renderPositioningBlocks() {
+  const container = document.getElementById('wizPositioningBlocks');
+  const coreUnits = wizState.coreStory.assertion
+    ? [{ id: wizState.coreStory.id || 'core_main', label: 'Core: ' + (wizState.coreStory.id || 'core_main') }]
+    : [];
+
+  container.innerHTML = wizState.positioning.map((p, i) => `
+    <div class="wiz-unit-block" id="wizPosBlock${i}">
+      <div class="wiz-unit-block-header">
+        <span class="wiz-unit-block-num">Positioning ${i + 1}</span>
+        ${wizState.positioning.length > 1 ? `<button class="wiz-delete-btn" onclick="wizRemovePositioning(${i})">×</button>` : ''}
+      </div>
+      <div class="wiz-field">
+        <label class="wiz-label">Assertion</label>
+        <textarea class="wiz-textarea" placeholder="e.g. Real-time visibility into sprint health improves delivery predictability by 40%."
+          rows="2" oninput="autoGrow(this); wizState.positioning[${i}].assertion = this.value; wizUpdatePosId(${i}, this.value)">${p.assertion}</textarea>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label">Unit ID</label>
+          <input type="text" class="wiz-input mono" value="${p.id}"
+            placeholder="positioning_1"
+            oninput="wizState.positioning[${i}].id = this.value" id="wizPosId${i}">
+        </div>
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label">Depends on</label>
+          <div class="wiz-checkbox-group">
+            ${coreUnits.map(cu => `
+              <label class="wiz-checkbox-item ${p.dependsOn.includes(cu.id) ? 'checked' : ''}"
+                onclick="wizToggleDep(${i}, '${cu.id}', this)">
+                <input type="checkbox" ${p.dependsOn.includes(cu.id) ? 'checked' : ''}>
+                ${cu.label}
+              </label>
+            `).join('')}
+            ${wizState.positioning.filter((_, j) => j !== i && wizState.positioning[j].id).map((other, j) => `
+              <label class="wiz-checkbox-item ${p.dependsOn.includes(other.id) ? 'checked' : ''}"
+                onclick="wizToggleDep(${i}, '${other.id}', this)">
+                <input type="checkbox" ${p.dependsOn.includes(other.id) ? 'checked' : ''}>
+                ${other.id}
+              </label>
+            `).join('')}
+            ${coreUnits.length === 0 && wizState.positioning.filter((_, j) => j !== i).length === 0
+              ? '<span style="font-size:11px; color: var(--text-dim);">Add a core story first</span>' : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function wizUpdatePosId(i, text) {
+  const id = generateId(text) || `positioning_${i + 1}`;
+  wizState.positioning[i].id = id;
+  const el = document.getElementById(`wizPosId${i}`);
+  if (el) el.value = id;
+}
+
+function wizToggleDep(posIdx, depId, label) {
+  const pos = wizState.positioning[posIdx];
+  const existing = pos.dependsOn.indexOf(depId);
+  if (existing === -1) {
+    pos.dependsOn.push(depId);
+    label.classList.add('checked');
+  } else {
+    pos.dependsOn.splice(existing, 1);
+    label.classList.remove('checked');
+  }
+}
+
+/* Brand / product blocks */
+function wizAddProduct() {
+  wizState.brand.products.push({ name: '', neverWriteAs: [] });
+  renderProductBlocks();
+}
+
+function wizRemoveProduct(idx) {
+  wizState.brand.products.splice(idx, 1);
+  renderProductBlocks();
+}
+
+function renderProductBlocks() {
+  const container = document.getElementById('wizProductBlocks');
+  container.innerHTML = wizState.brand.products.map((p, i) => `
+    <div class="wiz-unit-block" style="margin-bottom: 12px;">
+      <div class="wiz-unit-block-header">
+        <span class="wiz-unit-block-num">Product ${i + 1}</span>
+        <button class="wiz-delete-btn" onclick="wizRemoveProduct(${i})">×</button>
+      </div>
+      <div class="wiz-field">
+        <label class="wiz-label">Product name</label>
+        <input type="text" class="wiz-input" value="${p.name}" placeholder="e.g. Narrative Dashboard"
+          oninput="wizState.brand.products[${i}].name = this.value">
+      </div>
+      <div class="wiz-field" style="margin-bottom:0;">
+        <label class="wiz-label">Never write it as</label>
+        <div class="tag-input-wrap" id="wizProdNever${i}Wrap" onclick="this.querySelector('.tag-input-field').focus()">
+          ${(p.neverWriteAs || []).map(t => tagChipHtml(t, `wizProdNever${i}Tags`, `wizProdNever${i}Wrap`)).join('')}
+          <input class="tag-input-field" placeholder="Press Enter to add…"
+            onkeydown="tagInputKeydown(event, 'wizProdNever${i}Tags', 'wizProdNever${i}Wrap')">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* Voice blocks */
+function wizAddVoice() {
+  const idx = wizState.voice.length;
+  wizState.voice.push({ id: '', rule: '', goodExample: '', badExample: '' });
+  renderVoiceBlocks();
+}
+
+function wizRemoveVoice(idx) {
+  wizState.voice.splice(idx, 1);
+  renderVoiceBlocks();
+}
+
+function renderVoiceBlocks() {
+  const container = document.getElementById('wizVoiceBlocks');
+  container.innerHTML = wizState.voice.map((v, i) => `
+    <div class="wiz-unit-block" id="wizVoiceBlock${i}">
+      <div class="wiz-unit-block-header">
+        <span class="wiz-unit-block-num">Principle ${i + 1}</span>
+        ${wizState.voice.length > 1 ? `<button class="wiz-delete-btn" onclick="wizRemoveVoice(${i})">×</button>` : ''}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label">Rule ID</label>
+          <input type="text" class="wiz-input mono" value="${v.id}" placeholder="sound_human"
+            oninput="wizState.voice[${i}].id = this.value">
+        </div>
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label">Rule</label>
+          <input type="text" class="wiz-input" value="${v.rule}" placeholder="Write like a person who builds software"
+            oninput="wizState.voice[${i}].rule = this.value">
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label" style="color: var(--green);">✓ Good example</label>
+          <textarea class="wiz-textarea" style="min-height: 60px;" placeholder="We shipped the thing. It works."
+            rows="2" oninput="autoGrow(this); wizState.voice[${i}].goodExample = this.value">${v.goodExample}</textarea>
+        </div>
+        <div class="wiz-field" style="margin-bottom:0;">
+          <label class="wiz-label" style="color: var(--red);">✗ Bad example</label>
+          <textarea class="wiz-textarea" style="min-height: 60px;" placeholder="We have leveraged our synergies…"
+            rows="2" oninput="autoGrow(this); wizState.voice[${i}].badExample = this.value">${v.badExample}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* Tag input helpers */
+function tagInputKeydown(event, tagKey, wrapId) {
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    const val = event.target.value.trim().replace(/,$/, '');
+    if (!val) return;
+    if (!tagData[tagKey]) tagData[tagKey] = [];
+    tagData[tagKey].push(val);
+    event.target.value = '';
+    renderTagsInWrap(tagKey, wrapId);
+  }
+  if (event.key === 'Backspace' && !event.target.value && tagData[tagKey] && tagData[tagKey].length > 0) {
+    tagData[tagKey].pop();
+    renderTagsInWrap(tagKey, wrapId);
+  }
+}
+
+function removeTag(tagKey, wrapId, idx) {
+  if (!tagData[tagKey]) return;
+  tagData[tagKey].splice(idx, 1);
+  renderTagsInWrap(tagKey, wrapId);
+}
+
+function renderTagsInWrap(tagKey, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const input = wrap.querySelector('.tag-input-field');
+  const chips = (tagData[tagKey] || []).map((t, i) => {
+    const div = document.createElement('span');
+    div.className = 'tag-chip';
+    div.innerHTML = `${esc(t)}<button class="tag-remove" onclick="removeTag('${tagKey}','${wrapId}',${i})">×</button>`;
+    return div;
+  });
+  // Clear old chips
+  Array.from(wrap.querySelectorAll('.tag-chip')).forEach(c => c.remove());
+  chips.forEach(c => wrap.insertBefore(c, input));
+}
+
+function tagChipHtml(text, tagKey, wrapId) {
+  const i = (tagData[tagKey] || []).indexOf(text);
+  return `<span class="tag-chip">${esc(text)}<button class="tag-remove" onclick="removeTag('${tagKey}','${wrapId}',${i})">×</button></span>`;
+}
+
+function getTagData(key) {
+  return (tagData[key] || []).slice();
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function wizSkip() {
+  document.getElementById('wizardOverlay').classList.remove('active');
+}
+
+async function wizLaunch() {
+  const btn = document.getElementById('wizLaunchBtn');
+  btn.disabled = true;
+
+  // Collect brand data
+  wizState.brand.neverWriteAs = getTagData('wizNeverTags');
+  wizState.brand.forbiddenTerms = getTagData('wizForbiddenTags');
+  wizState.brand.companyName = document.getElementById('wizCompanyName')?.value || '';
+
+  // Go to step 5
+  wizGoTo(5);
+
+  await new Promise(r => setTimeout(r, 300));
+
+  const steps = ['core', 'positioning', 'terminology', 'tone', 'coherence'];
+  const stepDelay = 600;
+
+  function setWizProg(key, state) {
+    const el = document.querySelector(`[data-wiz-prog="${key}"]`);
+    if (!el) return;
+    el.classList.remove('active', 'done', 'running');
+    if (state === 'active') { el.classList.add('active', 'running'); el.querySelector('.wiz-progress-icon').textContent = '○'; }
+    if (state === 'done') { el.classList.add('done'); el.querySelector('.wiz-progress-icon').textContent = '✓'; }
+  }
+
+  // Animate progress
+  for (const key of steps.slice(0, 4)) {
+    setWizProg(key, 'active');
+    await new Promise(r => setTimeout(r, stepDelay));
+  }
+
+  // Make API call
+  const [owner, repo] = state.currentRepo.split('/');
+  try {
+    await fetch(`/api/repos/${owner}/${repo}/wizard/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        coreStory: wizState.coreStory.assertion ? [{
+          id: wizState.coreStory.id || 'core_main',
+          assertion: wizState.coreStory.assertion,
+          type: 'core_story',
+          confidence: 1.0,
+        }] : [],
+        positioning: wizState.positioning.filter(p => p.assertion).map(p => ({
+          id: p.id || generateId(p.assertion) || 'positioning_1',
+          assertion: p.assertion,
+          type: 'positioning',
+          dependsOn: p.dependsOn,
+          confidence: 0.9,
+        })),
+        brand: {
+          companyName: wizState.brand.companyName,
+          neverWriteAs: wizState.brand.neverWriteAs,
+          products: wizState.brand.products,
+          forbiddenTerms: wizState.brand.forbiddenTerms,
+        },
+        products: wizState.brand.products,
+        forbidden: wizState.brand.forbiddenTerms,
+        voicePrinciples: wizState.voice.filter(v => v.rule).map(v => ({
+          id: v.id || generateId(v.rule) || 'voice_principle',
+          rule: v.rule,
+          goodExample: v.goodExample,
+          badExample: v.badExample,
+        })),
+        owner: owner,
+      }),
+    });
+  } catch (e) {
+    console.error('Wizard setup error:', e);
+  }
+
+  // Complete all progress steps
+  for (const key of steps) {
+    setWizProg(key, 'done');
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  await new Promise(r => setTimeout(r, 600));
+
+  // Close wizard and refresh dashboard
+  document.getElementById('wizardOverlay').classList.remove('active');
+  await selectRepo(state.currentRepo);
+}
+
+/* Auto-grow textarea */
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+/* ============================================================
+   EDITOR — State & Initialization
+   ============================================================ */
+const editorState = {
+  units: [],            // Working copy of all units
+  canonData: null,      // Raw canon data
+  dirty: new Set(),     // IDs of dirty unit cards
+  initialized: false,
+  editorGraph: null,    // D3 simulation ref
+  brandData: null,
+  voiceData: null,
+};
+
+let editorGraphSim = null;
+
+async function initEditor() {
+  if (!state.currentRepo) return;
+  if (editorState.initialized) {
+    // Re-render graph if already init'd
+    refreshEditorGraph();
+    return;
+  }
+
+  const [owner, repo] = state.currentRepo.split('/');
+
+  // Fetch canon
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/canon`);
+    const data = await res.json();
+    editorState.canonData = data;
+    editorState.units = JSON.parse(JSON.stringify(data.units || []));
+    editorState.brandData = data.skills?.terminology || null;
+    editorState.voiceData = data.skills?.tone || null;
+    editorState.initialized = true;
+  } catch (e) {
+    // Fallback: use unit list from validate
+    try {
+      const res = await fetch(`/api/repos/${owner}/${repo}/validate`, { method: 'POST' });
+      const data = await res.json();
+      editorState.units = (data.results || []).map(r => ({
+        id: r.unitId,
+        type: 'core_story',
+        assertion: r.reasons.join(' '),
+        confidence: r.confidence,
+        dependsOn: [],
+      }));
+      editorState.initialized = true;
+    } catch {}
+  }
+
+  renderEditorUnits();
+  renderEditorGraphLegend();
+  renderEditorGraph();
+  renderBrandEditor();
+  renderVoiceEditor();
+}
+
+function switchEditorSubtab(tab, btn) {
+  document.querySelectorAll('.editor-subtab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.editor-subtab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`editorSubtab-${tab}`).classList.add('active');
+}
+
+/* ============================================================
+   EDITOR — Unit Cards
+   ============================================================ */
+function renderEditorUnits() {
+  const container = document.getElementById('editorUnitsContent');
+
+  // Group by type
+  const groups = {};
+  LAYER_TYPES.forEach(t => groups[t] = []);
+  editorState.units.forEach(u => {
+    const t = u.type || 'core_story';
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(u);
+  });
+
+  container.innerHTML = LAYER_TYPES.map(type => {
+    const units = groups[type];
+    return `
+      <div class="unit-group">
+        <div class="unit-group-header">
+          <div class="unit-group-title">
+            <div class="unit-group-dot" style="background: ${LAYER_COLORS[type]};"></div>
+            <span style="color: ${LAYER_COLORS[type]};">${LAYER_LABELS[type]}</span>
+            <span class="unit-group-count">${units.length}</span>
+          </div>
+        </div>
+        <div id="editorGroup-${type}">
+          ${units.map((u, i) => renderEditorUnitCard(u, i, type)).join('')}
+        </div>
+        <button class="editor-add-unit-btn" onclick="editorAddUnit('${type}')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add ${LAYER_LABELS[type]} unit
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  // Wire auto-grow on all textareas
+  container.querySelectorAll('textarea').forEach(ta => {
+    autoGrow(ta);
+    ta.addEventListener('input', () => autoGrow(ta));
+  });
+}
+
+function renderEditorUnitCard(unit, idx, type) {
+  const allOtherIds = editorState.units.filter(u => u.id !== unit.id).map(u => u.id);
+  const deps = unit.dependsOn || [];
+  const confidence = unit.confidence !== undefined ? unit.confidence : 1.0;
+  const intentObjective = unit.intent?.objective || '';
+  const intentTone = unit.intent?.tone || '';
+  const intentRequired = (unit.intent?.requiredThemes || []).join(', ');
+  const intentForbidden = (unit.intent?.forbiddenThemes || []).join(', ');
+
+  return `
+    <div class="editor-unit-card" id="editorCard-${esc(unit.id)}" data-unit-id="${esc(unit.id)}" data-unit-type="${type}">
+      <div class="editor-unit-card-header">
+        <input class="editor-unit-id-input" type="text" value="${esc(unit.id)}" placeholder="unit_id"
+          oninput="editorMarkDirty('${esc(unit.id)}', 'id', this.value)">
+        <select class="editor-unit-type-select" onchange="editorMarkDirty('${esc(unit.id)}', 'type', this.value)">
+          ${LAYER_TYPES.map(t => `<option value="${t}" ${t === type ? 'selected' : ''}>${LAYER_LABELS[t]}</option>`).join('')}
+        </select>
+        <button class="editor-unit-delete-btn" onclick="editorDeleteUnit('${esc(unit.id)}')" title="Delete unit">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 4h10M5 4V2.5h4V4M5.5 6.5v4M8.5 6.5v4M3 4l.8 7.5h6.4L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="editor-unit-body">
+        <label class="editor-field-label">Assertion</label>
+        <textarea class="editor-assertion" placeholder="State the core claim of this unit…"
+          oninput="autoGrow(this); editorMarkDirty('${esc(unit.id)}', 'assertion', this.value)">${esc(unit.assertion || '')}</textarea>
+
+        <div class="editor-deps-section">
+          <label class="editor-field-label">Dependencies</label>
+          <div class="editor-deps-wrap" id="editorDeps-${esc(unit.id)}">
+            ${allOtherIds.length === 0
+              ? '<span style="font-size: 11px; color: var(--text-dim);">No other units yet</span>'
+              : allOtherIds.map(depId => `
+                <div class="editor-dep-chip ${deps.includes(depId) ? 'selected' : ''}"
+                  onclick="editorToggleDep('${esc(unit.id)}', '${esc(depId)}', this)">
+                  ${esc(depId)}
+                </div>
+              `).join('')}
+          </div>
+        </div>
+
+        <button class="editor-intent-toggle" onclick="toggleIntent(this)">
+          <span class="toggle-arrow">▶</span>
+          Intent &amp; Constraints
+        </button>
+        <div class="editor-intent-body">
+          <div class="wiz-field" style="margin-bottom: 10px;">
+            <label class="editor-field-label">Objective</label>
+            <input type="text" class="editor-input" value="${esc(intentObjective)}"
+              placeholder="What should this unit achieve?"
+              oninput="editorMarkDirty('${esc(unit.id)}', 'intent.objective', this.value)">
+          </div>
+          <div class="editor-row-2">
+            <div>
+              <label class="editor-field-label">Required themes</label>
+              <input type="text" class="editor-input" value="${esc(intentRequired)}"
+                placeholder="theme1, theme2"
+                oninput="editorMarkDirty('${esc(unit.id)}', 'intent.requiredThemes', this.value)">
+            </div>
+            <div>
+              <label class="editor-field-label">Forbidden themes</label>
+              <input type="text" class="editor-input" value="${esc(intentForbidden)}"
+                placeholder="theme1, theme2"
+                oninput="editorMarkDirty('${esc(unit.id)}', 'intent.forbiddenThemes', this.value)">
+            </div>
+          </div>
+          <div style="margin-top: 10px;">
+            <label class="editor-field-label">Tone</label>
+            <select class="editor-select" style="max-width: 200px;"
+              onchange="editorMarkDirty('${esc(unit.id)}', 'intent.tone', this.value)">
+              <option value="">— default —</option>
+              ${TONE_OPTIONS.map(t => `<option value="${t}" ${t === intentTone ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="confidence-row">
+          <label class="editor-field-label" style="margin-bottom:0; white-space: nowrap;">Confidence</label>
+          <input type="range" class="confidence-slider" min="0" max="1" step="0.05"
+            value="${confidence}"
+            oninput="this.nextElementSibling.textContent = parseFloat(this.value).toFixed(2); editorMarkDirty('${esc(unit.id)}', 'confidence', parseFloat(this.value))">
+          <span class="confidence-value">${confidence.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleIntent(btn) {
+  btn.classList.toggle('open');
+  const body = btn.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function editorMarkDirty(unitId, field, value) {
+  // Find unit in state and update
+  const unit = editorState.units.find(u => u.id === unitId);
+  if (!unit) return;
+
+  if (field === 'id') {
+    // Update ID references in dependencies of other units
+    const oldId = unit.id;
+    editorState.units.forEach(u => {
+      if (u.dependsOn) {
+        const idx = u.dependsOn.indexOf(oldId);
+        if (idx !== -1) u.dependsOn[idx] = value;
+      }
+    });
+    unit.id = value;
+    const card = document.getElementById(`editorCard-${esc(unitId)}`);
+    if (card) { card.id = `editorCard-${esc(value)}`; card.dataset.unitId = value; }
+  } else if (field === 'type') {
+    unit.type = value;
+  } else if (field === 'assertion') {
+    unit.assertion = value;
+  } else if (field === 'confidence') {
+    unit.confidence = value;
+  } else if (field.startsWith('intent.')) {
+    if (!unit.intent) unit.intent = {};
+    const sub = field.replace('intent.', '');
+    if (sub === 'requiredThemes' || sub === 'forbiddenThemes') {
+      unit.intent[sub] = value.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      unit.intent[sub] = value;
+    }
+  }
+
+  const currentId = unit.id;
+  editorState.dirty.add(currentId);
+  updateSaveBar();
+  showAutosave();
+
+  // Schedule graph refresh
+  debouncedEditorGraphRefresh();
+}
+
+function editorToggleDep(unitId, depId, chip) {
+  const unit = editorState.units.find(u => u.id === unitId);
+  if (!unit) return;
+  if (!unit.dependsOn) unit.dependsOn = [];
+  const idx = unit.dependsOn.indexOf(depId);
+  if (idx === -1) {
+    unit.dependsOn.push(depId);
+    chip.classList.add('selected');
+  } else {
+    unit.dependsOn.splice(idx, 1);
+    chip.classList.remove('selected');
+  }
+  editorState.dirty.add(unitId);
+  updateSaveBar();
+  showAutosave();
+  debouncedEditorGraphRefresh();
+}
+
+function editorDeleteUnit(unitId) {
+  if (!confirm(`Delete unit "${unitId}"? This cannot be undone.`)) return;
+  editorState.units = editorState.units.filter(u => u.id !== unitId);
+  // Remove from dirty set
+  editorState.dirty.delete(unitId);
+  // Remove dependency references
+  editorState.units.forEach(u => {
+    if (u.dependsOn) u.dependsOn = u.dependsOn.filter(d => d !== unitId);
+  });
+  updateSaveBar();
+  renderEditorUnits();
+  debouncedEditorGraphRefresh();
+}
+
+function editorAddUnit(type) {
+  const newId = `${type}_${Date.now()}`;
+  editorState.units.push({
+    id: newId,
+    type,
+    assertion: '',
+    confidence: 1.0,
+    dependsOn: [],
+    intent: {},
+  });
+  editorState.dirty.add(newId);
+  updateSaveBar();
+  renderEditorUnits();
+  // Scroll to the new card
+  setTimeout(() => {
+    const card = document.getElementById(`editorCard-${esc(newId)}`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+/* Save bar */
+function updateSaveBar() {
+  const bar = document.getElementById('editorSaveBar');
+  const count = document.getElementById('dirtyCount');
+  const n = editorState.dirty.size;
+  count.textContent = n;
+  if (n > 0) bar.classList.add('visible');
+  else bar.classList.remove('visible');
+}
+
+/* Auto-save indicator */
+let autosaveTimer = null;
+function showAutosave(state = 'editing') {
+  const ind = document.getElementById('autosaveIndicator');
+  const label = document.getElementById('autosaveLabel');
+  ind.classList.add('visible');
+  if (state === 'saving') {
+    ind.className = 'autosave-indicator visible saving';
+    label.textContent = 'Saving…';
+  } else if (state === 'saved') {
+    ind.className = 'autosave-indicator visible saved';
+    label.textContent = 'Saved';
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => { ind.classList.remove('visible'); }, 2000);
+  } else {
+    ind.className = 'autosave-indicator visible';
+    label.textContent = 'Unsaved changes';
+  }
+}
+
+async function editorSaveAll() {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+
+  const btn = document.getElementById('editorSaveBtn');
+  btn.disabled = true;
+  btn.classList.add('saving');
+  btn.textContent = 'Saving…';
+  showAutosave('saving');
+
+  // Group dirty units by source_file or type
+  const dirtyUnits = editorState.units.filter(u => editorState.dirty.has(u.id));
+  const byFile = {};
+  dirtyUnits.forEach(u => {
+    const file = u.source_file || `${u.type || 'units'}.yml`;
+    if (!byFile[file]) byFile[file] = [];
+    byFile[file].push(u);
+  });
+
+  let success = true;
+  for (const [filename, units] of Object.entries(byFile)) {
+    try {
+      await fetch(`/api/repos/${owner}/${repo}/units/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          units,
+          filename,
+          metadata: { owner },
+          commitMessage: `chore: update ${units.length} unit(s) via editor`,
+        }),
+      });
+    } catch (e) {
+      console.error('Save error:', e);
+      success = false;
+    }
+  }
+
+  editorState.dirty.clear();
+  updateSaveBar();
+
+  btn.classList.remove('saving');
+  if (success) {
+    btn.classList.add('success');
+    btn.textContent = '✓ Saved';
+    showAutosave('saved');
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.textContent = 'Save All';
+      btn.disabled = false;
+    }, 2000);
+    // Re-fetch and refresh dashboard
+    await selectRepo(state.currentRepo);
+    refreshEditorGraph();
+  } else {
+    btn.textContent = 'Save All';
+    btn.disabled = false;
+    showAutosave('editing');
+  }
+}
+
+/* ============================================================
+   EDITOR — Live D3 Graph
+   ============================================================ */
+function renderEditorGraphLegend() {
+  const legend = document.getElementById('editorGraphLegend');
+  legend.innerHTML = LAYER_TYPES.map(t => `
+    <div class="editor-graph-legend-item">
+      <div class="editor-graph-legend-dot" style="background: ${LAYER_COLORS[t]};"></div>
+      ${LAYER_LABELS[t]}
+    </div>
+  `).join('');
+}
+
+let editorGraphDebounce = null;
+function debouncedEditorGraphRefresh() {
+  clearTimeout(editorGraphDebounce);
+  editorGraphDebounce = setTimeout(refreshEditorGraph, 300);
+}
+
+function refreshEditorGraph() {
+  const container = document.getElementById('editorGraphContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  renderEditorGraph();
+}
+
+function renderEditorGraph() {
+  const container = document.getElementById('editorGraphContainer');
+  if (!container) return;
+
+  const units = editorState.units.filter(u => u.id && u.assertion);
+  const edges = [];
+  units.forEach(u => {
+    (u.dependsOn || []).forEach(dep => {
+      if (units.find(x => x.id === dep)) {
+        edges.push({ from: dep, to: u.id });
+      }
+    });
+  });
+
+  if (units.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding: 40px 16px;">Add units to see the graph</div>';
+    return;
+  }
+
+  drawGraph(units, edges, container, { arrowId: 'editorArrow' });
+}
+
+/* ============================================================
+   EDITOR — Brand & Terminology
+   ============================================================ */
+function renderBrandEditor() {
+  const container = document.getElementById('brandEditorContent');
+  const d = editorState.brandData || {};
+
+  // Initialize tag data
+  tagData['brandNeverTags'] = d.neverWriteAs || [];
+  tagData['brandForbiddenTags'] = d.forbiddenTerms || [];
+
+  const products = d.products || [];
+
+  container.innerHTML = `
+    <div class="brand-section">
+      <div class="brand-section-title">Company Identity</div>
+      <div class="wiz-field">
+        <label class="wiz-label">Company name</label>
+        <input type="text" class="editor-input" id="brandCompanyName"
+          value="${esc(d.companyName || '')}" placeholder="Your company name">
+      </div>
+      <div class="wiz-field">
+        <label class="wiz-label">Never write it as</label>
+        <div class="tag-input-wrap" id="brandNeverWrap" onclick="this.querySelector('.tag-input-field').focus()">
+          ${(d.neverWriteAs || []).map((t, i) => `<span class="tag-chip">${esc(t)}<button class="tag-remove" onclick="removeTag('brandNeverTags','brandNeverWrap',${i})">×</button></span>`).join('')}
+          <input class="tag-input-field" placeholder="Common misspellings, press Enter…"
+            onkeydown="tagInputKeydown(event, 'brandNeverTags', 'brandNeverWrap')">
+        </div>
+      </div>
+      <div class="wiz-field">
+        <label class="wiz-label">Forbidden terms</label>
+        <div class="tag-input-wrap" id="brandForbiddenWrap" onclick="this.querySelector('.tag-input-field').focus()">
+          ${(d.forbiddenTerms || []).map((t, i) => `<span class="tag-chip">${esc(t)}<button class="tag-remove" onclick="removeTag('brandForbiddenTags','brandForbiddenWrap',${i})">×</span>`).join('')}
+          <input class="tag-input-field" placeholder="Terms to avoid, press Enter…"
+            onkeydown="tagInputKeydown(event, 'brandForbiddenTags', 'brandForbiddenWrap')">
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-section">
+      <div class="brand-section-title">Products</div>
+      <div id="brandProductsList">
+        ${products.map((p, i) => renderBrandProductBlock(p, i)).join('')}
+      </div>
+      <button class="wiz-add-btn" style="margin-top: 0;" onclick="brandAddProduct()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add product
+      </button>
+    </div>
+
+    <div class="brand-section">
+      <div class="brand-section-title">Preferred Terms</div>
+      <div id="brandPreferredList">
+        ${(d.preferredTerms || []).map((pt, i) => renderPreferredTermBlock(pt, i)).join('')}
+      </div>
+      <button class="wiz-add-btn" style="margin-top: 0;" onclick="brandAddPreferred()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add preferred term
+      </button>
+    </div>
+
+    <div class="editor-save-section">
+      <button class="wiz-btn-primary" id="brandSaveBtn" onclick="brandSave()">
+        Save Terminology
+      </button>
+    </div>
+  `;
+}
+
+function renderBrandProductBlock(p, i) {
+  const key = `brandProd${i}Never`;
+  tagData[key] = p.neverWriteAs || [];
+  return `
+    <div class="brand-product-block" id="brandProd-${i}">
+      <div class="brand-product-block-header">
+        <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color: var(--blue);">Product ${i + 1}</span>
+        <button class="wiz-delete-btn" onclick="brandRemoveProduct(${i})">×</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <div>
+          <label class="editor-field-label">Name</label>
+          <input type="text" class="editor-input" value="${esc(p.name || '')}" placeholder="Product name"
+            oninput="brandUpdateProduct(${i}, 'name', this.value)">
+        </div>
+        <div>
+          <label class="editor-field-label">Description</label>
+          <input type="text" class="editor-input" value="${esc(p.description || '')}" placeholder="Short description"
+            oninput="brandUpdateProduct(${i}, 'description', this.value)">
+        </div>
+      </div>
+      <label class="editor-field-label">Never write as</label>
+      <div class="tag-input-wrap" id="${key}Wrap" onclick="this.querySelector('.tag-input-field').focus()">
+        ${(p.neverWriteAs || []).map((t, ti) => `<span class="tag-chip">${esc(t)}<button class="tag-remove" onclick="removeTag('${key}','${key}Wrap',${ti})">×</button></span>`).join('')}
+        <input class="tag-input-field" placeholder="Wrong variants, press Enter…"
+          onkeydown="tagInputKeydown(event, '${key}', '${key}Wrap')">
+      </div>
+    </div>
+  `;
+}
+
+function renderPreferredTermBlock(pt, i) {
+  const key = `brandPref${i}Avoid`;
+  tagData[key] = pt.avoid || [];
+  return `
+    <div class="brand-product-block" id="brandPref-${i}">
+      <div class="brand-product-block-header">
+        <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color: var(--green);">Preferred ${i + 1}</span>
+        <button class="wiz-delete-btn" onclick="brandRemovePreferred(${i})">×</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <div>
+          <label class="editor-field-label">Term</label>
+          <input type="text" class="editor-input" value="${esc(pt.term || '')}" placeholder="Preferred term"
+            oninput="brandUpdatePreferred(${i}, 'term', this.value)">
+        </div>
+        <div>
+          <label class="editor-field-label">Context</label>
+          <input type="text" class="editor-input" value="${esc(pt.context || '')}" placeholder="When to use"
+            oninput="brandUpdatePreferred(${i}, 'context', this.value)">
+        </div>
+      </div>
+      <label class="editor-field-label">Avoid instead</label>
+      <div class="tag-input-wrap" id="${key}Wrap" onclick="this.querySelector('.tag-input-field').focus()">
+        ${(pt.avoid || []).map((t, ti) => `<span class="tag-chip">${esc(t)}<button class="tag-remove" onclick="removeTag('${key}','${key}Wrap',${ti})">×</button></span>`).join('')}
+        <input class="tag-input-field" placeholder="Terms to avoid, press Enter…"
+          onkeydown="tagInputKeydown(event, '${key}', '${key}Wrap')">
+      </div>
+    </div>
+  `;
+}
+
+// Brand product state management
+let _brandProducts = [];
+let _brandPreferred = [];
+
+function brandAddProduct() {
+  const list = document.getElementById('brandProductsList');
+  const i = list.querySelectorAll('.brand-product-block').length;
+  _brandProducts.push({ name: '', description: '', neverWriteAs: [] });
+  const div = document.createElement('div');
+  div.innerHTML = renderBrandProductBlock({ name: '', neverWriteAs: [] }, i);
+  list.appendChild(div.firstElementChild);
+}
+
+function brandRemoveProduct(i) {
+  const el = document.getElementById(`brandProd-${i}`);
+  if (el) el.remove();
+}
+
+function brandUpdateProduct(i, field, val) {
+  if (!_brandProducts[i]) _brandProducts[i] = {};
+  _brandProducts[i][field] = val;
+}
+
+function brandAddPreferred() {
+  const list = document.getElementById('brandPreferredList');
+  const i = list.querySelectorAll('.brand-product-block').length;
+  const div = document.createElement('div');
+  div.innerHTML = renderPreferredTermBlock({ term: '', avoid: [] }, i);
+  list.appendChild(div.firstElementChild);
+}
+
+function brandRemovePreferred(i) {
+  const el = document.getElementById(`brandPref-${i}`);
+  if (el) el.remove();
+}
+
+function brandUpdatePreferred(i, field, val) {
+  if (!_brandPreferred[i]) _brandPreferred[i] = {};
+  _brandPreferred[i][field] = val;
+}
+
+async function brandSave() {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  const btn = document.getElementById('brandSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const products = Array.from(document.querySelectorAll('#brandProductsList .brand-product-block')).map((el, i) => {
+    const key = `brandProd${i}Never`;
+    return {
+      name: el.querySelectorAll('input')[0]?.value || '',
+      description: el.querySelectorAll('input')[1]?.value || '',
+      neverWriteAs: getTagData(key),
+    };
+  });
+
+  const preferredTerms = Array.from(document.querySelectorAll('#brandPreferredList .brand-product-block')).map((el, i) => {
+    const key = `brandPref${i}Avoid`;
+    return {
+      term: el.querySelectorAll('input')[0]?.value || '',
+      context: el.querySelectorAll('input')[1]?.value || '',
+      avoid: getTagData(key),
+    };
+  });
+
+  try {
+    await fetch(`/api/repos/${owner}/${repo}/skills/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'terminology',
+        data: {
+          companyName: document.getElementById('brandCompanyName')?.value || '',
+          neverWriteAs: getTagData('brandNeverTags'),
+          products,
+          preferredTerms,
+          forbiddenTerms: getTagData('brandForbiddenTags'),
+        },
+        commitMessage: 'chore: update terminology via editor',
+      }),
+    });
+    btn.textContent = '✓ Saved';
+    showAutosave('saved');
+    setTimeout(() => { btn.textContent = 'Save Terminology'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    console.error(e);
+    btn.textContent = 'Save Terminology';
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   EDITOR — Voice & Tone
+   ============================================================ */
+let _voicePrinciples = [];
+
+function renderVoiceEditor() {
+  const container = document.getElementById('voiceEditorContent');
+  const d = editorState.voiceData || {};
+  _voicePrinciples = JSON.parse(JSON.stringify(d.principles || []));
+
+  container.innerHTML = `
+    <div class="brand-section">
+      <div class="brand-section-title">Voice Identity</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div class="wiz-field">
+          <label class="wiz-label">Voice name</label>
+          <input type="text" class="editor-input" id="voiceName" value="${esc(d.name || '')}" placeholder="e.g. Human-first engineering">
+        </div>
+        <div class="wiz-field">
+          <label class="wiz-label">Summary</label>
+          <input type="text" class="editor-input" id="voiceSummary" value="${esc(d.summary || '')}" placeholder="One-line voice description">
+        </div>
+      </div>
+    </div>
+    <div class="brand-section">
+      <div class="brand-section-title">Voice Principles</div>
+      <div id="voicePrinciplesList">
+        ${_voicePrinciples.map((p, i) => renderVoicePrincipleBlock(p, i)).join('')}
+      </div>
+      <button class="wiz-add-btn" style="margin-top: 0;" onclick="voiceAddPrinciple()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add voice principle
+      </button>
+    </div>
+    <div class="editor-save-section">
+      <button class="wiz-btn-primary" id="voiceSaveBtn" onclick="voiceSave()">
+        Save Voice &amp; Tone
+      </button>
+    </div>
+  `;
+}
+
+function renderVoicePrincipleBlock(p, i) {
+  return `
+    <div class="voice-principle-block" id="voicePrinciple-${i}">
+      <div class="voice-principle-header">
+        <span class="voice-principle-num">Principle ${i + 1}</span>
+        <button class="wiz-delete-btn" onclick="voiceRemovePrinciple(${i})">×</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <label class="editor-field-label">ID</label>
+          <input type="text" class="editor-input" style="font-family: var(--mono); color: var(--purple);"
+            value="${esc(p.id || '')}" placeholder="sound_human"
+            oninput="voiceUpdatePrinciple(${i}, 'id', this.value)">
+        </div>
+        <div>
+          <label class="editor-field-label">Rule</label>
+          <input type="text" class="editor-input" value="${esc(p.rule || '')}"
+            placeholder="Write like a person who builds software"
+            oninput="voiceUpdatePrinciple(${i}, 'rule', this.value)">
+        </div>
+      </div>
+      <div class="voice-examples-row">
+        <div class="voice-example-wrap">
+          <div class="voice-example-label good">✓ Good example</div>
+          <textarea class="voice-example-input" placeholder="We shipped the thing. It works."
+            oninput="autoGrow(this); voiceUpdatePrinciple(${i}, 'goodExample', this.value)">${esc(p.goodExample || p.good || '')}</textarea>
+        </div>
+        <div class="voice-example-wrap">
+          <div class="voice-example-label bad">✗ Bad example</div>
+          <textarea class="voice-example-input" placeholder="We have leveraged our synergies to actualize value…"
+            oninput="autoGrow(this); voiceUpdatePrinciple(${i}, 'badExample', this.value)">${esc(p.badExample || p.bad || '')}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function voiceAddPrinciple() {
+  const list = document.getElementById('voicePrinciplesList');
+  const i = list.querySelectorAll('.voice-principle-block').length;
+  _voicePrinciples.push({ id: '', rule: '', goodExample: '', badExample: '' });
+  const div = document.createElement('div');
+  div.innerHTML = renderVoicePrincipleBlock({ id: '', rule: '', goodExample: '', badExample: '' }, i);
+  list.appendChild(div.firstElementChild);
+}
+
+function voiceRemovePrinciple(i) {
+  const el = document.getElementById(`voicePrinciple-${i}`);
+  if (el) el.remove();
+  _voicePrinciples.splice(i, 1);
+}
+
+function voiceUpdatePrinciple(i, field, val) {
+  if (!_voicePrinciples[i]) _voicePrinciples[i] = {};
+  _voicePrinciples[i][field] = val;
+}
+
+async function voiceSave() {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  const btn = document.getElementById('voiceSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const principles = Array.from(document.querySelectorAll('#voicePrinciplesList .voice-principle-block')).map((el, i) => {
+    const inputs = el.querySelectorAll('input');
+    const textareas = el.querySelectorAll('textarea');
+    return {
+      id: inputs[0]?.value || '',
+      rule: inputs[1]?.value || '',
+      goodExample: textareas[0]?.value || '',
+      badExample: textareas[1]?.value || '',
+    };
+  });
+
+  try {
+    await fetch(`/api/repos/${owner}/${repo}/skills/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'tone',
+        data: {
+          name: document.getElementById('voiceName')?.value || '',
+          summary: document.getElementById('voiceSummary')?.value || '',
+          principles,
+        },
+        commitMessage: 'chore: update tone of voice via editor',
+      }),
+    });
+    btn.textContent = '✓ Saved';
+    showAutosave('saved');
+    setTimeout(() => { btn.textContent = 'Save Voice & Tone'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    console.error(e);
+    btn.textContent = 'Save Voice & Tone';
+    btn.disabled = false;
+  }
 }
 
 /* ============================================================

@@ -197,6 +197,90 @@ function githubPost(hostname, apiPath, data, headers = {}) {
 }
 
 /**
+ * Write a file to a GitHub repo via the Contents API (create or update).
+ * Handles getting the current SHA for updates automatically.
+ */
+async function githubPutFile(owner, repo, filePath, content, message, token) {
+  // Get current file SHA (needed for updates)
+  const existing = await githubGet(`/repos/${owner}/${repo}/contents/${filePath}`, token);
+  const sha = existing.status === 200 ? existing.body.sha : undefined;
+
+  const body = JSON.stringify({
+    message,
+    content: Buffer.from(content).toString('base64'),
+    ...(sha ? { sha } : {}),
+  });
+
+  return httpsRequest({
+    hostname: 'api.github.com',
+    path: `/repos/${owner}/${repo}/contents/${filePath}`,
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
+      'User-Agent': 'NarrativeAgent/1.0',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  }, body);
+}
+
+/**
+ * Convert units array back to YAML for a canon file.
+ */
+function unitsToYaml(units, metadata = {}) {
+  const doc = {
+    version: metadata.version || '1.0',
+    last_updated: new Date().toISOString().slice(0, 10),
+    ...(metadata.owner ? { owner: metadata.owner } : {}),
+    units: units.map(u => {
+      const unit = { id: u.id, type: u.type, assertion: u.assertion };
+      if (u.intent && Object.keys(u.intent).length > 0) unit.intent = u.intent;
+      if (u.evidence_required && u.evidence_required.length > 0) unit.evidence_required = u.evidence_required;
+      unit.dependencies = u.dependencies || [];
+      unit.confidence = u.confidence ?? 1.0;
+      return unit;
+    }),
+  };
+  return YAML.stringify(doc, { lineWidth: 120 });
+}
+
+/**
+ * Convert skills data back to YAML for terminology and tone files.
+ */
+function skillsToTerminologyYaml(skills) {
+  const doc = {
+    version: '1.0',
+    last_updated: new Date().toISOString().slice(0, 10),
+  };
+  if (skills.brand) doc.brand = skills.brand;
+  if (skills.products) doc.products = skills.products;
+  if (skills.concepts) doc.concepts = skills.concepts;
+  if (skills.terminology) {
+    doc.terminology = {};
+    if (skills.terminology.preferred) doc.terminology.preferred = skills.terminology.preferred;
+    if (skills.terminology.forbidden) doc.terminology.forbidden = skills.terminology.forbidden;
+  }
+  return YAML.stringify(doc, { lineWidth: 120 });
+}
+
+function skillsToToneYaml(skills) {
+  const doc = {
+    version: '1.0',
+    last_updated: new Date().toISOString().slice(0, 10),
+    ...(skills.owner ? { owner: skills.owner } : {}),
+  };
+  if (skills.voice) doc.voice = skills.voice;
+  if (skills.terminology) {
+    doc.terminology = {};
+    if (skills.terminology.preferred) doc.terminology.preferred = skills.terminology.preferred;
+    if (skills.terminology.forbidden) doc.terminology.forbidden = skills.terminology.forbidden;
+  }
+  return YAML.stringify(doc, { lineWidth: 120 });
+}
+
+/**
  * Fetch .narrative/ canon and skills from a GitHub repo via the Contents API.
  * Returns the same { units, skills, files, errors } shape as parseCanon() in server.js.
  */
@@ -951,6 +1035,182 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // ==================================================================
+      // Editor API — save units, skills, and run wizard setup
+      // ==================================================================
+
+      // Route: /api/repos/:owner/:repo/canon — get full canon data for editing
+      if (rest === 'canon' && req.method === 'GET') {
+        json(res, 200, {
+          units: canon.units,
+          skills: canon.skills,
+          files: canon.files,
+          errors: canon.errors,
+        });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/units/save — save units to a canon file
+      if (rest === 'units/save' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+
+        const { units: newUnits, filename, metadata } = body || {};
+        if (!newUnits || !Array.isArray(newUnits) || newUnits.length === 0) {
+          json(res, 400, { error: 'Missing or empty units array' });
+          return;
+        }
+
+        const file = filename || 'canon.yml';
+        const filePath = `.narrative/canon/${file}`;
+        const yamlContent = unitsToYaml(newUnits, metadata || {});
+        const message = body.commitMessage || `Update ${file} via Narrative Agent`;
+
+        try {
+          const putRes = await githubPutFile(owner, repo, filePath, yamlContent, message, session.githubToken);
+          if (putRes.status !== 200 && putRes.status !== 201) {
+            json(res, 502, { error: `GitHub API error: ${putRes.status}`, details: putRes.body });
+            return;
+          }
+
+          // Invalidate cache and re-scan
+          repoCache.delete(fullName);
+          const freshData = await getRepoData(owner, repo, session.githubToken);
+
+          json(res, 200, {
+            saved: true,
+            file: filePath,
+            sha: putRes.body?.content?.sha,
+            result: freshData.lastCheck,
+          });
+        } catch (err) {
+          json(res, 502, { error: `Failed to save: ${err.message}` });
+        }
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/skills/save — save skills (terminology, tone)
+      if (rest === 'skills/save' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+
+        const { type, data: skillsData } = body || {};
+        if (!type || !skillsData) {
+          json(res, 400, { error: 'Missing type or data' });
+          return;
+        }
+
+        let filePath, yamlContent;
+        if (type === 'terminology') {
+          filePath = '.narrative/skills/terminology.yml';
+          yamlContent = skillsToTerminologyYaml(skillsData);
+        } else if (type === 'tone') {
+          filePath = '.narrative/skills/tone-of-voice.yml';
+          yamlContent = skillsToToneYaml(skillsData);
+        } else {
+          json(res, 400, { error: `Unknown skills type: ${type}` });
+          return;
+        }
+
+        const message = body.commitMessage || `Update ${type} skills via Narrative Agent`;
+
+        try {
+          const putRes = await githubPutFile(owner, repo, filePath, yamlContent, message, session.githubToken);
+          if (putRes.status !== 200 && putRes.status !== 201) {
+            json(res, 502, { error: `GitHub API error: ${putRes.status}`, details: putRes.body });
+            return;
+          }
+
+          repoCache.delete(fullName);
+          const freshData = await getRepoData(owner, repo, session.githubToken);
+
+          json(res, 200, {
+            saved: true,
+            file: filePath,
+            result: freshData.lastCheck,
+          });
+        } catch (err) {
+          json(res, 502, { error: `Failed to save: ${err.message}` });
+        }
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/wizard/setup — full wizard: create .narrative/ from scratch
+      if (rest === 'wizard/setup' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+
+        const { coreStory, positioning, brand, products, forbidden, voicePrinciples, owner: canonOwner } = body || {};
+
+        if (!coreStory || !Array.isArray(coreStory) || coreStory.length === 0) {
+          json(res, 400, { error: 'At least one core story unit is required' });
+          return;
+        }
+
+        const results = { files: [], errors: [] };
+
+        // 1. Save core-story.yml
+        const coreYaml = unitsToYaml(coreStory, { owner: canonOwner });
+        try {
+          const r = await githubPutFile(owner, repo, '.narrative/canon/core-story.yml', coreYaml, 'Initialize core story via Narrative Agent', session.githubToken);
+          if (r.status === 200 || r.status === 201) results.files.push('core-story.yml');
+          else results.errors.push({ file: 'core-story.yml', error: `Status ${r.status}` });
+        } catch (err) { results.errors.push({ file: 'core-story.yml', error: err.message }); }
+
+        // 2. Save positioning.yml (if provided)
+        if (positioning && positioning.length > 0) {
+          const posYaml = unitsToYaml(positioning, { owner: canonOwner });
+          try {
+            const r = await githubPutFile(owner, repo, '.narrative/canon/positioning.yml', posYaml, 'Initialize positioning via Narrative Agent', session.githubToken);
+            if (r.status === 200 || r.status === 201) results.files.push('positioning.yml');
+            else results.errors.push({ file: 'positioning.yml', error: `Status ${r.status}` });
+          } catch (err) { results.errors.push({ file: 'positioning.yml', error: err.message }); }
+        }
+
+        // 3. Save terminology.yml
+        const termsData = {
+          brand: brand || { company_name: '', never: [] },
+          products: products || [],
+          terminology: { forbidden: forbidden || [] },
+        };
+        const termsYaml = skillsToTerminologyYaml(termsData);
+        try {
+          const r = await githubPutFile(owner, repo, '.narrative/skills/terminology.yml', termsYaml, 'Initialize terminology via Narrative Agent', session.githubToken);
+          if (r.status === 200 || r.status === 201) results.files.push('terminology.yml');
+          else results.errors.push({ file: 'terminology.yml', error: `Status ${r.status}` });
+        } catch (err) { results.errors.push({ file: 'terminology.yml', error: err.message }); }
+
+        // 4. Save tone-of-voice.yml
+        const toneData = {
+          owner: canonOwner,
+          voice: {
+            name: brand?.company_name ? `${brand.company_name} Voice` : 'Brand Voice',
+            summary: 'Confident without being loud. Technical without being cold.',
+            principles: voicePrinciples || [],
+          },
+          terminology: { forbidden: forbidden || [] },
+        };
+        const toneYaml = skillsToToneYaml(toneData);
+        try {
+          const r = await githubPutFile(owner, repo, '.narrative/skills/tone-of-voice.yml', toneYaml, 'Initialize tone of voice via Narrative Agent', session.githubToken);
+          if (r.status === 200 || r.status === 201) results.files.push('tone-of-voice.yml');
+          else results.errors.push({ file: 'tone-of-voice.yml', error: `Status ${r.status}` });
+        } catch (err) { results.errors.push({ file: 'tone-of-voice.yml', error: err.message }); }
+
+        // Invalidate cache and re-scan
+        repoCache.delete(fullName);
+        let scanResult = null;
+        try {
+          const freshData = await getRepoData(owner, repo, session.githubToken);
+          scanResult = freshData.lastCheck;
+        } catch (err) {
+          results.errors.push({ file: 'scan', error: err.message });
+        }
+
+        json(res, 200, { ...results, result: scanResult });
+        return;
+      }
+
       json(res, 404, { error: `Unknown route: ${rest}` });
       return;
     }
@@ -1018,4 +1278,9 @@ module.exports = {
   // For testing route handler directly
   RATE_LIMIT_MAX,
   RATE_LIMIT_WINDOW,
+  // Editor helpers
+  unitsToYaml,
+  skillsToTerminologyYaml,
+  skillsToToneYaml,
+  githubPutFile,
 };

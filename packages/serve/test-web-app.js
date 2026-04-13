@@ -10,6 +10,7 @@
 
 const http = require('http');
 const crypto = require('crypto');
+const YAML = require('yaml');
 
 // Import testable functions from web-app.js
 const {
@@ -24,6 +25,9 @@ const {
   repoCache,
   server,
   RATE_LIMIT_MAX,
+  unitsToYaml,
+  skillsToTerminologyYaml,
+  skillsToToneYaml,
 } = require('./web-app');
 
 const { createAlgebra, STAKEHOLDER_PRESETS, ALL_LAYERS } = require('./algebra');
@@ -342,6 +346,61 @@ test('validate marks all units ALIGNED in healthy graph', () => {
 });
 
 // ============================================================================
+// YAML Serializer Tests
+// ============================================================================
+
+console.log('\n  YAML Serializers');
+console.log('  ' + '─'.repeat(40));
+
+test('unitsToYaml produces valid YAML with all fields', () => {
+  const yaml = unitsToYaml(TEST_UNITS, { owner: 'test@example.com' });
+  assert(yaml.includes('core_visibility'), 'Should contain unit ID');
+  assert(yaml.includes('Software'), 'Should contain assertion text');
+  assert(yaml.includes('core_story'), 'Should contain type');
+  assert(yaml.includes('owner:'), 'Should contain owner metadata');
+  // Parse it back to verify round-trip
+  const parsed = YAML.parse(yaml);
+  assertEqual(parsed.units.length, 4, 'Should have 4 units after round-trip');
+  assertEqual(parsed.units[0].id, 'core_visibility', 'First unit ID preserved');
+});
+
+test('unitsToYaml handles units with intent', () => {
+  const units = [{
+    id: 'test_unit', type: 'core_story', assertion: 'Test assertion',
+    intent: { objective: 'Test', constraints: { content: { required_themes: ['a', 'b'] } } },
+    dependencies: [], confidence: 0.8,
+  }];
+  const yaml = unitsToYaml(units);
+  const parsed = YAML.parse(yaml);
+  assert(parsed.units[0].intent.objective === 'Test', 'Intent preserved');
+  assert(parsed.units[0].confidence === 0.8, 'Confidence preserved');
+});
+
+test('skillsToTerminologyYaml produces valid YAML', () => {
+  const yaml = skillsToTerminologyYaml({
+    brand: { company_name: 'Acme', never: ['ACME', 'acme'] },
+    products: [{ name: 'Widget', never: ['widget'] }],
+    terminology: { forbidden: ['synergy', 'leverage'] },
+  });
+  const parsed = YAML.parse(yaml);
+  assertEqual(parsed.brand.company_name, 'Acme', 'Brand name');
+  assertEqual(parsed.products.length, 1, 'Products count');
+  assertEqual(parsed.terminology.forbidden.length, 2, 'Forbidden terms count');
+});
+
+test('skillsToToneYaml produces valid YAML', () => {
+  const yaml = skillsToToneYaml({
+    owner: 'test@example.com',
+    voice: { name: 'Test Voice', summary: 'Be clear.', principles: [{ id: 'p1', rule: 'Be direct' }] },
+    terminology: { forbidden: ['buzzword'] },
+  });
+  const parsed = YAML.parse(yaml);
+  assert(parsed.voice.name === 'Test Voice', 'Voice name');
+  assert(parsed.voice.principles.length === 1, 'Principles count');
+  assert(parsed.owner === 'test@example.com', 'Owner preserved');
+});
+
+// ============================================================================
 // HTTP Server Tests (quick functional tests)
 // ============================================================================
 
@@ -548,6 +607,65 @@ async function runHttpTests() {
     }, JSON.stringify({ owner: 'test', repo: 'repo' }));
     assertEqual(res.status, 200, 'Status');
     assert(res.body.disconnected, 'Should be disconnected');
+  });
+
+  // Re-connect for editor tests (re-seed session + cache)
+  const testSession = sessions.get(Array.from(sessions.keys())[0]);
+  testSession.connectedRepos.add('test/repo');
+  repoCache.set('test/repo', {
+    canon: { units: TEST_UNITS, skills: TEST_SKILLS, files: [], errors: [] },
+    lastCheck: runClarionCall(TEST_UNITS, TEST_SKILLS),
+    history: [],
+  });
+
+  // ---- Editor API Tests ----
+
+  await testAsync('GET /api/repos/:owner/:repo/canon returns full canon data', async () => {
+    const res = await httpRequest({ path: '/api/repos/test/repo/canon', method: 'GET', headers: { Cookie: cookie } });
+    assertEqual(res.status, 200, 'Status');
+    assert(Array.isArray(res.body.units), 'Has units array');
+    assertEqual(res.body.units.length, 4, 'Has 4 test units');
+    assert(res.body.skills, 'Has skills');
+  });
+
+  await testAsync('POST /api/repos/:owner/:repo/units/save rejects empty units', async () => {
+    const res = await httpRequest({
+      path: '/api/repos/test/repo/units/save',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ units: [], filename: 'test.yml' }));
+    assertEqual(res.status, 400, 'Status');
+    assert(res.body.error.includes('Missing'), 'Error message');
+  });
+
+  await testAsync('POST /api/repos/:owner/:repo/skills/save rejects missing type', async () => {
+    const res = await httpRequest({
+      path: '/api/repos/test/repo/skills/save',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ data: {} }));
+    assertEqual(res.status, 400, 'Status');
+    assert(res.body.error.includes('Missing type'), 'Error message');
+  });
+
+  await testAsync('POST /api/repos/:owner/:repo/skills/save rejects unknown type', async () => {
+    const res = await httpRequest({
+      path: '/api/repos/test/repo/skills/save',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ type: 'invalid', data: {} }));
+    assertEqual(res.status, 400, 'Status');
+    assert(res.body.error.includes('Unknown skills type'), 'Error message');
+  });
+
+  await testAsync('POST /api/repos/:owner/:repo/wizard/setup rejects empty core story', async () => {
+    const res = await httpRequest({
+      path: '/api/repos/test/repo/wizard/setup',
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    }, JSON.stringify({ coreStory: [] }));
+    assertEqual(res.status, 400, 'Status');
+    assert(res.body.error.includes('core story'), 'Error message');
   });
 
   // Clean up
