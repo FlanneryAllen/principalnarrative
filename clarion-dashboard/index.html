@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarion Call — Narrative Coherence Dashboard</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+/* ============================================================
+   Design System — Principal AI dark navy + copper/orange
+   ============================================================ */
+:root {
+  --navy: #0a1628;
+  --navy-light: #0f1f38;
+  --navy-mid: #152544;
+  --copper: #d4872c;
+  --copper-light: #e8a04a;
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.15);
+  --yellow: #fbbf24;
+  --yellow-dim: rgba(251,191,36,0.15);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.15);
+  --text: #e2e8f0;
+  --text-dim: #8896a8;
+  --text-muted: #4a5568;
+  --border: rgba(255,255,255,0.06);
+  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  gap: 1px;
+  background: var(--border);
+}
+
+.header {
+  grid-column: 1 / -1;
+  background: var(--navy);
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left { display: flex; align-items: center; gap: 16px; }
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.header h1 span {
+  color: var(--copper);
+  font-family: var(--mono);
+  font-weight: 400;
+  margin-right: 8px;
+}
+
+.score-badge {
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.6s ease;
+}
+
+.score-badge.green { background: var(--green-dim); color: var(--green); }
+.score-badge.yellow { background: var(--yellow-dim); color: var(--yellow); }
+.score-badge.red { background: var(--red-dim); color: var(--red); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trigger-btn {
+  background: var(--copper);
+  color: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all 0.2s;
+}
+
+.trigger-btn:hover { background: var(--copper-light); }
+
+.trigger-btn.running {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Graph panel */
+.graph-panel {
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+
+#graph-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Right sidebar */
+.sidebar {
+  background: var(--navy-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+  padding: 20px;
+}
+
+.sidebar-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-card {
+  background: var(--navy-mid);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-card .value {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card .label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Alert list */
+.alert-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.alert-list h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.alert-item {
+  background: var(--navy-mid);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  animation: slideIn 0.3s ease;
+}
+
+.alert-item.error { border-left-color: var(--red); }
+.alert-item.warning { border-left-color: var(--yellow); }
+.alert-item.info { border-left-color: var(--green); }
+
+.alert-item .alert-type {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.alert-item.error .alert-type { color: var(--red); }
+.alert-item.warning .alert-type { color: var(--yellow); }
+.alert-item.info .alert-type { color: var(--green); }
+
+.alert-item .alert-msg { color: var(--text); }
+.alert-item .alert-unit {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+.no-alerts {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.no-alerts .check {
+  font-size: 32px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+/* Bottom panel */
+.bottom-panel {
+  grid-column: 1 / -1;
+  background: var(--navy-light);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+}
+
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.bottom-tab:last-child { border-right: none; }
+
+.bottom-tab h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--copper);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bottom-tab h3 .icon { font-size: 14px; }
+
+.test-input {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.test-input input,
+.test-input textarea {
+  flex: 1;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  resize: none;
+}
+
+.test-input input:focus,
+.test-input textarea:focus {
+  outline: none;
+  border-color: var(--copper);
+}
+
+.test-input input::placeholder,
+.test-input textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.test-btn {
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--sans);
+  transition: all 0.2s;
+}
+
+.test-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* Content review results */
+.review-results {
+  margin-top: 8px;
+  max-height: 60px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.review-results .violation {
+  padding: 2px 0;
+}
+
+.review-results .violation.error { color: var(--red); }
+.review-results .violation.warning { color: var(--yellow); }
+.review-results .pass { color: var(--green); }
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.running-indicator {
+  animation: pulse 1s ease infinite;
+  color: var(--copper);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* Tooltip */
+.node-tooltip {
+  position: absolute;
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 320px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.node-tooltip.visible { opacity: 1; }
+
+.node-tooltip .tt-id {
+  font-family: var(--mono);
+  color: var(--copper);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.node-tooltip .tt-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.node-tooltip .tt-assertion {
+  color: var(--text);
+}
+
+/* Graph legend */
+.graph-legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1><span>&#x1F4E3;</span> Clarion Call</h1>
+      <div class="score-badge green" id="score-badge">100 / 100</div>
+    </div>
+    <div class="header-right">
+      <span class="running-indicator" id="running-indicator" style="display:none">checking...</span>
+      <button class="trigger-btn" id="run-btn" onclick="runClarionCall()">Run Clarion Call</button>
+    </div>
+  </div>
+
+  <!-- Graph -->
+  <div class="graph-panel">
+    <svg id="graph-canvas"></svg>
+    <div class="node-tooltip" id="tooltip"></div>
+    <div class="graph-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--copper)"></div> core_story</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> positioning</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> drifting</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> test unit</div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Status</h3>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="value" id="stat-units" style="color:var(--text)">7</div>
+          <div class="label">Units</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-score" style="color:var(--green)">100</div>
+          <div class="label">Coherence</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-drift" style="color:var(--green)">0</div>
+          <div class="label">Drift</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-violations" style="color:var(--green)">0</div>
+          <div class="label">Violations</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-list" id="alert-list">
+      <h3>Alerts</h3>
+      <div class="no-alerts" id="no-alerts">
+        <div class="check">&#x2713;</div>
+        Narrative is coherent
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom panel -->
+  <div class="bottom-panel">
+    <div class="bottom-tab">
+      <h3><span class="icon">&#x26A1;</span> Test Assertion</h3>
+      <div class="test-input">
+        <input type="text" id="test-assertion"
+               placeholder="e.g. Principal AI leverages cutting-edge AI to maximize developer velocity">
+        <button class="test-btn" onclick="testAssertion()">Score</button>
+      </div>
+      <div class="review-results" id="assertion-results"></div>
+    </div>
+    <div class="bottom-tab">
+      <h3><span class="icon">&#x1F4DD;</span> Content Review</h3>
+      <div class="test-input">
+        <textarea id="content-review" rows="2"
+                  placeholder="Paste a draft blog post, press release, or marketing copy..."></textarea>
+        <button class="test-btn" onclick="reviewContent()">Review</button>
+      </div>
+      <div class="review-results" id="content-results"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// Narrative Data — from .narrative/canon/ and .narrative/skills/
+// ============================================================================
+
+const CANON_UNITS = [
+  {
+    id: 'core_visibility',
+    type: 'core_story',
+    assertion: 'Software is the most consequential creative work on earth, and nobody can see it happening. Principal AI makes it visible.',
+    dependencies: [],
+    themes: ['visibility','builders','software_development','human_perspective'],
+    forbidden: ['surveillance','productivity_tracking','performance_scoring'],
+    tone: 'professional',
+  },
+  {
+    id: 'core_three_dimensions',
+    type: 'core_story',
+    assertion: 'Three dimensions of visibility: Structure (what it\'s made of), Motion (how it changes), Meaning (whether it worked).',
+    dependencies: ['core_visibility'],
+    themes: ['structure','motion','meaning','three_dimensions'],
+    forbidden: ['feature_list','product_comparison'],
+  },
+  {
+    id: 'core_builder_love',
+    type: 'core_story',
+    assertion: 'The best builders don\'t want to code less. They want to see more. We build for the humans who direct agents, not the agents themselves.',
+    dependencies: ['core_visibility'],
+    themes: ['builder_empowerment','seeing_more','human_centered'],
+    forbidden: ['replacing_developers','ai_fear','productivity_optimization'],
+    tone: 'professional',
+  },
+  {
+    id: 'pos_file_city',
+    type: 'positioning',
+    assertion: 'For the love of seeing the whole thing. Your entire codebase, rendered as a living map. Watch it light up when something changes.',
+    dependencies: ['core_three_dimensions','core_builder_love'],
+    themes: ['structure','codebase_visualization','living_map','change_detection'],
+    forbidden: ['code_quality_scoring','developer_ranking'],
+  },
+  {
+    id: 'pos_feed',
+    type: 'positioning',
+    assertion: 'For the love of following the work. A live stream of how software evolves. Across your repos, your team, and the builders shaping the code you depend on.',
+    dependencies: ['core_three_dimensions','core_builder_love'],
+    themes: ['motion','evolution','live_stream','cross_repo'],
+    forbidden: ['activity_monitoring','time_tracking','performance_review'],
+  },
+  {
+    id: 'pos_story_monitoring',
+    type: 'positioning',
+    assertion: 'For the love of knowing it worked. Define what should happen. See whether it did. The gap between those two things is the only thing that matters.',
+    dependencies: ['core_three_dimensions','core_builder_love'],
+    themes: ['meaning','verification','intent_vs_outcome','behavioral_validation'],
+    forbidden: ['traditional_monitoring','log_aggregation','alert_fatigue'],
+  },
+  {
+    id: 'pos_closing',
+    type: 'positioning',
+    assertion: 'Structure. Motion. Meaning. Three dimensions of visibility. One environment built for the humans who direct agents.',
+    dependencies: ['pos_file_city','pos_feed','pos_story_monitoring'],
+    themes: ['unified_platform','three_dimensions','human_centered'],
+    forbidden: [],
+  },
+];
+
+const SKILLS = {
+  forbidden_terms: [
+    'leverage','cutting-edge','unlock','empower','revolutionize',
+    'game-changing','best-in-class','synergy','holistic','paradigm','disrupt'
+  ],
+  brand_wrong: ['Principal ADE','PrincipalAI','principal.ai','Principal A.I.'],
+  brand_correct: 'Principal AI',
+  product_wrong: {
+    'FileCity': 'File City',
+    'File city': 'File City',
+    'filecity': 'File City',
+    'The Feed': 'Principal Feed',
+    'Activity Feed': 'Principal Feed',
+    'SBM': 'Story-Based Monitoring',
+    'story monitoring': 'Story-Based Monitoring',
+  },
+  tone_bad_patterns: [
+    'ai-powered','comprehensive solution','enables organizations',
+    'take back control','maximize','unprecedented','lifecycle',
+    'streamline','optimize','accelerate','drive value',
+  ],
+};
+
+// ============================================================================
+// State
+// ============================================================================
+
+let units = JSON.parse(JSON.stringify(CANON_UNITS));
+let testUnit = null;
+let alerts = [];
+let coherenceScore = 100;
+
+// ============================================================================
+// Clarion Call Engine (browser-side)
+// ============================================================================
+
+function runClarionCallEngine(unitList) {
+  const result = { drift: [], terminology: [], tone: [], orphans: [], score: 100 };
+  const idMap = new Map(unitList.map(u => [u.id, u]));
+  const ids = new Set(unitList.map(u => u.id));
+
+  for (const u of unitList) {
+    // Orphaned deps
+    for (const dep of u.dependencies) {
+      if (!ids.has(dep)) {
+        result.orphans.push({ unitId: u.id, missing: dep });
+      }
+    }
+
+    // Theme conflicts with parent
+    for (const depId of u.dependencies) {
+      const parent = idMap.get(depId);
+      if (!parent) continue;
+      const childThemes = u.themes || [];
+      const parentForbidden = parent.forbidden || [];
+      const conflicts = childThemes.filter(t => parentForbidden.includes(t));
+      if (conflicts.length > 0) {
+        result.drift.push({
+          unitId: u.id,
+          parentId: parent.id,
+          severity: 'error',
+          message: `Theme conflict: [${conflicts.join(', ')}] forbidden by parent`,
+        });
+      }
+    }
+
+    // Forbidden terms
+    const text = u.assertion.toLowerCase();
+    for (const term of SKILLS.forbidden_terms) {
+      if (text.includes(term)) {
+        result.terminology.push({
+          unitId: u.id,
+          severity: 'warning',
+          message: `Forbidden term: "${term}"`,
+        });
+      }
+    }
+
+    // Brand violations
+    for (const wrong of SKILLS.brand_wrong) {
+      if (u.assertion.includes(wrong)) {
+        result.terminology.push({
+          unitId: u.id,
+          severity: 'error',
+          message: `Wrong brand name: "${wrong}" \u2192 use "${SKILLS.brand_correct}"`,
+        });
+      }
+    }
+
+    // Product name violations
+    for (const [wrong, correct] of Object.entries(SKILLS.product_wrong)) {
+      if (u.assertion.includes(wrong)) {
+        result.terminology.push({
+          unitId: u.id,
+          severity: 'error',
+          message: `Wrong product name: "${wrong}" \u2192 use "${correct}"`,
+        });
+      }
+    }
+
+    // Tone violations
+    for (const pattern of SKILLS.tone_bad_patterns) {
+      if (text.includes(pattern)) {
+        result.tone.push({
+          unitId: u.id,
+          severity: 'warning',
+          message: `Tone: "${pattern}" sounds like marketing-speak`,
+        });
+      }
+    }
+  }
+
+  // Score
+  const total = result.drift.length + result.terminology.length + result.tone.length + result.orphans.length;
+  const maxPossible = unitList.length * 4;
+  result.score = maxPossible > 0 ? Math.round(Math.max(0, 100 - (total / maxPossible * 100))) : 100;
+
+  return result;
+}
+
+// ============================================================================
+// Actions
+// ============================================================================
+
+function runClarionCall() {
+  const btn = document.getElementById('run-btn');
+  const indicator = document.getElementById('running-indicator');
+  btn.classList.add('running');
+  indicator.style.display = 'inline';
+
+  // Simulate brief processing time
+  setTimeout(() => {
+    const allUnits = testUnit ? [...units, testUnit] : units;
+    const result = runClarionCallEngine(allUnits);
+    coherenceScore = result.score;
+
+    // Flatten alerts
+    alerts = [
+      ...result.drift.map(d => ({ ...d, type: 'DRIFT' })),
+      ...result.terminology.map(t => ({ ...t, type: 'TERMINOLOGY' })),
+      ...result.tone.map(t => ({ ...t, type: 'TONE' })),
+      ...result.orphans.map(o => ({ type: 'ORPHAN', unitId: o.unitId, severity: 'error', message: `Missing dependency: "${o.missing}"` })),
+    ];
+
+    updateUI();
+    updateGraph();
+    btn.classList.remove('running');
+    indicator.style.display = 'none';
+  }, 400);
+}
+
+function testAssertion() {
+  const input = document.getElementById('test-assertion');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Create a test unit that depends on core_visibility
+  testUnit = {
+    id: 'test_assertion',
+    type: 'test',
+    assertion: text,
+    dependencies: ['core_visibility'],
+    themes: [],
+    forbidden: [],
+    _isTest: true,
+  };
+
+  // Run the check
+  const allUnits = [...units, testUnit];
+  const result = runClarionCallEngine(allUnits);
+
+  // Show inline results
+  const resultsEl = document.getElementById('assertion-results');
+  const testAlerts = [
+    ...result.terminology.filter(t => t.unitId === 'test_assertion'),
+    ...result.tone.filter(t => t.unitId === 'test_assertion'),
+    ...result.drift.filter(t => t.unitId === 'test_assertion'),
+  ];
+
+  if (testAlerts.length === 0) {
+    resultsEl.innerHTML = '<div class="pass">\u2713 Clean. No violations detected.</div>';
+  } else {
+    resultsEl.innerHTML = testAlerts.map(a =>
+      `<div class="violation ${a.severity}">\u2717 ${a.message}</div>`
+    ).join('');
+  }
+
+  // Update main dashboard
+  coherenceScore = result.score;
+  alerts = [
+    ...result.drift.map(d => ({ ...d, type: 'DRIFT' })),
+    ...result.terminology.map(t => ({ ...t, type: 'TERMINOLOGY' })),
+    ...result.tone.map(t => ({ ...t, type: 'TONE' })),
+    ...result.orphans.map(o => ({ type: 'ORPHAN', unitId: o.unitId, severity: 'error', message: `Missing dependency: "${o.missing}"` })),
+  ];
+
+  updateUI();
+  updateGraph();
+}
+
+function reviewContent() {
+  const textarea = document.getElementById('content-review');
+  const text = textarea.value.trim();
+  if (!text) return;
+
+  const violations = [];
+
+  // Check forbidden terms
+  const lower = text.toLowerCase();
+  for (const term of SKILLS.forbidden_terms) {
+    if (lower.includes(term)) {
+      violations.push({ severity: 'warning', message: `Forbidden term: "${term}"` });
+    }
+  }
+
+  // Check brand
+  for (const wrong of SKILLS.brand_wrong) {
+    if (text.includes(wrong)) {
+      violations.push({ severity: 'error', message: `Brand: "${wrong}" \u2192 "${SKILLS.brand_correct}"` });
+    }
+  }
+
+  // Check product names
+  for (const [wrong, correct] of Object.entries(SKILLS.product_wrong)) {
+    if (text.includes(wrong)) {
+      violations.push({ severity: 'error', message: `Product: "${wrong}" \u2192 "${correct}"` });
+    }
+  }
+
+  // Check tone
+  for (const pattern of SKILLS.tone_bad_patterns) {
+    if (lower.includes(pattern)) {
+      violations.push({ severity: 'warning', message: `Tone: "${pattern}" sounds like marketing-speak` });
+    }
+  }
+
+  // Check for coherence with canon themes
+  const coreThemes = ['visibility','builders','software','see','building','human'];
+  const hasRelevantTheme = coreThemes.some(t => lower.includes(t));
+  if (!hasRelevantTheme && text.length > 100) {
+    violations.push({ severity: 'warning', message: 'Content may not align with core narrative themes (visibility, builders, seeing more)' });
+  }
+
+  const resultsEl = document.getElementById('content-results');
+  if (violations.length === 0) {
+    resultsEl.innerHTML = '<div class="pass">\u2713 Content aligns with canon and passes all skill checks.</div>';
+  } else {
+    resultsEl.innerHTML = violations.map(v =>
+      `<div class="violation ${v.severity}">\u2717 ${v.message}</div>`
+    ).join('');
+  }
+}
+
+// ============================================================================
+// UI Updates
+// ============================================================================
+
+function updateUI() {
+  // Score badge
+  const badge = document.getElementById('score-badge');
+  badge.textContent = `${coherenceScore} / 100`;
+  badge.className = 'score-badge ' + (coherenceScore >= 80 ? 'green' : coherenceScore >= 60 ? 'yellow' : 'red');
+
+  // Stats
+  const totalUnits = testUnit ? units.length + 1 : units.length;
+  document.getElementById('stat-units').textContent = totalUnits;
+
+  const scoreEl = document.getElementById('stat-score');
+  scoreEl.textContent = coherenceScore;
+  scoreEl.style.color = coherenceScore >= 80 ? 'var(--green)' : coherenceScore >= 60 ? 'var(--yellow)' : 'var(--red)';
+
+  const driftCount = alerts.filter(a => a.type === 'DRIFT').length;
+  const violationCount = alerts.filter(a => a.type !== 'DRIFT').length;
+
+  const driftEl = document.getElementById('stat-drift');
+  driftEl.textContent = driftCount;
+  driftEl.style.color = driftCount === 0 ? 'var(--green)' : 'var(--red)';
+
+  const violEl = document.getElementById('stat-violations');
+  violEl.textContent = violationCount;
+  violEl.style.color = violationCount === 0 ? 'var(--green)' : 'var(--yellow)';
+
+  // Alert list
+  const alertList = document.getElementById('alert-list');
+  const noAlerts = document.getElementById('no-alerts');
+
+  // Remove existing items (keep h3 and no-alerts)
+  alertList.querySelectorAll('.alert-item').forEach(el => el.remove());
+
+  if (alerts.length === 0) {
+    noAlerts.style.display = 'block';
+  } else {
+    noAlerts.style.display = 'none';
+    for (const alert of alerts) {
+      const el = document.createElement('div');
+      el.className = `alert-item ${alert.severity}`;
+      el.innerHTML = `
+        <div class="alert-type">${alert.type}</div>
+        <div class="alert-msg">${alert.message}</div>
+        <div class="alert-unit">${alert.unitId}</div>
+      `;
+      alertList.appendChild(el);
+    }
+  }
+}
+
+// ============================================================================
+// D3 Graph
+// ============================================================================
+
+let simulation, svg, linkGroup, nodeGroup, labelGroup;
+
+function initGraph() {
+  const container = document.querySelector('.graph-panel');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  svg = d3.select('#graph-canvas')
+    .attr('width', width)
+    .attr('height', height);
+
+  // Arrow marker
+  svg.append('defs').append('marker')
+    .attr('id', 'arrow')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 28)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', 'rgba(255,255,255,0.15)');
+
+  linkGroup = svg.append('g').attr('class', 'links');
+  nodeGroup = svg.append('g').attr('class', 'nodes');
+  labelGroup = svg.append('g').attr('class', 'labels');
+
+  updateGraph();
+
+  // Resize
+  window.addEventListener('resize', () => {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    svg.attr('width', w).attr('height', h);
+    if (simulation) {
+      simulation.force('center', d3.forceCenter(w / 2, h / 2));
+      simulation.alpha(0.3).restart();
+    }
+  });
+}
+
+function getNodeColor(unit) {
+  // Check if this unit has alerts
+  const hasError = alerts.some(a => a.unitId === unit.id && a.severity === 'error');
+  const hasWarning = alerts.some(a => a.unitId === unit.id && a.severity === 'warning');
+
+  if (hasError) return 'var(--red)';
+  if (hasWarning) return 'var(--yellow)';
+  if (unit._isTest) return 'var(--yellow)';
+  if (unit.type === 'core_story') return 'var(--copper)';
+  if (unit.type === 'positioning') return 'var(--green)';
+  return 'var(--text-dim)';
+}
+
+function getNodeRadius(unit) {
+  if (unit.type === 'core_story') return 20;
+  if (unit.type === 'positioning') return 16;
+  return 14;
+}
+
+function updateGraph() {
+  const container = document.querySelector('.graph-panel');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  const allUnits = testUnit ? [...units, testUnit] : [...units];
+
+  // Build links from dependencies
+  const idSet = new Set(allUnits.map(u => u.id));
+  const links = [];
+  for (const unit of allUnits) {
+    for (const dep of unit.dependencies) {
+      if (idSet.has(dep)) {
+        links.push({ source: dep, target: unit.id });
+      }
+    }
+  }
+
+  // Nodes
+  const nodes = allUnits.map(u => ({
+    id: u.id,
+    ...u,
+    // Preserve positions if they exist
+    x: u.x || undefined,
+    y: u.y || undefined,
+  }));
+
+  // Simulation
+  if (simulation) simulation.stop();
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(0.8))
+    .force('charge', d3.forceManyBody().strength(-400))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(40))
+    .force('y', d3.forceY().y(d => {
+      if (d.type === 'core_story') return height * 0.3;
+      if (d.type === 'positioning') return height * 0.65;
+      return height * 0.5;
+    }).strength(0.15));
+
+  // Links
+  const link = linkGroup.selectAll('line').data(links, d => d.source.id + '-' + d.target.id);
+  link.exit().transition().duration(300).attr('opacity', 0).remove();
+  const linkEnter = link.enter().append('line')
+    .attr('stroke', 'rgba(255,255,255,0.08)')
+    .attr('stroke-width', 1.5)
+    .attr('marker-end', 'url(#arrow)')
+    .attr('opacity', 0);
+  linkEnter.transition().duration(500).attr('opacity', 1);
+  const linkMerge = linkEnter.merge(link);
+
+  // Nodes
+  const node = nodeGroup.selectAll('circle').data(nodes, d => d.id);
+  node.exit().transition().duration(300).attr('r', 0).remove();
+  const nodeEnter = node.enter().append('circle')
+    .attr('r', 0)
+    .attr('stroke', 'rgba(0,0,0,0.3)')
+    .attr('stroke-width', 2)
+    .attr('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', dragStarted)
+      .on('drag', dragged)
+      .on('end', dragEnded))
+    .on('mouseenter', showTooltip)
+    .on('mouseleave', hideTooltip);
+
+  nodeEnter.transition().duration(500)
+    .attr('r', d => getNodeRadius(d));
+
+  const nodeMerge = nodeEnter.merge(node);
+  nodeMerge.transition().duration(400)
+    .attr('fill', d => getNodeColor(d))
+    .attr('r', d => getNodeRadius(d));
+
+  // Labels
+  const label = labelGroup.selectAll('text').data(nodes, d => d.id);
+  label.exit().transition().duration(300).attr('opacity', 0).remove();
+  const labelEnter = label.enter().append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => getNodeRadius(d) + 16)
+    .attr('fill', 'var(--text-dim)')
+    .attr('font-size', '10px')
+    .attr('font-family', 'var(--mono)')
+    .text(d => d.id.replace(/^(core_|pos_)/, ''))
+    .attr('opacity', 0);
+  labelEnter.transition().duration(500).attr('opacity', 1);
+  const labelMerge = labelEnter.merge(label);
+
+  // Tick
+  simulation.on('tick', () => {
+    linkMerge
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    nodeMerge
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y);
+
+    labelMerge
+      .attr('x', d => d.x)
+      .attr('y', d => d.y);
+  });
+}
+
+function dragStarted(event, d) {
+  if (!event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(event, d) {
+  d.fx = event.x;
+  d.fy = event.y;
+}
+
+function dragEnded(event, d) {
+  if (!event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+function showTooltip(event, d) {
+  const tooltip = document.getElementById('tooltip');
+  tooltip.innerHTML = `
+    <div class="tt-id">${d.id}</div>
+    <div class="tt-type">${d.type}${d._isTest ? ' (test)' : ''}</div>
+    <div class="tt-assertion">${d.assertion}</div>
+  `;
+  tooltip.classList.add('visible');
+
+  const rect = document.querySelector('.graph-panel').getBoundingClientRect();
+  const x = event.clientX - rect.left + 16;
+  const y = event.clientY - rect.top - 10;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+// ============================================================================
+// Init
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  initGraph();
+  // Run initial clarion call
+  runClarionCall();
+
+  // Enter key triggers score
+  document.getElementById('test-assertion').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') testAssertion();
+  });
+});
+</script>
+
+</body>
+</html>
