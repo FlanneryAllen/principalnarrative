@@ -69,6 +69,7 @@ const {
   githubGet, githubPost, githubPutFile, fetchRepoCanon,
 } = require('./store');
 const { mineNarrativeUnits } = require('./storymining');
+const { llmMineNarrativeUnits, getLLMConfig } = require('./storymining-llm');
 
 // ============================================================================
 // Config
@@ -1036,7 +1037,95 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ---- LLM Status ----
+
+    if (pathname === '/api/llm/status' && req.method === 'GET') {
+      json(res, 200, getLLMConfig());
+      return;
+    }
+
     // ---- StoryMining API ----
+
+    if (pathname === '/api/mine/live' && req.method === 'POST') {
+      let body;
+      try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+      const { text, sourceType, repoFullName } = body || {};
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        json(res, 400, { error: 'Missing or empty text field' });
+        return;
+      }
+
+      let existingGraph;
+      if (repoFullName && session.connectedRepos.has(repoFullName)) {
+        const [rOwner, rRepo] = repoFullName.split('/');
+        try {
+          const data = await getRepoData(rOwner, rRepo, session.githubToken);
+          existingGraph = data.canon.units;
+        } catch { /* proceed without existing graph */ }
+      }
+
+      const mineResult = await llmMineNarrativeUnits(text, { sourceType, existingGraph });
+
+      // Build algebra from mined candidates
+      const algebraUnits = mineResult.candidates.map(c => ({
+        id: c.id,
+        type: c.type,
+        assertion: c.assertion,
+        confidence: c.confidence,
+        dependencies: c.dependencies || [],
+        intent: {},
+        validationState: 'pending',
+      }));
+
+      let algebra = null;
+      if (algebraUnits.length > 0) {
+        try {
+          const result = createAlgebra(algebraUnits);
+          algebra = result.algebra;
+        } catch { /* algebra may fail on minimal data */ }
+      }
+
+      const algebraResult = {};
+      if (algebra) {
+        try {
+          const metrics = algebra.computeMetrics();
+          algebraResult.nci = metrics.narrativeCoherenceIndex;
+          algebraResult.layerHealth = metrics.layerHealth;
+          algebraResult.totalEdges = metrics.totalEdges;
+        } catch { algebraResult.nci = 0; }
+        try {
+          const coverResult = algebra.cover();
+          algebraResult.coverage = coverResult.coverage;
+          algebraResult.coverageByLayer = coverResult.byLayer;
+          algebraResult.gaps = coverResult.gaps.map(u => u.id);
+          algebraResult.orphans = coverResult.orphans.map(u => u.id);
+        } catch { algebraResult.coverage = 0; }
+        try {
+          const driftResult = algebra.drift();
+          algebraResult.drift = driftResult.driftRate;
+          algebraResult.driftByLayer = driftResult.byLayer;
+        } catch { algebraResult.drift = 0; }
+        // Stakeholder views
+        algebraResult.stakeholderViews = {};
+        for (const preset of Object.keys(STAKEHOLDER_PRESETS)) {
+          try {
+            const view = algebra.composeForStakeholder(preset);
+            algebraResult.stakeholderViews[preset] = {
+              unitCount: view.units.length,
+              edgeCount: view.edges.length,
+            };
+          } catch { algebraResult.stakeholderViews[preset] = { unitCount: 0, edgeCount: 0 }; }
+        }
+      }
+
+      json(res, 200, {
+        candidates: mineResult.candidates,
+        coverage: mineResult.coverage,
+        meta: mineResult.meta,
+        algebra: algebraResult,
+      });
+      return;
+    }
 
     if (pathname === '/api/mine' && req.method === 'POST') {
       let body;
@@ -1057,7 +1146,13 @@ const server = http.createServer(async (req, res) => {
         } catch { /* proceed without existing graph */ }
       }
 
-      const result = mineNarrativeUnits(text, { sourceType, existingGraph });
+      const useLLM = body.llm !== false && getLLMConfig().available;
+      let result;
+      if (useLLM) {
+        result = await llmMineNarrativeUnits(text, { sourceType, existingGraph });
+      } else {
+        result = mineNarrativeUnits(text, { sourceType, existingGraph });
+      }
       json(res, 200, result);
       return;
     }
@@ -1116,7 +1211,13 @@ const server = http.createServer(async (req, res) => {
           return;
         }
         const existing = await store.load();
-        const result = mineNarrativeUnits(text, { sourceType, existingGraph: existing.units });
+        const useLLM = body.llm !== false && getLLMConfig().available;
+        let result;
+        if (useLLM) {
+          result = await llmMineNarrativeUnits(text, { sourceType, existingGraph: existing.units });
+        } else {
+          result = mineNarrativeUnits(text, { sourceType, existingGraph: existing.units });
+        }
         json(res, 200, result);
         return;
       }
@@ -1199,4 +1300,7 @@ module.exports = {
   MemoryAdapter,
   // StoryMining (re-exported from storymining.js)
   mineNarrativeUnits,
+  // LLM StoryMining (re-exported from storymining-llm.js)
+  llmMineNarrativeUnits,
+  getLLMConfig,
 };

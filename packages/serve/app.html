@@ -1869,6 +1869,321 @@ body {
   .editor-row-2 { grid-template-columns: 1fr; }
   .voice-examples-row { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   Live Lab — StoryMining + Real-time Algebra
+   ============================================================ */
+.livelab-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.livelab-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.llm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  border: 1px solid var(--border);
+}
+.llm-badge.active { color: var(--green); border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+.llm-badge.inactive { color: var(--yellow); border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08); }
+.llm-badge .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.llm-badge.active .dot { background: var(--green); }
+.llm-badge.inactive .dot { background: var(--yellow); }
+
+.livelab-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.livelab-controls select {
+  background: var(--navy-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+}
+.livelab-mine-btn {
+  padding: 10px 28px;
+  background: var(--copper);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.livelab-mine-btn:hover { background: var(--copper-light); transform: translateY(-1px); }
+.livelab-mine-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.livelab-mine-btn .spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.livelab-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.livelab-left, .livelab-right { display: flex; flex-direction: column; gap: 16px; }
+
+.livelab-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: var(--navy-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+.livelab-textarea:focus { outline: none; border-color: var(--copper); }
+
+/* NCI Gauge (Live Lab version) */
+.livelab-gauge {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.livelab-gauge svg { max-width: 160px; }
+.livelab-gauge-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.livelab-gauge-metric {
+  background: var(--navy-mid);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+.livelab-gauge-metric .value { font-size: 20px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+.livelab-gauge-metric .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+/* Layer Health bars (Live Lab) */
+.livelab-layers {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.livelab-layers-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.ll-layer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ll-layer-name { font-size: 12px; color: var(--text-secondary); width: 90px; flex-shrink: 0; }
+.ll-layer-bar-bg { flex: 1; height: 8px; background: var(--navy-mid); border-radius: 4px; overflow: hidden; }
+.ll-layer-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+.ll-layer-pct { font-size: 12px; color: var(--text-dim); width: 32px; text-align: right; font-family: var(--mono); }
+
+/* Extracted Units */
+.livelab-units {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+.livelab-units-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.livelab-units-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.livelab-units-count { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+
+.ll-unit-card {
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--copper);
+  animation: slideInUnit 0.3s ease forwards;
+  opacity: 0;
+}
+.ll-unit-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.ll-unit-check { accent-color: var(--copper); }
+.ll-unit-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.ll-unit-confidence { font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: var(--mono); }
+.ll-unit-method {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ll-unit-method.llm { background: rgba(96,165,250,0.15); color: var(--blue); }
+.ll-unit-method.rule { background: rgba(167,139,250,0.15); color: var(--purple); }
+.ll-unit-method.both { background: rgba(52,211,153,0.15); color: var(--green); }
+.ll-unit-assertion { font-size: 13px; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
+.ll-unit-reasoning { font-size: 11px; color: var(--text-dim); }
+.ll-unit-deps { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+.ll-unit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ll-unit-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.ll-btn-canon { background: var(--green); color: #0a1628; }
+.ll-btn-canon:hover { filter: brightness(1.1); }
+.ll-btn-export { background: var(--navy-mid); color: var(--text); border: 1px solid var(--border) !important; }
+.ll-btn-export:hover { background: var(--navy-surface); }
+
+/* Live Graph */
+.livelab-graph {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+}
+.livelab-graph-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.livelab-graph canvas {
+  width: 100%;
+  height: 260px;
+  border-radius: 6px;
+}
+.livelab-graph-tooltip {
+  position: absolute;
+  background: var(--navy-mid);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+  display: none;
+  max-width: 250px;
+  z-index: 100;
+}
+
+/* Bottom Insights Panel */
+.livelab-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.livelab-insight-panel {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.livelab-insight-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.livelab-insight-item {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.livelab-insight-item .icon { flex-shrink: 0; }
+
+/* Animations */
+@keyframes slideInUnit {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes gaugeAnimate {
+  from { stroke-dashoffset: 534; }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nodeAppear {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.livelab-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+}
+
+@media (max-width: 900px) {
+  .livelab-body { grid-template-columns: 1fr; }
+  .livelab-insights { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -2132,7 +2447,7 @@ body {
         <button class="tab-btn" data-tab="compose">Compose</button>
         <button class="tab-btn" data-tab="resonate">Resonate</button>
         <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
-        <button class="tab-btn" data-tab="storymining">StoryMining</button>
+        <button class="tab-btn" data-tab="storymining">Live Lab</button>
       </div>
 
       <!-- Overview Tab -->
@@ -2261,29 +2576,89 @@ body {
         </div>
       </div>
 
-      <!-- StoryMining Tab -->
+      <!-- Live Lab Tab (replaces StoryMining) -->
       <div id="tab-storymining" class="tab-content">
-        <div class="storymining-tab" style="max-width: 900px;">
-          <div class="panel-title">StoryMining — Narrative Unit Discovery</div>
-          <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
-            Paste any content — press releases, strategy docs, customer stories, meeting notes — and extract candidate narrative units automatically.
-          </p>
-          <div style="margin-bottom: 12px;">
-            <label style="color: var(--text-secondary); font-size: 13px; display: block; margin-bottom: 4px;">Source type (optional)</label>
-            <select id="mineSourceType" style="background: var(--navy-light); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px;">
-              <option value="">Auto-detect</option>
-              <option value="press_release">Press Release</option>
-              <option value="strategy">Strategy Document</option>
-              <option value="customer_story">Customer Story</option>
-              <option value="meeting_notes">Meeting Notes</option>
-              <option value="product_doc">Product Documentation</option>
-              <option value="investor">Investor Materials</option>
-              <option value="marketing">Marketing Content</option>
-            </select>
+        <div class="livelab-header">
+          <div class="livelab-title">Live Lab &mdash; Drop content, watch the narrative unfold</div>
+          <div id="llmBadge" class="llm-badge inactive"><span class="dot"></span> LLM: checking...</div>
+        </div>
+
+        <div class="livelab-controls">
+          <select id="mineSourceType">
+            <option value="">Auto-detect</option>
+            <option value="press_release">Press Release</option>
+            <option value="strategy">Strategy Document</option>
+            <option value="customer_story">Customer Story</option>
+            <option value="meeting_notes">Meeting Notes</option>
+            <option value="product_doc">Product Documentation</option>
+            <option value="investor">Investor Materials</option>
+            <option value="marketing">Marketing Content</option>
+          </select>
+          <button id="mineBtn" class="livelab-mine-btn" onclick="runLiveLab()">Mine Units</button>
+        </div>
+
+        <div class="livelab-body">
+          <!-- LEFT COLUMN -->
+          <div class="livelab-left">
+            <textarea id="mineInput" class="livelab-textarea" placeholder="Paste content here &mdash; press releases, strategy docs, customer stories, meeting notes..."></textarea>
+            <div id="llUnitsContainer" class="livelab-units" style="display:none;">
+              <div class="livelab-units-header">
+                <span class="livelab-units-title">Extracted Units</span>
+                <span id="llUnitsCount" class="livelab-units-count"></span>
+              </div>
+              <div id="llUnitsList"></div>
+              <div class="ll-unit-actions" id="llUnitActions" style="display:none;">
+                <button class="ll-btn-canon" onclick="addMinedToCanon()">Add to Canon</button>
+                <button class="ll-btn-export" onclick="exportMinedYAML()">Export YAML</button>
+              </div>
+            </div>
           </div>
-          <textarea id="mineInput" style="width: 100%; min-height: 160px; background: var(--navy-light); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical;" placeholder="Paste content here to mine for narrative units..."></textarea>
-          <button id="mineBtn" style="margin-top: 12px; padding: 10px 24px; background: var(--copper); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;" onclick="runStoryMining()">Mine Narrative Units</button>
-          <div id="mineResults" style="margin-top: 20px;"></div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="livelab-right">
+            <div class="livelab-gauge" id="llGaugePanel">
+              <svg viewBox="0 0 200 200" width="160" height="160">
+                <circle cx="100" cy="100" r="85" fill="none" stroke="var(--navy-mid)" stroke-width="10" />
+                <circle id="llNciRing" cx="100" cy="100" r="85" fill="none" stroke="var(--text-dim)" stroke-width="10"
+                  stroke-dasharray="534" stroke-dashoffset="534" stroke-linecap="round"
+                  transform="rotate(-90 100 100)" style="transition: stroke-dashoffset 1.5s ease, stroke 0.5s ease;" />
+                <text id="llNciNumber" x="100" y="108" text-anchor="middle" fill="var(--text-dim)" font-size="42" font-weight="700" font-family="var(--mono)">&mdash;</text>
+              </svg>
+              <div class="livelab-gauge-metrics">
+                <div class="livelab-gauge-metric"><div class="value" id="llMetricUnits">0</div><div class="label">Units</div></div>
+                <div class="livelab-gauge-metric"><div class="value" id="llMetricEdges">0</div><div class="label">Edges</div></div>
+                <div class="livelab-gauge-metric"><div class="value" id="llMetricCoverage">0%</div><div class="label">Coverage</div></div>
+                <div class="livelab-gauge-metric"><div class="value" id="llMetricDrift">0%</div><div class="label">Drift</div></div>
+              </div>
+            </div>
+
+            <div class="livelab-layers" id="llLayersPanel">
+              <div class="livelab-layers-title">Layer Health</div>
+              <div id="llLayerBars"></div>
+            </div>
+
+            <div class="livelab-graph" id="llGraphPanel">
+              <div class="livelab-graph-title">Live Narrative Graph</div>
+              <canvas id="llGraphCanvas" width="600" height="260"></canvas>
+              <div id="llGraphTooltip" class="livelab-graph-tooltip"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM: Insights -->
+        <div class="livelab-insights" id="llInsightsPanel" style="display:none;">
+          <div class="livelab-insight-panel">
+            <div class="livelab-insight-title">Coverage Gaps</div>
+            <div id="llInsightGaps"><div class="livelab-empty">Run analysis to see gaps</div></div>
+          </div>
+          <div class="livelab-insight-panel">
+            <div class="livelab-insight-title">Stakeholder Impact</div>
+            <div id="llInsightStakeholders"><div class="livelab-empty">Run analysis to see impact</div></div>
+          </div>
+          <div class="livelab-insight-panel">
+            <div class="livelab-insight-title">Recommended Actions</div>
+            <div id="llInsightActions"><div class="livelab-empty">Run analysis for recommendations</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2755,6 +3130,10 @@ function setupTabs() {
       // Initialize editor when its tab is activated
       if (btn.dataset.tab === 'editor') {
         initEditor();
+      }
+      // Initialize Live Lab when its tab is activated
+      if (btn.dataset.tab === 'storymining') {
+        initLiveLab();
       }
     });
   });
@@ -4172,77 +4551,439 @@ async function voiceSave() {
 }
 
 /* ============================================================
-   StoryMining
+   Live Lab — StoryMining + Real-time Algebra
    ============================================================ */
-async function runStoryMining() {
+let _llGraphNodes = [];
+let _llGraphEdges = [];
+let _llGraphAnimFrame = null;
+
+async function initLiveLab() {
+  try {
+    const res = await fetch('/api/llm/status');
+    if (res.ok) {
+      const config = await res.json();
+      const badge = document.getElementById('llmBadge');
+      if (config.available) {
+        badge.className = 'llm-badge active';
+        badge.innerHTML = `<span class="dot"></span> LLM: Active (${config.model})`;
+      } else {
+        badge.className = 'llm-badge inactive';
+        badge.innerHTML = '<span class="dot"></span> LLM: Off (rule-based)';
+      }
+    }
+  } catch {
+    const badge = document.getElementById('llmBadge');
+    badge.className = 'llm-badge inactive';
+    badge.innerHTML = '<span class="dot"></span> LLM: Off (rule-based)';
+  }
+}
+
+async function runLiveLab() {
   const text = document.getElementById('mineInput').value.trim();
   if (!text) return;
   const sourceType = document.getElementById('mineSourceType').value || undefined;
   const btn = document.getElementById('mineBtn');
-  const resultsEl = document.getElementById('mineResults');
   btn.disabled = true;
-  btn.textContent = 'Mining...';
-  resultsEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  btn.innerHTML = '<span class="spinner-sm"></span> Extracting...';
+
+  // Reset UI
+  document.getElementById('llUnitsContainer').style.display = 'none';
+  document.getElementById('llInsightsPanel').style.display = 'none';
+  resetLiveLabGauge();
 
   try {
-    let url, body;
-    if (state.currentWorkspace) {
-      url = `/api/workspaces/${state.currentWorkspace}/mine`;
-      body = { text, sourceType };
-    } else if (state.currentRepo) {
-      url = '/api/mine';
-      body = { text, sourceType, repoFullName: state.currentRepo };
-    } else {
-      url = '/api/mine';
-      body = { text, sourceType };
+    const body = { text, sourceType };
+    if (state.currentRepo && !state.currentWorkspace) {
+      body.repoFullName = state.currentRepo;
     }
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch('/api/mine/live', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
     const data = await res.json();
-    if (!res.ok) { resultsEl.innerHTML = `<div style="color:var(--red)">Error: ${data.error}</div>`; return; }
-    renderMineResults(data);
+    if (!res.ok) {
+      document.getElementById('llUnitsList').innerHTML = `<div style="color:var(--red);padding:8px;">Error: ${data.error}</div>`;
+      document.getElementById('llUnitsContainer').style.display = '';
+      return;
+    }
+    renderLiveLabResults(data);
   } catch (err) {
-    resultsEl.innerHTML = `<div style="color:var(--red)">Error: ${err.message}</div>`;
+    document.getElementById('llUnitsList').innerHTML = `<div style="color:var(--red);padding:8px;">Error: ${err.message}</div>`;
+    document.getElementById('llUnitsContainer').style.display = '';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Mine Narrative Units';
+    btn.innerHTML = 'Mine Units';
   }
 }
 
-function renderMineResults(data) {
-  const el = document.getElementById('mineResults');
-  if (!data.candidates || data.candidates.length === 0) {
-    el.innerHTML = '<div style="color:var(--text-secondary); padding: 16px;">No narrative units found. Try pasting more content with clear assertions.</div>';
-    return;
-  }
-  const coverageHtml = Object.entries(data.coverage.layers)
-    .map(([layer, count]) => `<span style="color:${LAYER_COLORS[layer] || 'var(--text)'}; margin-right: 12px;">${layer.replace('_',' ')}: ${count}</span>`)
-    .join('');
-  const gapsHtml = data.coverage.gaps.length > 0
-    ? `<div style="color:var(--amber); margin-top: 4px; font-size: 13px;">Gaps: ${data.coverage.gaps.map(g => g.replace('_',' ')).join(', ')}</div>` : '';
+function resetLiveLabGauge() {
+  document.getElementById('llNciRing').setAttribute('stroke-dashoffset', '534');
+  document.getElementById('llNciRing').setAttribute('stroke', 'var(--text-dim)');
+  document.getElementById('llNciNumber').textContent = '\u2014';
+  document.getElementById('llNciNumber').style.color = 'var(--text-dim)';
+  document.getElementById('llMetricUnits').textContent = '0';
+  document.getElementById('llMetricEdges').textContent = '0';
+  document.getElementById('llMetricCoverage').textContent = '0%';
+  document.getElementById('llMetricDrift').textContent = '0%';
+}
 
-  let html = `<div style="margin-bottom: 16px; padding: 12px; background: var(--navy-light); border-radius: 8px;">
-    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Coverage</div>
-    <div style="font-size: 14px;">${coverageHtml}</div>${gapsHtml}
-  </div>`;
-  html += `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">${data.candidates.length} candidate(s) found</div>`;
-
-  for (const c of data.candidates) {
-    const color = LAYER_COLORS[c.type] || 'var(--text)';
-    html += `<div class="mine-candidate" style="background: var(--navy-light); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid ${color};">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <input type="checkbox" class="mine-check" data-id="${c.id}" checked style="accent-color:var(--copper);">
-        <span style="font-size:12px;color:${color};font-weight:600;text-transform:uppercase;">${c.type.replace('_',' ')}</span>
-        <span style="font-size:12px;color:var(--text-dim);margin-left:auto;">confidence: ${Math.round(c.confidence*100)}%</span>
-      </div>
-      <div style="font-size:14px;color:var(--text);margin-bottom:4px;">${c.assertion}</div>
-      <div style="font-size:12px;color:var(--text-dim);">${c.reasoning}</div>
-      ${c.dependencies.length > 0 ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Links to: ${c.dependencies.join(', ')}</div>` : ''}
-    </div>`;
-  }
-  html += `<button style="margin-top:12px;padding:8px 20px;background:var(--green);color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;" onclick="addMinedToCanon()">Add Selected to Canon</button>`;
-  el.innerHTML = html;
-  // Store candidates for later use
+function renderLiveLabResults(data) {
   state._mineCandidates = data.candidates;
+
+  // Animate units
+  animateUnits(data.candidates);
+
+  // Animate NCI gauge
+  if (data.algebra && data.algebra.nci !== undefined) {
+    animateNCI(data.algebra.nci);
+  }
+
+  // Animate metrics
+  if (data.algebra) {
+    animateMetricCounter('llMetricUnits', data.candidates.length);
+    animateMetricCounter('llMetricEdges', data.algebra.totalEdges || 0);
+    const covPct = Math.round((data.algebra.coverage || 0) * 100);
+    animateMetricCounter('llMetricCoverage', covPct, '%');
+    const driftPct = Math.round((data.algebra.drift || 0) * 100);
+    animateMetricCounter('llMetricDrift', driftPct, '%');
+  }
+
+  // Render layer health
+  if (data.algebra && data.algebra.layerHealth) {
+    renderLiveLabLayers(data.algebra.layerHealth);
+  }
+
+  // Render graph
+  renderLiveGraph(data.candidates);
+
+  // Render insights
+  renderInsights(data);
+}
+
+function animateNCI(targetValue) {
+  const ring = document.getElementById('llNciRing');
+  const num = document.getElementById('llNciNumber');
+  const pct = Math.round(targetValue * 100);
+  const circumference = 2 * Math.PI * 85; // ~534
+  const offset = circumference * (1 - targetValue);
+
+  let color;
+  if (pct >= 80) color = 'var(--green)';
+  else if (pct >= 50) color = 'var(--yellow)';
+  else color = 'var(--red)';
+
+  ring.setAttribute('stroke', color);
+  ring.setAttribute('stroke-dashoffset', offset);
+  num.style.color = color;
+
+  // Count up animation
+  let current = 0;
+  const step = Math.max(1, Math.floor(pct / 30));
+  const interval = setInterval(() => {
+    current += step;
+    if (current >= pct) { current = pct; clearInterval(interval); }
+    num.textContent = current;
+  }, 40);
+}
+
+function animateMetricCounter(elId, target, suffix) {
+  const el = document.getElementById(elId);
+  suffix = suffix || '';
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 20));
+  const interval = setInterval(() => {
+    current += step;
+    if (current >= target) { current = target; clearInterval(interval); }
+    el.textContent = current + suffix;
+  }, 50);
+}
+
+function animateUnits(candidates) {
+  const container = document.getElementById('llUnitsContainer');
+  const list = document.getElementById('llUnitsList');
+  const count = document.getElementById('llUnitsCount');
+  const actions = document.getElementById('llUnitActions');
+
+  container.style.display = '';
+  list.innerHTML = '';
+  count.textContent = `${candidates.length} unit(s)`;
+
+  candidates.forEach((c, i) => {
+    const color = LAYER_COLORS[c.type] || 'var(--text)';
+    const method = c.extractionMethod || 'rule';
+    const card = document.createElement('div');
+    card.className = 'll-unit-card';
+    card.style.borderLeftColor = color;
+    card.style.animationDelay = (i * 0.08) + 's';
+    card.innerHTML = `
+      <div class="ll-unit-card-top">
+        <input type="checkbox" class="mine-check ll-unit-check" data-id="${c.id}" checked>
+        <span class="ll-unit-type" style="color:${color};background:${color}22;">${c.type.replace('_',' ')}</span>
+        <span class="ll-unit-method ${method}">${method}</span>
+        <span class="ll-unit-confidence">${Math.round(c.confidence*100)}%</span>
+      </div>
+      <div class="ll-unit-assertion">${c.assertion}</div>
+      <div class="ll-unit-reasoning">${c.reasoning || ''}</div>
+      ${c.dependencies && c.dependencies.length > 0 ? `<div class="ll-unit-deps">Links: ${c.dependencies.join(', ')}</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+
+  actions.style.display = candidates.length > 0 ? 'flex' : 'none';
+}
+
+function renderLiveLabLayers(layerHealth) {
+  const container = document.getElementById('llLayerBars');
+  container.innerHTML = LAYER_TYPES.map(layer => {
+    const h = layerHealth[layer] || { nci: 0, unitCount: 0 };
+    const pct = Math.round(h.nci * 100);
+    const color = LAYER_COLORS[layer];
+    const width = h.unitCount > 0 ? pct : 0;
+    return `
+      <div class="ll-layer-row">
+        <span class="ll-layer-name">${LAYER_LABELS[layer]}</span>
+        <div class="ll-layer-bar-bg"><div class="ll-layer-bar-fill" style="width:0%;background:${color};" data-target="${width}"></div></div>
+        <span class="ll-layer-pct">${h.unitCount > 0 ? pct + '%' : '\u2014'}</span>
+      </div>`;
+  }).join('');
+  // Animate bars after render
+  requestAnimationFrame(() => {
+    container.querySelectorAll('.ll-layer-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.target + '%';
+    });
+  });
+}
+
+/* Force-Directed Graph (Canvas 2D) */
+function renderLiveGraph(candidates) {
+  const canvas = document.getElementById('llGraphCanvas');
+  const ctx = canvas.getContext('2d');
+  const tooltip = document.getElementById('llGraphTooltip');
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight;
+
+  if (_llGraphAnimFrame) cancelAnimationFrame(_llGraphAnimFrame);
+
+  // Build nodes and edges
+  const nodes = candidates.map((c, i) => ({
+    id: c.id,
+    type: c.type,
+    assertion: c.assertion,
+    x: W/2 + (Math.random() - 0.5) * W * 0.6,
+    y: H/2 + (Math.random() - 0.5) * H * 0.6,
+    vx: 0, vy: 0,
+    radius: 6 + Math.min(c.confidence * 8, 8),
+    color: LAYER_COLORS[c.type] || '#e2e8f0',
+    alpha: 0,
+    targetAlpha: 1,
+    spawnTime: Date.now() + i * 120,
+  }));
+
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const edges = [];
+  for (const c of candidates) {
+    if (c.dependencies) {
+      for (const depId of c.dependencies) {
+        if (nodeMap.has(depId)) {
+          edges.push({ source: nodeMap.get(c.id), target: nodeMap.get(depId) });
+        }
+      }
+    }
+  }
+
+  _llGraphNodes = nodes;
+  _llGraphEdges = edges;
+
+  // Hover handling
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let hit = null;
+    for (const n of nodes) {
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx*dx + dy*dy < (n.radius+4)*(n.radius+4) && n.alpha > 0.3) { hit = n; break; }
+    }
+    if (hit) {
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX - canvas.getBoundingClientRect().left + 12) + 'px';
+      tooltip.style.top = (e.clientY - canvas.getBoundingClientRect().top - 8) + 'px';
+      tooltip.textContent = hit.assertion;
+    } else {
+      tooltip.style.display = 'none';
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+
+  function tick() {
+    const now = Date.now();
+    ctx.clearRect(0, 0, W, H);
+
+    // Fade in nodes
+    for (const n of nodes) {
+      if (now >= n.spawnTime && n.alpha < n.targetAlpha) {
+        n.alpha = Math.min(n.targetAlpha, n.alpha + 0.05);
+      }
+    }
+
+    // Simple force simulation
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        if (dist < 60) {
+          const force = (60 - dist) * 0.03;
+          const fx = (dx / dist) * force, fy = (dy / dist) * force;
+          a.vx -= fx; a.vy -= fy;
+          b.vx += fx; b.vy += fy;
+        }
+      }
+    }
+
+    // Edge attraction
+    for (const e of edges) {
+      let dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
+      let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = (dist - 80) * 0.005;
+      const fx = (dx / dist) * force, fy = (dy / dist) * force;
+      e.source.vx += fx; e.source.vy += fy;
+      e.target.vx -= fx; e.target.vy -= fy;
+    }
+
+    // Center gravity
+    for (const n of nodes) {
+      n.vx += (W/2 - n.x) * 0.001;
+      n.vy += (H/2 - n.y) * 0.001;
+      n.vx *= 0.9; n.vy *= 0.9;
+      n.x += n.vx; n.y += n.vy;
+      n.x = Math.max(n.radius, Math.min(W - n.radius, n.x));
+      n.y = Math.max(n.radius, Math.min(H - n.radius, n.y));
+    }
+
+    // Draw edges
+    for (const e of edges) {
+      const a = Math.min(e.source.alpha, e.target.alpha) * 0.4;
+      if (a <= 0) continue;
+      ctx.beginPath();
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Draw nodes
+    for (const n of nodes) {
+      if (n.alpha <= 0) continue;
+      ctx.globalAlpha = n.alpha;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fillStyle = n.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Keep animating until all nodes are fully visible
+    const allVisible = nodes.every(n => n.alpha >= n.targetAlpha);
+    const hasMotion = nodes.some(n => Math.abs(n.vx) > 0.05 || Math.abs(n.vy) > 0.05);
+    if (!allVisible || hasMotion) {
+      _llGraphAnimFrame = requestAnimationFrame(tick);
+    }
+  }
+
+  if (nodes.length > 0) {
+    tick();
+  } else {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#4a5568';
+    ctx.font = '13px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No units to graph', W/2, H/2);
+  }
+}
+
+function renderInsights(data) {
+  const panel = document.getElementById('llInsightsPanel');
+  panel.style.display = '';
+
+  // Coverage gaps
+  const gapsEl = document.getElementById('llInsightGaps');
+  const gaps = data.coverage?.gaps || [];
+  if (gaps.length > 0) {
+    gapsEl.innerHTML = gaps.map(g =>
+      `<div class="livelab-insight-item"><span class="icon" style="color:var(--yellow);">\u26a0</span> No <strong>${g.replace('_',' ')}</strong> units</div>`
+    ).join('');
+  } else {
+    gapsEl.innerHTML = '<div class="livelab-insight-item"><span class="icon" style="color:var(--green);">\u2713</span> All layers covered</div>';
+  }
+
+  // Stakeholder impact
+  const stakeholdersEl = document.getElementById('llInsightStakeholders');
+  const views = data.algebra?.stakeholderViews || {};
+  const stakeholderNames = { board: 'Board', investor: 'Investor', engineering: 'Engineering', marketing: 'Marketing', compliance: 'Compliance', customer: 'Customer' };
+  const stakeholderHtml = Object.entries(views).map(([key, v]) =>
+    `<div class="livelab-insight-item"><span style="color:var(--copper);font-weight:600;">${stakeholderNames[key] || key}:</span> ${v.unitCount} units</div>`
+  ).join('');
+  stakeholdersEl.innerHTML = stakeholderHtml || '<div class="livelab-empty">No stakeholder data</div>';
+
+  // Recommended actions
+  const actionsEl = document.getElementById('llInsightActions');
+  const recs = [];
+  if (gaps.includes('evidence')) recs.push('Add metrics and data points to support your claims');
+  if (gaps.includes('core_story')) recs.push('Define your fundamental purpose and mission');
+  if (gaps.includes('positioning')) recs.push('Articulate what makes you different from competitors');
+  if (gaps.includes('operational')) recs.push('Document your processes and methodologies');
+  if (gaps.includes('communication')) recs.push('Add public-facing messaging and press material');
+  if (gaps.includes('product_narrative')) recs.push('Describe your product capabilities and features');
+  if (gaps.length === 0 && data.candidates?.length > 0) recs.push('Narrative has good coverage across all layers');
+  if (data.algebra?.drift > 0) recs.push('Review drifted units for alignment with core story');
+  if (data.candidates?.length === 0) recs.push('Try pasting more content with clear assertions');
+
+  actionsEl.innerHTML = recs.length > 0
+    ? recs.map(r => `<div class="livelab-insight-item"><span class="icon" style="color:var(--blue);">\u2192</span> ${r}</div>`).join('')
+    : '<div class="livelab-empty">No recommendations yet</div>';
+}
+
+function exportMinedYAML() {
+  if (!state._mineCandidates) return;
+  const checked = [...document.querySelectorAll('.mine-check:checked')].map(el => el.dataset.id);
+  const selected = state._mineCandidates.filter(c => checked.includes(c.id));
+  if (selected.length === 0) return;
+
+  const yamlUnits = selected.map(c => ({
+    id: c.id,
+    type: c.type,
+    assertion: c.assertion,
+    confidence: c.confidence,
+    dependencies: c.dependencies || [],
+  }));
+
+  let yaml = 'units:\n';
+  for (const u of yamlUnits) {
+    yaml += `  - id: "${u.id}"\n`;
+    yaml += `    type: "${u.type}"\n`;
+    yaml += `    assertion: "${u.assertion.replace(/"/g, '\\"')}"\n`;
+    yaml += `    confidence: ${u.confidence}\n`;
+    yaml += `    dependencies: [${u.dependencies.map(d => '"' + d + '"').join(', ')}]\n`;
+  }
+
+  const blob = new Blob([yaml], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mined-units.yml';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function addMinedToCanon() {
@@ -4269,8 +5010,15 @@ async function addMinedToCanon() {
       body: JSON.stringify({ units: [...state.units, ...units], filename: 'canon.yml' }),
     });
     if (res.ok) {
-      document.getElementById('mineResults').innerHTML = `<div style="color:var(--green);padding:12px;">Added ${selected.length} unit(s) to canon.</div>`;
+      const msgEl = document.getElementById('llUnitsList') || document.getElementById('mineResults');
+      if (msgEl) msgEl.innerHTML = `<div style="color:var(--green);padding:12px;">Added ${selected.length} unit(s) to canon.</div>`;
       state._mineCandidates = null;
+      const actionsEl = document.getElementById('llUnitActions');
+      if (actionsEl) actionsEl.style.display = 'none';
+      // Refresh live graph if visible
+      if (typeof renderLiveGraph === 'function' && units.length > 0) {
+        renderLiveGraph(units);
+      }
       // Refresh if repo-backed
       if (state.currentRepo && !state.currentWorkspace) {
         const [owner, repo] = state.currentRepo.split('/');
@@ -4278,7 +5026,8 @@ async function addMinedToCanon() {
       }
     }
   } catch (err) {
-    document.getElementById('mineResults').innerHTML += `<div style="color:var(--red)">Save failed: ${err.message}</div>`;
+    const errEl = document.getElementById('llUnitsList') || document.getElementById('mineResults');
+    if (errEl) errEl.innerHTML += `<div style="color:var(--red)">Save failed: ${err.message}</div>`;
   }
 }
 
