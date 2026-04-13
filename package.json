@@ -11,11 +11,9 @@
   },
   "scripts": {
     "narrative": "node packages/serve/cli.js",
-    "build": "npm run build --workspaces",
-    "dev": "npm run dev --workspaces",
-    "test": "npm run test --workspaces",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "test": "node packages/serve/test-cli.js",
+    "check": "node packages/serve/check.js",
+    "serve": "node packages/serve/server.js"
   },
   "keywords": [
     "narrative",
@@ -26,22 +24,5 @@
     "organizational-intent"
   ],
   "author": "Julie Allen",
-  "license": "MIT",
-  "devDependencies": {
-    "@chromatic-com/storybook": "^5.1.1",
-    "@storybook/addon-a11y": "^10.3.5",
-    "@storybook/addon-docs": "^10.3.5",
-    "@storybook/addon-onboarding": "^10.3.5",
-    "@storybook/addon-vitest": "^10.3.5",
-    "@storybook/react-vite": "^10.3.5",
-    "@vitest/browser-playwright": "^4.1.4",
-    "@vitest/coverage-v8": "^4.1.4",
-    "playwright": "^1.59.1",
-    "storybook": "^10.3.5",
-    "typescript": "^5.5.0",
-    "vitest": "^4.1.4"
-  },
-  "dependencies": {
-    "better-sqlite3": "^12.8.0"
-  }
+  "license": "MIT"
 }

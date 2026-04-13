@@ -32,6 +32,73 @@ const YAML = require('yaml');
 // Config
 // ============================================================================
 
+/** Default tone patterns — can be overridden by .narrative/config.yml */
+const DEFAULT_TONE_PATTERNS = [
+  'cutting-edge', 'ai-powered', 'leverage', 'unlock',
+  'unprecedented', 'maximize', 'revolutionize', 'game-changing',
+  'best-in-class', 'synergy', 'holistic', 'paradigm',
+  'comprehensive solution', 'enables organizations',
+  'take back control', 'empower', 'disrupt',
+  'streamline', 'optimize', 'accelerate', 'drive value',
+  'next-generation', 'world-class', 'seamless', 'end-to-end',
+  'thought leader', 'robust', 'scalable solution', 'actionable insights',
+];
+
+/** Default theme keywords — can be overridden by .narrative/config.yml */
+const DEFAULT_THEMES = [
+  'visibility', 'builder', 'building', 'software', 'see', 'seeing',
+  'structure', 'motion', 'meaning', 'intent', 'narrative', 'story',
+  'monitoring', 'codebase', 'code', 'map',
+];
+
+/** Default ignore patterns for file discovery */
+const DEFAULT_IGNORE = [
+  'node_modules', '.git', '.narrative', 'dist', 'build', 'coverage',
+  'package-lock.json', '.env', '.DS_Store',
+];
+
+/**
+ * Load project configuration from .narrative/config.yml
+ * Returns defaults if no config file exists.
+ */
+function loadConfig(narrativeDir) {
+  const configPath = path.join(narrativeDir, 'config.yml');
+  const defaults = {
+    tone_patterns: DEFAULT_TONE_PATTERNS,
+    themes: DEFAULT_THEMES,
+    ignore: DEFAULT_IGNORE,
+    extensions: ['.md', '.mdx', '.txt', '.rst'],
+    min_words: 10,
+    theme_min_words: 200,
+    penalties: {
+      forbidden_term: 3,
+      wrong_brand: 8,
+      wrong_product: 5,
+      tone: 2,
+      preferred_term: 2,
+      theme_miss: 5,
+    },
+  };
+
+  if (!fs.existsSync(configPath)) return defaults;
+
+  try {
+    const raw = YAML.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (!raw) return defaults;
+    return {
+      tone_patterns: raw.tone_patterns || defaults.tone_patterns,
+      themes: raw.themes || defaults.themes,
+      ignore: raw.ignore || defaults.ignore,
+      extensions: raw.extensions || defaults.extensions,
+      min_words: raw.min_words ?? defaults.min_words,
+      theme_min_words: raw.theme_min_words ?? defaults.theme_min_words,
+      penalties: { ...defaults.penalties, ...(raw.penalties || {}) },
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 const args = process.argv.slice(2);
 
 function hasFlag(name) {
@@ -106,11 +173,9 @@ function findFiles(targets, projectDir) {
   const baseDir = projectDir || PROJECT_DIR;
   const files = [];
 
-  // Default ignore patterns
-  const ignore = [
-    'node_modules', '.git', '.narrative', 'dist', 'build', 'coverage',
-    'package-lock.json', '.env', '.DS_Store',
-  ];
+  // Ignore patterns (from config or defaults)
+  const config = loadConfig(path.join(baseDir, '.narrative'));
+  const ignore = config.ignore;
 
   function shouldIgnore(p) {
     const parts = p.split(path.sep);
@@ -127,7 +192,7 @@ function findFiles(targets, projectDir) {
 
       if (entry.isDirectory()) {
         walk(full);
-      } else if (entry.isFile() && /\.(md|mdx|txt|rst)$/i.test(entry.name)) {
+      } else if (entry.isFile() && config.extensions.some(ext => entry.name.toLowerCase().endsWith(ext))) {
         files.push(full);
       }
     }
@@ -163,9 +228,11 @@ function findFiles(targets, projectDir) {
  * @param {string} content — raw file content
  * @param {object} skills — parsed skills from .narrative/skills/
  * @param {string} filePath — for context in violations
+ * @param {object} [config] — optional config from .narrative/config.yml
  * @returns {{ score: number, violations: Array, wordCount: number, themeHits: string[] }}
  */
-function checkContent(content, skills, filePath) {
+function checkContent(content, skills, filePath, config) {
+  if (!config) config = loadConfig(NARRATIVE_DIR);
   const violations = [];
 
   // Strip code blocks (fenced and inline) so examples of bad copy aren't flagged.
@@ -179,7 +246,7 @@ function checkContent(content, skills, filePath) {
   const wordCount = words.length;
 
   // Skip very short files
-  if (wordCount < 10) {
+  if (wordCount < config.min_words) {
     return { score: 100, violations: [], wordCount, themeHits: [] };
   }
 
@@ -202,7 +269,7 @@ function checkContent(content, skills, filePath) {
         message: `Forbidden term: "${term}"`,
         line: lineNum,
         context: `...${context}...`,
-        penalty: 3,
+        penalty: config.penalties.forbidden_term,
       });
 
       idx = strippedLower.indexOf(termLower, idx + termLower.length);
@@ -222,7 +289,7 @@ function checkContent(content, skills, filePath) {
         message: `Wrong brand name: "${wrong}" → use "${brandCorrect}"`,
         line: lineNum,
         context: content.substring(Math.max(0, idx - 20), idx + wrong.length + 20).replace(/\n/g, ' ').trim(),
-        penalty: 8,
+        penalty: config.penalties.wrong_brand,
       });
       idx = stripped.indexOf(wrong, idx + wrong.length);
     }
@@ -242,7 +309,7 @@ function checkContent(content, skills, filePath) {
           message: `Wrong product name: "${wrong}" → use "${product.name}"`,
           line: lineNum,
           context: content.substring(Math.max(0, idx - 20), idx + wrong.length + 20).replace(/\n/g, ' ').trim(),
-          penalty: 5,
+          penalty: config.penalties.wrong_product,
         });
         idx = stripped.indexOf(wrong, idx + wrong.length);
       }
@@ -250,16 +317,7 @@ function checkContent(content, skills, filePath) {
   }
 
   // ── 4. Tone — marketing-speak patterns ──────────────────────────────────
-  const badPatterns = [
-    'cutting-edge', 'ai-powered', 'leverage', 'unlock',
-    'unprecedented', 'maximize', 'revolutionize', 'game-changing',
-    'best-in-class', 'synergy', 'holistic', 'paradigm',
-    'comprehensive solution', 'enables organizations',
-    'take back control', 'empower', 'disrupt',
-    'streamline', 'optimize', 'accelerate', 'drive value',
-    'next-generation', 'world-class', 'seamless', 'end-to-end',
-    'thought leader', 'robust', 'scalable solution', 'actionable insights',
-  ];
+  const badPatterns = config.tone_patterns;
 
   for (const pattern of badPatterns) {
     let idx = strippedLower.indexOf(pattern);
@@ -271,7 +329,7 @@ function checkContent(content, skills, filePath) {
         message: `Marketing-speak: "${pattern}"`,
         line: lineNum,
         context: content.substring(Math.max(0, idx - 20), idx + pattern.length + 20).replace(/\n/g, ' ').trim(),
-        penalty: 2,
+        penalty: config.penalties.tone,
       });
       idx = strippedLower.indexOf(pattern, idx + pattern.length);
     }
@@ -295,7 +353,7 @@ function checkContent(content, skills, filePath) {
           message: `Use "${pref.term}" instead of "${avoid}"`,
           line: lineNum,
           context: content.substring(Math.max(0, idx - 20), idx + avoid.length + 20).replace(/\n/g, ' ').trim(),
-          penalty: 2,
+          penalty: config.penalties.preferred_term,
         });
         idx = strippedLower.indexOf(avoidLower, idx + avoidLower.length);
       }
@@ -303,23 +361,19 @@ function checkContent(content, skills, filePath) {
   }
 
   // ── 6. Theme alignment — does the content touch core themes? ────────────
-  const coreThemes = [
-    'visibility', 'builder', 'building', 'software', 'see', 'seeing',
-    'structure', 'motion', 'meaning', 'intent', 'narrative', 'story',
-    'monitoring', 'codebase', 'code', 'map', 'principal',
-  ];
+  const coreThemes = config.themes;
   const themeHits = coreThemes.filter(t => strippedLower.includes(t));
 
   // Only penalize theme misalignment for substantial content (> 200 words)
   // that has zero theme overlap
-  if (wordCount > 200 && themeHits.length === 0) {
+  if (wordCount > config.theme_min_words && themeHits.length === 0) {
     violations.push({
       type: 'theme',
       severity: 'info',
       message: 'Content may not align with core narrative themes',
       line: 0,
       context: '(no core theme keywords found in file)',
-      penalty: 5,
+      penalty: config.penalties.theme_miss,
     });
   }
 
@@ -488,7 +542,7 @@ function main() {
 }
 
 // Also export for use as a module (server.js, GitHub Action, cli.js)
-module.exports = { checkContent, findFiles, parseCanon, main };
+module.exports = { checkContent, findFiles, parseCanon, loadConfig, main };
 
 // Run if called directly
 if (require.main === module) {

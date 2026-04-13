@@ -287,6 +287,89 @@ ${brandSection}${productsSection}concepts: []
 `;
 }
 
+function generateConfig(data) {
+  return `# Narrative Agent Configuration
+# Customize how the content checker scores your files.
+# All fields are optional — defaults are used for anything omitted.
+
+# Marketing-speak patterns to flag (case-insensitive)
+# Add or remove patterns to match your brand's standards.
+tone_patterns:
+  - cutting-edge
+  - ai-powered
+  - leverage
+  - unlock
+  - unprecedented
+  - maximize
+  - revolutionize
+  - game-changing
+  - best-in-class
+  - synergy
+  - holistic
+  - paradigm
+  - comprehensive solution
+  - enables organizations
+  - take back control
+  - empower
+  - disrupt
+  - streamline
+  - optimize
+  - accelerate
+  - drive value
+  - next-generation
+  - world-class
+  - seamless
+  - end-to-end
+  - thought leader
+  - robust
+  - scalable solution
+  - actionable insights
+
+# Theme keywords — content should touch at least one of these.
+# Customize to match your company's core narrative themes.
+themes:
+  - ${data.company ? data.company.toLowerCase() : 'your-brand'}
+  - narrative
+  - story
+  - building
+  - visibility
+
+# File extensions to scan
+extensions:
+  - .md
+  - .mdx
+  - .txt
+  - .rst
+
+# Directories and files to ignore
+ignore:
+  - node_modules
+  - .git
+  - .narrative
+  - dist
+  - build
+  - coverage
+  - package-lock.json
+  - .env
+  - .DS_Store
+
+# Minimum word count — files shorter than this get 100/100 automatically
+min_words: 10
+
+# Theme alignment only kicks in for files above this word count
+theme_min_words: 200
+
+# Penalty points per violation type (tune to weight what matters most)
+penalties:
+  forbidden_term: 3
+  wrong_brand: 8
+  wrong_product: 5
+  tone: 2
+  preferred_term: 2
+  theme_miss: 5
+`;
+}
+
 function generateReadme(data) {
   return `# .narrative — Canonical Narrative Source
 
@@ -360,6 +443,7 @@ async function main() {
     [path.join(canonDir, 'positioning.yml'), generatePositioning(data)],
     [path.join(skillsDir, 'tone-of-voice.yml'), generateToneOfVoice(data)],
     [path.join(skillsDir, 'terminology.yml'), generateTerminology(data)],
+    [path.join(NARRATIVE_DIR, 'config.yml'), generateConfig(data)],
     [path.join(NARRATIVE_DIR, 'README.md'), generateReadme(data)],
   ];
 

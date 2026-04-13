@@ -355,10 +355,21 @@ function startFileWatcher() {
 // HTTP Server
 // ============================================================================
 
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > MAX_BODY_SIZE) {
+        req.destroy();
+        reject(new Error('Request body too large'));
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', () => {
       try { resolve(JSON.parse(body)); }
       catch { resolve(body); }
@@ -367,9 +378,21 @@ function readBody(req) {
   });
 }
 
+/**
+ * Validate that a resolved file path is within the project directory.
+ * Prevents path traversal attacks via ?file=../../etc/passwd
+ */
+function isInsideProject(filePath) {
+  const resolved = path.resolve(filePath);
+  return resolved.startsWith(PROJECT_DIR + path.sep) || resolved === PROJECT_DIR;
+}
+
 const server = http.createServer(async (req, res) => {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS — restrict to localhost origins only
+  const origin = req.headers.origin || '';
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -386,7 +409,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/clarion-call' && req.method === 'POST') {
-    const body = await readBody(req);
+    let body;
+    try { body = await readBody(req); } catch (err) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
     const canon = parseCanon();
 
     // If body includes a test assertion, add it as a temporary unit
@@ -410,7 +438,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/review' && req.method === 'POST') {
-    const body = await readBody(req);
+    let body;
+    try { body = await readBody(req); } catch (err) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
     const canon = parseCanon();
     const violations = reviewContent(body?.text || '', canon.skills);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -425,10 +458,12 @@ const server = http.createServer(async (req, res) => {
     const target = url.searchParams.get('file');
     const targets = target ? [target] : [];
 
-    // Find files relative to PROJECT_DIR
+    // Find files relative to PROJECT_DIR (with path traversal guard)
     let filePaths;
     if (targets.length > 0) {
-      filePaths = targets.map(t => path.resolve(PROJECT_DIR, t)).filter(f => fs.existsSync(f));
+      filePaths = targets
+        .map(t => path.resolve(PROJECT_DIR, t))
+        .filter(f => isInsideProject(f) && fs.existsSync(f));
     } else {
       filePaths = findFiles([], PROJECT_DIR).slice(0, 200); // cap for safety
     }
@@ -459,7 +494,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/check' && req.method === 'POST') {
-    const body = await readBody(req);
+    let body;
+    try { body = await readBody(req); } catch (err) {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
     const canon = parseCanon();
     // Check inline content against skills
     const content = body?.content || body?.text || '';
@@ -532,7 +572,7 @@ const server = http.createServer(async (req, res) => {
 // Start
 // ============================================================================
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log('');
   console.log('  ┌───────────────────────────────────────────────┐');
   console.log('  │                                               │');
