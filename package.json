@@ -13,7 +13,8 @@
     "narrative": "node packages/serve/cli.js",
     "test": "node packages/serve/test-cli.js",
     "check": "node packages/serve/check.js",
-    "serve": "node packages/serve/server.js"
+    "serve": "node packages/serve/server.js",
+    "web": "node packages/serve/web-app.js"
   },
   "keywords": [
     "narrative",

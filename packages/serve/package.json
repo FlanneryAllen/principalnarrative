@@ -6,19 +6,25 @@
   "bin": {
     "narrative": "cli.js",
     "narrative-serve": "server.js",
+    "narrative-web": "web-app.js",
     "narrative-check": "check.js",
     "narrative-init": "init.js"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node test-cli.js"
+    "web": "node web-app.js",
+    "test": "node test-cli.js",
+    "test:web": "node test-web-app.js"
   },
   "files": [
     "cli.js",
     "server.js",
+    "web-app.js",
     "check.js",
     "init.js",
+    "algebra.js",
     "dashboard.html",
+    "app.html",
     "package.json",
     "README.md"
   ],

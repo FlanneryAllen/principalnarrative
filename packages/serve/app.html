@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narrative Agent — Organizational Alignment Platform</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Design System — Principal AI dark navy + copper/orange
+   ============================================================ */
+:root {
+  --navy: #0a1628;
+  --navy-light: #0f1f38;
+  --navy-mid: #152544;
+  --navy-surface: #1a2d4a;
+  --copper: #d4872c;
+  --copper-light: #e8a04a;
+  --copper-glow: rgba(212,135,44,0.15);
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.12);
+  --yellow: #fbbf24;
+  --yellow-dim: rgba(251,191,36,0.12);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.12);
+  --blue: #60a5fa;
+  --blue-dim: rgba(96,165,250,0.12);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.12);
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-dim: #64748b;
+  --border: rgba(255,255,255,0.06);
+  --border-light: rgba(255,255,255,0.1);
+  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --transition: 0.2s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   Login Page
+   ============================================================ */
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.login-logo {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 8px;
+}
+
+.login-title {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.login-subtitle {
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+  text-align: center;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 36px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px rgba(212,135,44,0.3);
+}
+
+.login-btn:hover {
+  background: var(--copper-light);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(212,135,44,0.4);
+}
+
+.login-btn svg { width: 22px; height: 22px; }
+
+.login-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 72px;
+  max-width: 780px;
+}
+
+.feature-card {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  text-align: center;
+  transition: all var(--transition);
+}
+
+.feature-card:hover {
+  border-color: var(--border-light);
+  background: var(--navy-mid);
+}
+
+.feature-icon {
+  font-size: 28px;
+  margin-bottom: 14px;
+  display: block;
+  font-family: var(--mono);
+  color: var(--copper);
+}
+
+.feature-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   App Layout
+   ============================================================ */
+.app { display: none; }
+.app.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 60px;
+  background: var(--navy-light);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-brand {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-light);
+}
+
+.repo-select {
+  background: var(--navy-mid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.repo-select option { background: var(--navy-mid); color: var(--text); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sse-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background var(--transition);
+}
+
+.sse-dot.connected { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.logout-btn {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.logout-btn:hover { color: var(--text); background: var(--navy-mid); }
+
+/* ============================================================
+   Main Content
+   ============================================================ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Repo selector state */
+.repo-picker {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  flex: 1;
+}
+
+.repo-picker.active { display: flex; }
+
+.repo-picker h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.repo-picker p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.repo-search {
+  width: 100%;
+  max-width: 480px;
+  padding: 12px 16px;
+  background: var(--navy-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color var(--transition);
+}
+
+.repo-search:focus { border-color: var(--copper); }
+.repo-search::placeholder { color: var(--text-dim); }
+
+.repo-list {
+  width: 100%;
+  max-width: 480px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.repo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.repo-item:hover { border-color: var(--copper); background: var(--navy-mid); }
+
+.repo-item-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.repo-item-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.repo-item-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.repo-item-badge.private { background: var(--purple-dim); color: var(--purple); }
+.repo-item-badge.public { background: var(--green-dim); color: var(--green); }
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+.dashboard {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dashboard.active { display: flex; }
+
+/* Tab navigation */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 0 28px;
+  background: var(--navy-light);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab-btn {
+  padding: 12px 20px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn.active { color: var(--copper); border-bottom-color: var(--copper); }
+
+.tab-content { display: none; flex: 1; overflow-y: auto; }
+.tab-content.active { display: block; }
+
+/* Overview tab */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-rows: auto 1fr;
+  gap: 1px;
+  background: var(--border);
+  min-height: 100%;
+}
+
+.panel {
+  background: var(--navy);
+  padding: 24px;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+/* NCI Gauge */
+.nci-panel {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nci-gauge {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 10px 0 20px;
+}
+
+.nci-gauge svg { width: 200px; height: 200px; }
+
+.nci-gauge-track {
+  fill: none;
+  stroke: var(--navy-mid);
+  stroke-width: 10;
+}
+
+.nci-gauge-fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+}
+
+.nci-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.nci-number {
+  font-size: 48px;
+  font-weight: 700;
+  font-family: var(--mono);
+  line-height: 1;
+}
+
+.nci-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* Metrics grid */
+.metrics-row {
+  grid-column: 2 / 4;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.metric-card {
+  background: var(--navy);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--mono);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Layer health */
+.layers-panel {
+  padding: 24px;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.layer-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 140px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: var(--navy-mid);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.layer-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease, background 0.5s ease;
+}
+
+.layer-pct {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  width: 44px;
+  text-align: right;
+}
+
+/* Graph panel */
+.graph-panel {
+  padding: 24px;
+  min-height: 400px;
+  position: relative;
+}
+
+.graph-container {
+  width: 100%;
+  height: 400px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+}
+
+.graph-container svg { width: 100%; height: 100%; }
+
+.graph-node { cursor: pointer; transition: opacity 0.2s; }
+.graph-node:hover { opacity: 0.85; }
+
+.graph-link {
+  stroke: var(--border-light);
+  stroke-width: 1.5;
+  stroke-opacity: 0.5;
+}
+
+.graph-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--text-secondary);
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+/* Side panel */
+.side-panel {
+  grid-column: 3;
+}
+
+.unit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unit-card {
+  padding: 12px;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.unit-card:hover { border-color: var(--border-light); }
+
+.unit-id {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--copper);
+  margin-bottom: 4px;
+}
+
+.unit-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.unit-assertion {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.unit-state {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 6px;
+}
+
+.unit-state.ALIGNED { background: var(--green-dim); color: var(--green); }
+.unit-state.DRIFTED { background: var(--yellow-dim); color: var(--yellow); }
+.unit-state.BROKEN { background: var(--red-dim); color: var(--red); }
+.unit-state.UNKNOWN { background: rgba(100,116,139,0.15); color: var(--text-dim); }
+
+/* ============================================================
+   Compose Tab
+   ============================================================ */
+.compose-tab { padding: 28px; }
+
+.stakeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stakeholder-btn {
+  padding: 16px;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: center;
+  font-family: var(--sans);
+  color: var(--text);
+  transition: all var(--transition);
+}
+
+.stakeholder-btn:hover { border-color: var(--copper); background: var(--navy-mid); }
+.stakeholder-btn.active { border-color: var(--copper); background: var(--copper-glow); }
+
+.stakeholder-btn h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.stakeholder-btn p {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.compose-result {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: none;
+}
+
+.compose-result.active { display: block; }
+
+.compose-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.compose-stat {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.compose-stat strong { color: var(--copper); }
+
+/* ============================================================
+   Resonate Tab
+   ============================================================ */
+.resonate-tab { padding: 28px; max-width: 720px; }
+
+.resonate-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  background: var(--navy-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color var(--transition);
+}
+
+.resonate-input:focus { border-color: var(--copper); }
+.resonate-input::placeholder { color: var(--text-dim); }
+
+.resonate-btn {
+  padding: 10px 24px;
+  background: var(--copper);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.resonate-btn:hover { background: var(--copper-light); }
+.resonate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.resonate-result {
+  margin-top: 24px;
+  display: none;
+}
+
+.resonate-result.active { display: block; }
+
+.resonate-scores {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.resonate-score {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+
+.resonate-score-value {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.resonate-score-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Drift Tab
+   ============================================================ */
+.drift-tab { padding: 28px; }
+
+.drift-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.drift-card {
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.drift-card h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.drift-card .value {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   Loading & Empty States
+   ============================================================ */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: var(--text-dim);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--navy-mid);
+  border-top-color: var(--copper);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--navy-mid); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1024px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .nci-panel { grid-column: 1; grid-row: auto; }
+  .metrics-row { grid-column: 1; grid-template-columns: repeat(2, 1fr); }
+  .side-panel { grid-column: 1; }
+  .login-features { grid-template-columns: 1fr; }
+  .stakeholder-grid { grid-template-columns: repeat(2, 1fr); }
+  .resonate-scores { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Login Page
+     ============================================================ -->
+<div id="loginPage" class="login-page">
+  <div class="login-logo">Narrative Agent</div>
+  <h1 class="login-title">Align your organization.<br>Mathematically.</h1>
+  <p class="login-subtitle">
+    Declare your narrative once in YAML. Check everything against it.
+    Six algebraic operations. One coherence index. Zero drift.
+  </p>
+  <a href="/auth/github" class="login-btn">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+    Sign in with GitHub
+  </a>
+  <div class="login-features">
+    <div class="feature-card">
+      <span class="feature-icon">Σ</span>
+      <h3>Compose</h3>
+      <p>Generate stakeholder-specific views. Board sees strategy. Engineering sees operations.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">δ</span>
+      <h3>Drift Detection</h3>
+      <p>Measure coherence decay across your narrative graph. Catch misalignment before it ships.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">ρ</span>
+      <h3>Resonance</h3>
+      <p>Score any content against your narrative. Know if a press release matches the story.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     App (authenticated)
+     ============================================================ -->
+<div id="app" class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="header-brand">Narrative Agent</div>
+      <div class="header-divider"></div>
+      <select id="repoSelect" class="repo-select">
+        <option value="">Select a repo...</option>
+      </select>
+    </div>
+    <div class="header-right">
+      <div class="sse-indicator">
+        <div id="sseDot" class="sse-dot"></div>
+        <span id="sseLabel">Disconnected</span>
+      </div>
+      <div class="user-info">
+        <img id="userAvatar" class="user-avatar" src="" alt="">
+        <span id="userName" class="user-name"></span>
+      </div>
+      <a href="/auth/logout" class="logout-btn">Sign out</a>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Repo Picker -->
+    <div id="repoPicker" class="repo-picker active">
+      <h2>Connect a repository</h2>
+      <p>Select a repo with a <code>.narrative/</code> directory to get started.</p>
+      <input id="repoSearchInput" class="repo-search" type="text" placeholder="Search your repos...">
+      <div id="repoList" class="repo-list"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardView" class="dashboard">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="compose">Compose</button>
+        <button class="tab-btn" data-tab="resonate">Resonate</button>
+        <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="tab-overview" class="tab-content active">
+        <div class="overview-grid">
+          <div class="nci-panel panel">
+            <div class="panel-title">Narrative Coherence Index</div>
+            <div class="nci-gauge">
+              <svg viewBox="0 0 200 200">
+                <circle class="nci-gauge-track" cx="100" cy="100" r="85" />
+                <circle id="nciRing" class="nci-gauge-fill" cx="100" cy="100" r="85"
+                  stroke-dasharray="534" stroke-dashoffset="534"
+                  transform="rotate(-90 100 100)" />
+              </svg>
+              <div class="nci-value">
+                <div id="nciNumber" class="nci-number" style="color: var(--text-dim)">—</div>
+                <div class="nci-label">NCI</div>
+              </div>
+            </div>
+            <div id="layerHealth" class="layers-panel"></div>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div id="metricUnits" class="metric-value" style="color: var(--text)">—</div>
+              <div class="metric-label">Units</div>
+            </div>
+            <div class="metric-card">
+              <div id="metricEdges" class="metric-value" style="color: var(--text)">—</div>
+              <div class="metric-label">Edges</div>
+            </div>
+            <div class="metric-card">
+              <div id="metricCoverage" class="metric-value" style="color: var(--green)">—</div>
+              <div class="metric-label">Coverage</div>
+            </div>
+            <div class="metric-card">
+              <div id="metricDrift" class="metric-value" style="color: var(--green)">—</div>
+              <div class="metric-label">Drift Rate</div>
+            </div>
+          </div>
+
+          <div class="graph-panel panel" style="grid-column: 2; grid-row: 2;">
+            <div class="panel-title">Narrative Graph</div>
+            <div id="graphContainer" class="graph-container"></div>
+          </div>
+
+          <div class="side-panel panel">
+            <div class="panel-title">Narrative Units</div>
+            <div id="unitList" class="unit-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compose Tab -->
+      <div id="tab-compose" class="tab-content">
+        <div class="compose-tab">
+          <div class="panel-title">Stakeholder Views</div>
+          <div id="stakeholderGrid" class="stakeholder-grid"></div>
+          <div id="composeResult" class="compose-result"></div>
+        </div>
+      </div>
+
+      <!-- Resonate Tab -->
+      <div id="tab-resonate" class="tab-content">
+        <div class="resonate-tab">
+          <div class="panel-title">Resonance Analysis</div>
+          <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+            Paste any text — a press release, blog post, email, Slack message — and see how it resonates with your narrative graph.
+          </p>
+          <textarea id="resonateInput" class="resonate-input" placeholder="Paste content here to check against your narrative..."></textarea>
+          <button id="resonateBtn" class="resonate-btn" onclick="runResonate()">Analyze Resonance</button>
+          <div id="resonateResult" class="resonate-result"></div>
+        </div>
+      </div>
+
+      <!-- Drift Tab -->
+      <div id="tab-drift" class="tab-content">
+        <div class="drift-tab">
+          <div class="panel-title">Drift &amp; Coverage Analysis</div>
+          <div id="driftContent" class="drift-summary"></div>
+          <div id="coverageContent" style="margin-top: 28px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   App State
+   ============================================================ */
+const state = {
+  user: null,
+  repos: [],
+  currentRepo: null,    // "owner/repo"
+  repoData: null,       // { result, canon }
+  units: [],
+  sse: null,
+};
+
+/* ============================================================
+   Layer Colors
+   ============================================================ */
+const LAYER_COLORS = {
+  core_story: '#d4872c',
+  positioning: '#e8a04a',
+  product_narrative: '#60a5fa',
+  operational: '#a78bfa',
+  evidence: '#34d399',
+  communication: '#fbbf24',
+};
+
+const LAYER_LABELS = {
+  core_story: 'Core Story',
+  positioning: 'Positioning',
+  product_narrative: 'Product',
+  operational: 'Operational',
+  evidence: 'Evidence',
+  communication: 'Comms',
+};
+
+/* ============================================================
+   Initialize
+   ============================================================ */
+async function init() {
+  try {
+    const res = await fetch('/api/me');
+    if (res.status === 401) {
+      document.getElementById('loginPage').style.display = '';
+      return;
+    }
+    const data = await res.json();
+    state.user = data.user;
+
+    // Show app
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+
+    // Set user info
+    document.getElementById('userAvatar').src = state.user.avatar_url;
+    document.getElementById('userName').textContent = state.user.name || state.user.login;
+
+    // Load repos
+    await loadRepos();
+
+    // If user has connected repos, select the first one
+    if (data.connectedRepos && data.connectedRepos.length > 0) {
+      await selectRepo(data.connectedRepos[0]);
+    }
+
+    // Start SSE
+    connectSSE();
+
+    // Set up tabs
+    setupTabs();
+    setupStakeholders();
+  } catch (err) {
+    console.error('Init error:', err);
+    document.getElementById('loginPage').style.display = '';
+  }
+}
+
+/* ============================================================
+   Repo Loading
+   ============================================================ */
+async function loadRepos() {
+  const res = await fetch('/api/repos');
+  const data = await res.json();
+  state.repos = data.repos || [];
+  renderRepoList();
+  updateRepoSelect();
+}
+
+function renderRepoList(filter = '') {
+  const list = document.getElementById('repoList');
+  const filtered = state.repos.filter(r =>
+    r.full_name.toLowerCase().includes(filter.toLowerCase()) ||
+    (r.description || '').toLowerCase().includes(filter.toLowerCase())
+  );
+  list.innerHTML = filtered.map(r => `
+    <div class="repo-item" onclick="connectRepo('${r.owner}', '${r.name}')">
+      <div>
+        <div class="repo-item-name">${r.full_name}</div>
+        ${r.description ? `<div class="repo-item-desc">${r.description}</div>` : ''}
+      </div>
+      <span class="repo-item-badge ${r.private ? 'private' : 'public'}">${r.private ? 'Private' : 'Public'}</span>
+    </div>
+  `).join('');
+}
+
+function updateRepoSelect() {
+  const select = document.getElementById('repoSelect');
+  const connected = state.repos.filter(r => r.connected);
+  select.innerHTML = '<option value="">Select a repo...</option>' +
+    connected.map(r => `<option value="${r.full_name}" ${r.full_name === state.currentRepo ? 'selected' : ''}>${r.full_name}</option>`).join('');
+}
+
+document.getElementById('repoSearchInput')?.addEventListener('input', (e) => {
+  renderRepoList(e.target.value);
+});
+
+document.getElementById('repoSelect')?.addEventListener('change', async (e) => {
+  if (e.target.value) {
+    await selectRepo(e.target.value);
+  } else {
+    showRepoPicker();
+  }
+});
+
+/* ============================================================
+   Connect & Select Repo
+   ============================================================ */
+async function connectRepo(owner, repo) {
+  const fullName = `${owner}/${repo}`;
+
+  // Show loading
+  document.getElementById('repoPicker').innerHTML = `
+    <div class="loading"><div class="spinner"></div><p>Scanning ${fullName}...</p></div>
+  `;
+
+  try {
+    const res = await fetch('/api/repos/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, repo }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      document.getElementById('repoPicker').innerHTML = `
+        <div class="empty-state">
+          <p style="color: var(--red); margin-bottom: 12px;">Failed to connect: ${data.error}</p>
+          <p>Make sure the repo has a <code>.narrative/</code> directory.</p>
+          <button class="resonate-btn" style="margin-top: 16px;" onclick="showRepoPicker()">Try another</button>
+        </div>
+      `;
+      return;
+    }
+
+    // Mark as connected
+    const repoObj = state.repos.find(r => r.full_name === fullName);
+    if (repoObj) repoObj.connected = true;
+
+    await selectRepo(fullName);
+  } catch (err) {
+    console.error('Connect error:', err);
+  }
+}
+
+async function selectRepo(fullName) {
+  state.currentRepo = fullName;
+  const [owner, repo] = fullName.split('/');
+
+  // Fetch latest data
+  try {
+    const [metricsRes, driftRes, coverRes] = await Promise.all([
+      fetch(`/api/repos/${owner}/${repo}/metrics`),
+      fetch(`/api/repos/${owner}/${repo}/drift`),
+      fetch(`/api/repos/${owner}/${repo}/cover`),
+    ]);
+
+    const metrics = await metricsRes.json();
+    const drift = await driftRes.json();
+    const cover = await coverRes.json();
+
+    // Also get full scan for units
+    const scanRes = await fetch(`/api/repos/${owner}/${repo}/scan`);
+    const scanData = await scanRes.json();
+
+    state.repoData = { metrics, drift, cover, scan: scanData };
+
+    // Show dashboard
+    document.getElementById('repoPicker').classList.remove('active');
+    document.getElementById('dashboardView').classList.add('active');
+    updateRepoSelect();
+
+    // Render everything
+    renderNCI(metrics.narrativeCoherenceIndex);
+    renderMetrics(metrics, drift, cover);
+    renderLayerHealth(metrics.layerHealth);
+    renderGraph(metrics);
+    renderUnits(metrics);
+    renderDrift(drift, cover);
+  } catch (err) {
+    console.error('Select repo error:', err);
+  }
+}
+
+function showRepoPicker() {
+  document.getElementById('dashboardView').classList.remove('active');
+  const picker = document.getElementById('repoPicker');
+  picker.classList.add('active');
+  picker.innerHTML = `
+    <h2>Connect a repository</h2>
+    <p>Select a repo with a <code>.narrative/</code> directory to get started.</p>
+    <input id="repoSearchInput" class="repo-search" type="text" placeholder="Search your repos...">
+    <div id="repoList" class="repo-list"></div>
+  `;
+  renderRepoList();
+  document.getElementById('repoSearchInput')?.addEventListener('input', (e) => {
+    renderRepoList(e.target.value);
+  });
+}
+
+/* ============================================================
+   NCI Gauge
+   ============================================================ */
+function renderNCI(nci) {
+  const pct = Math.round(nci * 100);
+  const ring = document.getElementById('nciRing');
+  const num = document.getElementById('nciNumber');
+
+  const circumference = 2 * Math.PI * 85; // ~534
+  const offset = circumference * (1 - nci);
+  ring.setAttribute('stroke-dashoffset', offset);
+
+  let color;
+  if (pct >= 80) color = 'var(--green)';
+  else if (pct >= 50) color = 'var(--yellow)';
+  else color = 'var(--red)';
+
+  ring.setAttribute('stroke', color);
+  num.style.color = color;
+  num.textContent = pct;
+}
+
+/* ============================================================
+   Metrics
+   ============================================================ */
+function renderMetrics(metrics, drift, cover) {
+  document.getElementById('metricUnits').textContent = metrics.totalUnits;
+  document.getElementById('metricEdges').textContent = metrics.totalEdges;
+  document.getElementById('metricCoverage').textContent = Math.round(cover.coverage * 100) + '%';
+
+  const driftPct = Math.round(drift.driftRate * 100);
+  const driftEl = document.getElementById('metricDrift');
+  driftEl.textContent = driftPct + '%';
+  driftEl.style.color = driftPct === 0 ? 'var(--green)' : driftPct < 20 ? 'var(--yellow)' : 'var(--red)';
+}
+
+/* ============================================================
+   Layer Health
+   ============================================================ */
+function renderLayerHealth(layerHealth) {
+  const container = document.getElementById('layerHealth');
+  const layers = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
+
+  container.innerHTML = layers.map(layer => {
+    const h = layerHealth[layer] || { nci: 0, unitCount: 0 };
+    const pct = Math.round(h.nci * 100);
+    const color = LAYER_COLORS[layer];
+    const width = h.unitCount > 0 ? pct : 0;
+
+    return `
+      <div class="layer-row">
+        <span class="layer-name">${LAYER_LABELS[layer]}</span>
+        <div class="layer-bar-bg">
+          <div class="layer-bar-fill" style="width: ${width}%; background: ${color};"></div>
+        </div>
+        <span class="layer-pct">${h.unitCount > 0 ? pct + '%' : '—'}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+   Narrative Graph (D3.js)
+   ============================================================ */
+function renderGraph(metrics) {
+  const container = document.getElementById('graphContainer');
+  container.innerHTML = '';
+
+  // Build nodes and links from layerHealth data
+  // We need the actual units — fetch them from the metrics endpoint
+  if (!state.currentRepo) return;
+
+  const [owner, repo] = state.currentRepo.split('/');
+
+  fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=board`)
+    .then(r => r.json())
+    .then(boardData => {
+      // Get ALL units by fetching all stakeholder views
+      return fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=engineering`)
+        .then(r => r.json())
+        .then(engData => {
+          // Merge unique units
+          const allUnits = new Map();
+          const allEdges = [];
+          for (const data of [boardData, engData]) {
+            for (const u of data.units) allUnits.set(u.id, u);
+            for (const e of data.edges) allEdges.push(e);
+          }
+          drawGraph(Array.from(allUnits.values()), allEdges, container);
+        });
+    })
+    .catch(err => {
+      container.innerHTML = '<div class="empty-state">Could not load graph</div>';
+    });
+}
+
+function drawGraph(units, edges, container) {
+  const width = container.clientWidth || 600;
+  const height = container.clientHeight || 400;
+
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const defs = svg.append('defs');
+  defs.append('marker')
+    .attr('id', 'arrow')
+    .attr('viewBox', '0 0 10 10')
+    .attr('refX', 20).attr('refY', 5)
+    .attr('markerWidth', 6).attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path').attr('d', 'M0,0 L10,5 L0,10 Z')
+    .attr('fill', 'rgba(255,255,255,0.2)');
+
+  // Unique edges
+  const edgeSet = new Set();
+  const uniqueEdges = edges.filter(e => {
+    const key = `${e.from}->${e.to}`;
+    if (edgeSet.has(key)) return false;
+    edgeSet.add(key);
+    return true;
+  });
+
+  const nodeIds = new Set(units.map(u => u.id));
+
+  const links = uniqueEdges
+    .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
+    .map(e => ({ source: e.from, target: e.to }));
+
+  const nodes = units.map(u => ({
+    id: u.id,
+    type: u.type,
+    state: u.validationState,
+    assertion: u.assertion,
+  }));
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+    .force('charge', d3.forceManyBody().strength(-200))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide(25));
+
+  const link = svg.append('g')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('class', 'graph-link')
+    .attr('marker-end', 'url(#arrow)');
+
+  const node = svg.append('g')
+    .selectAll('g')
+    .data(nodes)
+    .join('g')
+    .attr('class', 'graph-node')
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  node.append('circle')
+    .attr('r', 12)
+    .attr('fill', d => LAYER_COLORS[d.type] || '#64748b')
+    .attr('stroke', d => {
+      if (d.state === 'ALIGNED') return 'var(--green)';
+      if (d.state === 'DRIFTED') return 'var(--yellow)';
+      if (d.state === 'BROKEN') return 'var(--red)';
+      return 'var(--border-light)';
+    })
+    .attr('stroke-width', 2);
+
+  node.append('text')
+    .attr('class', 'graph-label')
+    .attr('dy', 26)
+    .text(d => d.id.replace(/_/g, ' '));
+
+  // Tooltip on hover
+  node.append('title')
+    .text(d => `${d.id}\n${d.type}\n${d.assertion}`);
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+/* ============================================================
+   Unit List
+   ============================================================ */
+function renderUnits(metrics) {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+
+  // Fetch units from validate endpoint
+  fetch(`/api/repos/${owner}/${repo}/validate`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('unitList');
+      container.innerHTML = (data.results || []).map(r => `
+        <div class="unit-card">
+          <div class="unit-id">${r.unitId}</div>
+          <div class="unit-type">${r.newState === r.previousState ? r.newState : r.previousState + ' → ' + r.newState}</div>
+          <div class="unit-assertion">${r.reasons.join('. ')}</div>
+          <span class="unit-state ${r.newState}">${r.newState}</span>
+          <span class="unit-state" style="background: rgba(100,116,139,0.1); color: var(--text-dim); margin-left: 4px;">${Math.round(r.confidence * 100)}%</span>
+        </div>
+      `).join('');
+    });
+}
+
+/* ============================================================
+   Tabs
+   ============================================================ */
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+/* ============================================================
+   Stakeholder Compose
+   ============================================================ */
+const STAKEHOLDER_DESCRIPTIONS = {
+  board: 'Strategy, positioning, evidence',
+  investor: 'Core story, evidence, positioning',
+  engineering: 'Product, operations, evidence',
+  customer: 'Product, communications, positioning',
+  marketing: 'Positioning, communications, product',
+  compliance: 'Operations, evidence, core story',
+};
+
+function setupStakeholders() {
+  const grid = document.getElementById('stakeholderGrid');
+  grid.innerHTML = Object.entries(STAKEHOLDER_DESCRIPTIONS).map(([key, desc]) => `
+    <button class="stakeholder-btn" data-stakeholder="${key}" onclick="loadCompose('${key}', this)">
+      <h4>${key}</h4>
+      <p>${desc}</p>
+    </button>
+  `).join('');
+}
+
+async function loadCompose(stakeholder, btn) {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+
+  document.querySelectorAll('.stakeholder-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const result = document.getElementById('composeResult');
+  result.classList.add('active');
+  result.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=${stakeholder}`);
+    const data = await res.json();
+
+    result.innerHTML = `
+      <div class="compose-header">
+        <span class="compose-stat"><strong>${data.unitCount}</strong> units</span>
+        <span class="compose-stat"><strong>${data.edgeCount}</strong> edges</span>
+        <span class="compose-stat">View: <strong>${stakeholder}</strong></span>
+      </div>
+      <div class="unit-list">
+        ${(data.units || []).map(u => `
+          <div class="unit-card">
+            <div class="unit-id">${u.id}</div>
+            <div class="unit-type">${u.type}</div>
+            <div class="unit-assertion">${u.assertion}</div>
+            <span class="unit-state ${u.validationState}">${u.validationState}</span>
+            <span class="unit-state" style="background: rgba(100,116,139,0.1); color: var(--text-dim); margin-left: 4px;">${Math.round(u.confidence * 100)}%</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (err) {
+    result.innerHTML = `<div class="empty-state">Failed to load: ${err.message}</div>`;
+  }
+}
+
+/* ============================================================
+   Resonate
+   ============================================================ */
+async function runResonate() {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  const text = document.getElementById('resonateInput').value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('resonateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Analyzing...';
+
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/resonate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signal: text }),
+    });
+    const data = await res.json();
+
+    const result = document.getElementById('resonateResult');
+    result.classList.add('active');
+
+    const urgencyColors = { critical: 'var(--red)', high: 'var(--yellow)', medium: 'var(--copper)', low: 'var(--text-dim)' };
+
+    result.innerHTML = `
+      <div class="resonate-scores">
+        <div class="resonate-score">
+          <div class="resonate-score-value" style="color: ${data.resonance > 0.5 ? 'var(--green)' : data.resonance > 0 ? 'var(--yellow)' : 'var(--text-dim)'}">
+            ${Math.round(data.resonance * 100)}%
+          </div>
+          <div class="resonate-score-label">Resonance</div>
+        </div>
+        <div class="resonate-score">
+          <div class="resonate-score-value" style="color: var(--blue)">${Math.round(data.relevance * 100)}%</div>
+          <div class="resonate-score-label">Relevance</div>
+        </div>
+        <div class="resonate-score">
+          <div class="resonate-score-value" style="color: var(--purple)">${Math.round(data.scope * 100)}%</div>
+          <div class="resonate-score-label">Scope</div>
+        </div>
+        <div class="resonate-score">
+          <div class="resonate-score-value" style="color: ${urgencyColors[data.urgency] || 'var(--text-dim)'}">${data.urgency}</div>
+          <div class="resonate-score-label">Urgency</div>
+        </div>
+      </div>
+      ${data.matchedUnits && data.matchedUnits.length > 0 ? `
+        <div class="panel-title" style="margin-top: 8px;">Matched Units</div>
+        <div class="unit-list">
+          ${data.matchedUnits.map(m => `
+            <div class="unit-card">
+              <div class="unit-id">${m.id} <span style="color: var(--green); margin-left: 8px;">${Math.round(m.similarity * 100)}% match</span></div>
+              <div class="unit-type">${m.type}</div>
+              <div class="unit-assertion">${m.assertion}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<div class="empty-state">No matching units found. This content does not resonate with your narrative.</div>'}
+    `;
+  } catch (err) {
+    console.error('Resonate error:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze Resonance';
+  }
+}
+
+/* ============================================================
+   Drift & Coverage
+   ============================================================ */
+function renderDrift(drift, cover) {
+  const driftEl = document.getElementById('driftContent');
+  const coverEl = document.getElementById('coverageContent');
+
+  const driftPct = Math.round(drift.driftRate * 100);
+  const driftColor = driftPct === 0 ? 'var(--green)' : driftPct < 20 ? 'var(--yellow)' : 'var(--red)';
+  const coverPct = Math.round(cover.coverage * 100);
+
+  driftEl.innerHTML = `
+    <div class="drift-card">
+      <h4>Drift Rate</h4>
+      <div class="value" style="color: ${driftColor}">${driftPct}%</div>
+      ${drift.driftedUnits && drift.driftedUnits.length > 0 ? `
+        <div style="margin-top: 12px;">
+          ${drift.driftedUnits.map(u => `
+            <div style="font-family: var(--mono); font-size: 12px; color: var(--yellow); margin-top: 4px;">● ${u.id}</div>
+          `).join('')}
+        </div>
+      ` : '<p style="margin-top: 8px; font-size: 13px; color: var(--text-dim);">No drifted units</p>'}
+    </div>
+    <div class="drift-card">
+      <h4>Coverage</h4>
+      <div class="value" style="color: ${coverPct === 100 ? 'var(--green)' : 'var(--yellow)'}">${coverPct}%</div>
+      ${cover.gaps && cover.gaps.length > 0 ? `
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-dim);">${cover.gaps.length} gap(s): ${cover.gaps.map(g => g.id).join(', ')}</p>
+      ` : '<p style="margin-top: 8px; font-size: 13px; color: var(--text-dim);">Full coverage</p>'}
+    </div>
+  `;
+
+  // Coverage by layer
+  const layers = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
+  coverEl.innerHTML = `
+    <div class="panel-title">Coverage by Layer</div>
+    ${layers.map(layer => {
+      const l = cover.byLayer[layer] || { total: 0, aligned: 0, coverage: 0 };
+      const pct = Math.round(l.coverage * 100);
+      return `
+        <div class="layer-row">
+          <span class="layer-name">${LAYER_LABELS[layer]}</span>
+          <div class="layer-bar-bg">
+            <div class="layer-bar-fill" style="width: ${l.total > 0 ? pct : 0}%; background: ${LAYER_COLORS[layer]};"></div>
+          </div>
+          <span class="layer-pct">${l.total > 0 ? pct + '%' : '—'}</span>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+/* ============================================================
+   SSE
+   ============================================================ */
+function connectSSE() {
+  const dot = document.getElementById('sseDot');
+  const label = document.getElementById('sseLabel');
+
+  const es = new EventSource('/api/events');
+
+  es.addEventListener('connected', () => {
+    dot.classList.add('connected');
+    label.textContent = 'Live';
+  });
+
+  es.addEventListener('clarion-call', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.repo === state.currentRepo) {
+        // Refresh dashboard
+        selectRepo(state.currentRepo);
+      }
+    } catch {}
+  });
+
+  es.onerror = () => {
+    dot.classList.remove('connected');
+    label.textContent = 'Reconnecting...';
+  };
+
+  state.sse = es;
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+init();
+</script>
+</body>
+</html>
