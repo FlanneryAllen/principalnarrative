@@ -1,0 +1,15 @@
+{
+  "name": "@narrative/serve",
+  "version": "0.1.0",
+  "description": "Local API server + live dashboard for Clarion Call",
+  "main": "server.js",
+  "bin": {
+    "narrative-serve": "server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "yaml": "^2.3.4"
+  }
+}
