@@ -317,10 +317,8 @@ whenever it changes.
 ## Quick Start
 
 \`\`\`bash
-# Start the dashboard (reads from these files)
-node packages/serve/server.js
-
-# Open http://localhost:3333
+narrative check    # scan content against canon
+narrative serve    # start the dashboard at http://localhost:3333
 \`\`\`
 
 ## Editing Canon
@@ -388,9 +386,12 @@ async function main() {
   console.log('  3. Edit .narrative/skills/tone-of-voice.yml');
   console.log('     — Add examples of good and bad copy');
   console.log('');
-  console.log('  4. Start the dashboard:');
-  console.log(`     node packages/serve/server.js --dir ${PROJECT_DIR}`);
-  console.log('     → http://localhost:3333');
+  console.log('  4. Check your content:');
+  console.log('     narrative check');
+  console.log('');
+  console.log('  5. Start the dashboard:');
+  console.log('     narrative serve');
+  console.log('     → http://localhost:3333')
   console.log('');
   console.log('  The dashboard reads from these files. Edit a YAML file');
   console.log('  and the dashboard updates live — no refresh needed.');

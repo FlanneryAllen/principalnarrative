@@ -507,13 +507,18 @@ const server = http.createServer(async (req, res) => {
   // ---- Serve dashboard ----
 
   if (url.pathname === '/' || url.pathname === '/index.html') {
-    const dashboardPath = path.join(__dirname, '..', '..', 'clarion-dashboard', 'index.html');
-    if (fs.existsSync(dashboardPath)) {
+    // Look for dashboard: 1) sibling file (npm install), 2) monorepo path (dev)
+    const candidates = [
+      path.join(__dirname, 'dashboard.html'),
+      path.join(__dirname, '..', '..', 'clarion-dashboard', 'index.html'),
+    ];
+    const dashboardPath = candidates.find(p => fs.existsSync(p));
+    if (dashboardPath) {
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(fs.readFileSync(dashboardPath, 'utf-8'));
     } else {
       res.writeHead(404);
-      res.end('Dashboard not found. Expected at clarion-dashboard/index.html');
+      res.end('Dashboard not found. Run from the narrative-agent repo or reinstall the package.');
     }
     return;
   }

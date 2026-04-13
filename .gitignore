@@ -91,3 +91,4 @@ site/
 
 # Node
 node_modules/
+*.tgz

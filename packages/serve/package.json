@@ -1,5 +1,5 @@
 {
-  "name": "@narrative/serve",
+  "name": "narrative-agent",
   "version": "0.1.0",
   "description": "Organizational alignment platform — declare your story in YAML, check everything against it",
   "main": "server.js",
@@ -18,8 +18,27 @@
     "server.js",
     "check.js",
     "init.js",
-    "package.json"
+    "dashboard.html",
+    "package.json",
+    "README.md"
   ],
+  "keywords": [
+    "narrative",
+    "coherence",
+    "alignment",
+    "content-check",
+    "brand",
+    "terminology",
+    "organizational-alignment",
+    "drift-detection"
+  ],
+  "author": "Julie Allen",
+  "license": "MIT",
+  "homepage": "https://narrativeagent.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FlanneryAllen/principalnarrative"
+  },
   "dependencies": {
     "yaml": "^2.3.4"
   }
