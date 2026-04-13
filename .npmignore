@@ -1,0 +1,25 @@
+# Repo-specific files
+docs/
+applied-narrative/
+clarion-dashboard/
+walkthrough/
+.github/
+.narrative/
+.principalnarrative/
+.principal-views/
+.alexandria/
+*.docx
+
+# Dev files
+*.test.*
+test-*
+.pre-commit-config.yaml
+.env*
+Dockerfile
+.dockerignore
+
+# Generated
+node_modules/
+dist/
+coverage/
+.narrative/history/

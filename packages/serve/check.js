@@ -167,8 +167,15 @@ function findFiles(targets, projectDir) {
  */
 function checkContent(content, skills, filePath) {
   const violations = [];
-  const lower = content.toLowerCase();
-  const words = content.split(/\s+/).filter(Boolean);
+
+  // Strip code blocks (fenced and inline) so examples of bad copy aren't flagged.
+  // We replace code content with spaces to preserve line numbers and positions.
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, m => ' '.repeat(m.length))   // fenced code blocks
+    .replace(/`[^`\n]+`/g, m => ' '.repeat(m.length));       // inline code spans
+
+  const strippedLower = stripped.toLowerCase();
+  const words = content.split(/\s+/).filter(Boolean);  // word count from original
   const wordCount = words.length;
 
   // Skip very short files
@@ -180,7 +187,7 @@ function checkContent(content, skills, filePath) {
   const forbidden = skills.terminology?.forbidden || [];
   for (const term of forbidden) {
     const termLower = term.toLowerCase();
-    let idx = lower.indexOf(termLower);
+    let idx = strippedLower.indexOf(termLower);
     while (idx !== -1) {
       // Get line number
       const lineNum = content.substring(0, idx).split('\n').length;
@@ -198,7 +205,7 @@ function checkContent(content, skills, filePath) {
         penalty: 3,
       });
 
-      idx = lower.indexOf(termLower, idx + termLower.length);
+      idx = strippedLower.indexOf(termLower, idx + termLower.length);
     }
   }
 
@@ -206,7 +213,7 @@ function checkContent(content, skills, filePath) {
   const brandWrong = skills.brand?.never || [];
   const brandCorrect = skills.brand?.company_name || 'Principal AI';
   for (const wrong of brandWrong) {
-    let idx = content.indexOf(wrong);
+    let idx = stripped.indexOf(wrong);
     while (idx !== -1) {
       const lineNum = content.substring(0, idx).split('\n').length;
       violations.push({
@@ -217,7 +224,7 @@ function checkContent(content, skills, filePath) {
         context: content.substring(Math.max(0, idx - 20), idx + wrong.length + 20).replace(/\n/g, ' ').trim(),
         penalty: 8,
       });
-      idx = content.indexOf(wrong, idx + wrong.length);
+      idx = stripped.indexOf(wrong, idx + wrong.length);
     }
   }
 
@@ -226,7 +233,7 @@ function checkContent(content, skills, filePath) {
     for (const wrong of (product.never || [])) {
       // Skip short generic terms that would false-positive everywhere
       if (wrong.length < 4) continue;
-      let idx = content.indexOf(wrong);
+      let idx = stripped.indexOf(wrong);
       while (idx !== -1) {
         const lineNum = content.substring(0, idx).split('\n').length;
         violations.push({
@@ -237,7 +244,7 @@ function checkContent(content, skills, filePath) {
           context: content.substring(Math.max(0, idx - 20), idx + wrong.length + 20).replace(/\n/g, ' ').trim(),
           penalty: 5,
         });
-        idx = content.indexOf(wrong, idx + wrong.length);
+        idx = stripped.indexOf(wrong, idx + wrong.length);
       }
     }
   }
@@ -255,26 +262,18 @@ function checkContent(content, skills, filePath) {
   ];
 
   for (const pattern of badPatterns) {
-    let idx = lower.indexOf(pattern);
+    let idx = strippedLower.indexOf(pattern);
     while (idx !== -1) {
-      // Don't flag if it's inside a code block (``` ... ```)
-      const beforeText = content.substring(0, idx);
-      const codeBlockCount = (beforeText.match(/```/g) || []).length;
-      const inCodeBlock = codeBlockCount % 2 === 1;
-
-      if (!inCodeBlock) {
-        const lineNum = content.substring(0, idx).split('\n').length;
-        violations.push({
-          type: 'tone',
-          severity: 'warning',
-          message: `Marketing-speak: "${pattern}"`,
-          line: lineNum,
-          context: content.substring(Math.max(0, idx - 20), idx + pattern.length + 20).replace(/\n/g, ' ').trim(),
-          penalty: 2,
-        });
-      }
-
-      idx = lower.indexOf(pattern, idx + pattern.length);
+      const lineNum = content.substring(0, idx).split('\n').length;
+      violations.push({
+        type: 'tone',
+        severity: 'warning',
+        message: `Marketing-speak: "${pattern}"`,
+        line: lineNum,
+        context: content.substring(Math.max(0, idx - 20), idx + pattern.length + 20).replace(/\n/g, ' ').trim(),
+        penalty: 2,
+      });
+      idx = strippedLower.indexOf(pattern, idx + pattern.length);
     }
   }
 
@@ -287,7 +286,7 @@ function checkContent(content, skills, filePath) {
       if (avoid.includes('(')) continue; // e.g. "intent-first telemetry (public)"
 
       const avoidLower = avoid.toLowerCase();
-      let idx = lower.indexOf(avoidLower);
+      let idx = strippedLower.indexOf(avoidLower);
       while (idx !== -1) {
         const lineNum = content.substring(0, idx).split('\n').length;
         violations.push({
@@ -298,7 +297,7 @@ function checkContent(content, skills, filePath) {
           context: content.substring(Math.max(0, idx - 20), idx + avoid.length + 20).replace(/\n/g, ' ').trim(),
           penalty: 2,
         });
-        idx = lower.indexOf(avoidLower, idx + avoidLower.length);
+        idx = strippedLower.indexOf(avoidLower, idx + avoidLower.length);
       }
     }
   }
@@ -309,7 +308,7 @@ function checkContent(content, skills, filePath) {
     'structure', 'motion', 'meaning', 'intent', 'narrative', 'story',
     'monitoring', 'codebase', 'code', 'map', 'principal',
   ];
-  const themeHits = coreThemes.filter(t => lower.includes(t));
+  const themeHits = coreThemes.filter(t => strippedLower.includes(t));
 
   // Only penalize theme misalignment for substantial content (> 200 words)
   // that has zero theme overlap

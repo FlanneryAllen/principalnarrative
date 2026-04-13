@@ -5,7 +5,7 @@ version: 1.0.0
 created: 2024-01-15
 updated: 2024-11-01
 status: active
-owners: [sarah.chen@codepilot.io, marcus.johnson@codepilot.io]
+owners: [julie@principal-ade.com]
 tags: [vision, mission, purpose, values]
 ---
 
@@ -13,35 +13,47 @@ tags: [vision, mission, purpose, values]
 
 ## Vision Statement
 
-A world where every developer ships confident, high-quality code without friction - where code review accelerates teams instead of blocking them.
+Software is the most consequential creative work on earth, and nobody can see it happening. We make it visible.
 
 ## Mission Statement
 
-CodePilot empowers development teams to ship better code faster by combining AI-powered analysis with human expertise, eliminating review bottlenecks while maintaining the highest quality standards.
+Principal AI makes software development visible — giving developers, teams, and organizations a shared view of what's being built, by whom, and why. We are not a code review tool. We are an organizational alignment platform.
 
 ## Core Values
 
-1. **Developer-First**: Every feature must reduce developer friction, not add to it. We optimize for the humans writing and reviewing code.
-2. **Trust Through Transparency**: Our AI explains its reasoning. Developers see why suggestions are made, not just what to change.
-3. **Speed Without Sacrifice**: Fast reviews that don't compromise on quality. We reject the false choice between velocity and excellence.
-4. **Team Amplification**: We make good teams great. CodePilot enhances human judgment rather than replacing it.
-5. **Continuous Learning**: Our platform learns from every review, every merge, every decision - getting smarter with your team.
+1. **Visibility First**: The work itself is the story. We surface what's actually happening in software development — not summaries, not dashboards, not vanity metrics. The real thing.
+2. **Builder Respect**: Developers are the protagonists. Every product decision defers to the people doing the work.
+3. **Honest Signals**: We report what we see. No flattery, no noise, no artificial urgency.
+4. **Narrative Alignment**: Organizations drift when the story fragments. We give teams a shared view so alignment happens naturally, not through mandates.
+5. **Infrastructure Thinking**: We build foundations. Principal AI is the layer beneath the story — reliable, composable, and long-lived.
 
 ## Strategic Intent
 
-Become the default code review layer for enterprise development teams by 2026. Own the "intelligent code collaboration" category we're creating - positioned between traditional code review tools and AI coding assistants.
+Become the default visibility layer for software organizations. Own the space between where code is written and where decisions are made — making the development narrative legible to everyone in the organization, not just the engineers living inside it.
 
 ## Why We Exist
 
-Code review is broken. Senior developers spend 6+ hours per week reviewing code. PRs sit in queues for days. Junior developers wait for feedback while context evaporates. Teams choose between shipping fast and shipping right.
+Software development is invisible to most of the people it affects. Executives make decisions without seeing the work. Teams lose context when people leave. The story of what's being built exists only in the heads of the people building it — and it evaporates constantly.
 
-CodePilot exists because review should be instant, intelligent, and improving - not a bottleneck that burns out your best engineers.
+Principal AI exists because that invisibility is the root cause of most organizational dysfunction in software companies. When the work is visible, alignment follows.
+
+## Core Products
+
+- **Principal Feed** — the public activity feed for developers. What's being built, in real time, by real people.
+- **File City** — your entire codebase rendered as a living city map. Structure made visible.
+- **Paperclip** — the mobile app. The development narrative in your pocket.
+- **ADE (Agent Development Environment)** — the private workspace for deep work.
+
+## Founding Team
+
+Principal AI was founded by Julie Allen, Fernando Ramirez, and Michael Flannery.
 
 ***
 
 ## Narrative Constraints
 
-* All communications must emphasize "developer-first" positioning
-* Never position as "replacing" human reviewers - always "augmenting" or "amplifying"
-* Speed claims must always be paired with quality assurance
-* AI transparency is non-negotiable in all product messaging
+* All communications must center visibility and organizational alignment — not code quality, not review speed
+* Never position as a code review tool
+* Always use the full product name "Principal Feed" — not the generic word alone
+* "File City" is always two words with a space
+* "Principal AI" is always two words with a space

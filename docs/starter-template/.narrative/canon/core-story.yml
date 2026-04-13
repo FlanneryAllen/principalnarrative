@@ -1,0 +1,23 @@
+# Core Story — the root narrative that everything else must align with
+# Only the narrative owner should merge changes to this file.
+# Changes here trigger a Clarion Call — a full coherence check.
+
+version: "1.0"
+last_updated: "2026-01-01"
+owner: "you@yourcompany.com"
+
+units:
+  - id: core_mission
+    type: core_story
+    assertion: >
+      Replace this with your company's core assertion —
+      the one thing everyone should be saying.
+    intent:
+      objective: Define why we exist
+      constraints:
+        content:
+          required_themes: [your_theme_1, your_theme_2]
+          forbidden_themes: [what_you_are_not]
+          tone: professional
+    dependencies: []
+    confidence: 1.0

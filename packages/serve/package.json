@@ -1,7 +1,7 @@
 {
   "name": "@narrative/serve",
   "version": "0.1.0",
-  "description": "Local API server + live dashboard for Clarion Call",
+  "description": "Organizational alignment platform — declare your story in YAML, check everything against it",
   "main": "server.js",
   "bin": {
     "narrative": "cli.js",
@@ -10,8 +10,16 @@
     "narrative-init": "init.js"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test-cli.js"
   },
+  "files": [
+    "cli.js",
+    "server.js",
+    "check.js",
+    "init.js",
+    "package.json"
+  ],
   "dependencies": {
     "yaml": "^2.3.4"
   }

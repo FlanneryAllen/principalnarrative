@@ -92,10 +92,25 @@ A clarion call runs on every PR that touches `.narrative/` or `.md` files.
 It comments on the PR with a combined coherence score and per-file breakdown.
 See `.github/workflows/clarion-call.yml`.
 
+## Starter Template
+
+Want to add narrative checking to your own project? Copy the starter template:
+
+```bash
+cp -r docs/starter-template/.narrative your-project/.narrative
+cp docs/starter-template/.github/workflows/clarion-call.yml your-project/.github/workflows/
+```
+
+Or initialize from scratch with `narrative init`.
+
 ## Docs
 
-See [NARRATIVE_AGENT.md](NARRATIVE_AGENT.md) for full documentation:
-architecture, API reference, narrative unit format, and skill definitions.
+| Path | What |
+|------|------|
+| [NARRATIVE_AGENT.md](NARRATIVE_AGENT.md) | Full documentation — architecture, API, unit format, skills |
+| `docs/internal/` | Design docs, analysis, architecture notes |
+| `docs/starter-template/` | Standalone `.narrative/` template for adoption |
+| `docs/archive/` | Legacy packages and prior iterations |
 
 ## License
 

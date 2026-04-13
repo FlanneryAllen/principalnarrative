@@ -1,0 +1,30 @@
+# Terminology — brand names, product names, and forbidden terms
+# The content checker uses these to flag incorrect or discouraged language.
+
+brand:
+  company_name: "Your Company"
+  never:
+    - "YourCompanyOldName"
+    - "yourcompany"
+
+products:
+  - name: "Product One"
+    never:
+      - "ProductOne"
+      - "product one"
+  - name: "Product Two"
+    never:
+      - "ProductTwo"
+
+terminology:
+  forbidden:
+    - "leverage"
+    - "synergy"
+    - "paradigm"
+    - "cutting-edge"
+    - "game-changing"
+    - "best-in-class"
+  preferred:
+    - term: "your preferred term"
+      avoid:
+        - "the variant you don't want"

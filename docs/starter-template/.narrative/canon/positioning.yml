@@ -1,0 +1,18 @@
+# Positioning — product-level narrative claims
+# Each unit depends on core story and inherits its constraints.
+
+version: "1.0"
+
+units:
+  - id: pos_product_1
+    type: positioning
+    assertion: >
+      Replace this with your first product's positioning statement.
+    intent:
+      objective: Position Product 1
+      constraints:
+        content:
+          required_themes: [your_product_theme]
+          forbidden_themes: []
+    dependencies: [core_mission]
+    confidence: 1.0

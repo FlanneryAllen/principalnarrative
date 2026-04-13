@@ -214,7 +214,8 @@ Every `check` and `status` run saves a timestamped JSON snapshot to
 
 History powers:
 - The `↑`/`↓` trend indicator in `narrative status`
-- Future: dashboard score-over-time chart
+- The score-over-time sparkline in the dashboard sidebar
+- The `/api/history` endpoint (returns last 50 entries)
 
 To inspect history:
 
@@ -352,12 +353,22 @@ The dashboard works in two modes:
 
 ## Directory
 
-| Package | What |
-|---------|------|
-| `packages/agent/` | Canon parser, clarion call engine, file watcher |
-| `packages/serve/` | Unified CLI (`cli.js`), HTTP server, content checker, init scaffolding |
-| `packages/core/` | Narrative algebra, graph operations |
-| `clarion-dashboard/` | Single-page dashboard (HTML + D3) |
-| `.github/workflows/` | GitHub Action for PR checks |
-| `.narrative/` | Your narrative source files |
-| `.narrative/history/` | Auto-generated score snapshots (git-ignored) |
+```
+principalnarrative/
+├── packages/
+│   ├── agent/           ← Canon parser, clarion call engine, file watcher
+│   ├── core/            ← Narrative algebra, graph operations
+│   └── serve/           ← Unified CLI, HTTP server, content checker, init
+├── clarion-dashboard/   ← Single-page dashboard (HTML + D3)
+├── applied-narrative/   ← Principal AI's own narrative content
+├── .narrative/          ← Canon + skills YAML (source of truth)
+├── .github/workflows/   ← GitHub Action for PR checks
+├── docs/
+│   ├── internal/        ← Design docs, analysis, architecture notes
+│   ├── ip/              ← Patent and IP documentation
+│   ├── starter-template/← Standalone .narrative/ template for adoption
+│   └── archive/         ← Legacy packages, static HTML, prior iterations
+├── NARRATIVE_AGENT.md   ← This file (full docs)
+├── README.md            ← Quick start
+└── CONTRIBUTING.md      ← Contribution guide
+```

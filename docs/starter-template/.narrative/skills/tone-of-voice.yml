@@ -1,0 +1,30 @@
+# Tone of Voice — voice principles with examples
+# Guides both human writers and AI agents on how your organization sounds.
+
+voice:
+  principles:
+    - id: sound_human
+      rule: "Write like a person, not a brand"
+      examples:
+        good:
+          - "Your entire codebase, rendered as a living map."
+          - "We built this because nobody could see what was happening."
+        bad:
+          - "Leverage our cutting-edge platform to maximize velocity."
+          - "Our comprehensive solution enables organizations to synergize."
+
+    - id: show_dont_tell
+      rule: "Demonstrate value with specifics, not superlatives"
+      examples:
+        good:
+          - "62 files checked, 3 violations found, score: 96/100."
+        bad:
+          - "Best-in-class narrative alignment for world-class organizations."
+
+    - id: respect_intelligence
+      rule: "Assume the reader is smart — skip the obvious"
+      examples:
+        good:
+          - "Canon changes trigger a clarion call. The graph walks itself."
+        bad:
+          - "Our revolutionary AI-powered platform will transform your workflow."

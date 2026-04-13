@@ -32,7 +32,7 @@ changelog:
 
 **Examples:**
 - **Good:** "Intent Units form a directed acyclic graph (DAG), which means dependencies flow one way—like a family tree, not a tangled web."
-- **Bad:** "Our patented graph-theoretic approach leverages advanced algorithmic primitives to ensure topological consistency across the narrative lattice."
+- **Bad:** "Our patented graph-theoretic approach `leverages` advanced algorithmic primitives to ensure topological consistency across the narrative lattice."
 
 ---
 
@@ -92,7 +92,7 @@ changelog:
 ### Technical Blog Posts
 **Tone:** Educational, insightful, conversational
 **Target Audience:** Engineers interested in the architecture
-**Goals:** Share knowledge, build thought leadership, attract contributors
+**Goals:** Share knowledge, build credibility, attract contributors
 **Example:** "We chose SQLite because it's battle-tested infrastructure that can handle millions of intent queries per second. Sometimes boring is beautiful."
 
 ### Social Media / Twitter
@@ -171,7 +171,7 @@ changelog:
 - **Do** emphasize control, alignment, and governance
 
 ### Don'ts
-- **Don't** use buzzwords like "revolutionary," "disruptive," "game-changing"
+- **Don't** use buzzwords like `revolutionary`, `disruptive`, `game-changing`
 - **Don't** over-promise capabilities we haven't built yet
 - **Don't** compare directly to competitors (let them come to us)
 - **Don't** use AI hype language ("AGI," "superintelligence," etc.)

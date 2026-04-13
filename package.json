@@ -2,7 +2,7 @@
   "name": "narrative-agent-workspace",
   "version": "0.1.0",
   "private": true,
-  "description": "Intent Engineering Infrastructure - Making organizational intent machine-readable",
+  "description": "Organizational alignment platform — declare your story once in YAML, check everything against it",
   "workspaces": [
     "packages/*"
   ],
@@ -18,9 +18,11 @@
     "build-storybook": "storybook build"
   },
   "keywords": [
-    "intent-engineering",
-    "narrative-intelligence",
-    "agent-coordination",
+    "narrative",
+    "coherence",
+    "alignment",
+    "brand",
+    "content-checking",
     "organizational-intent"
   ],
   "author": "Julie Allen",

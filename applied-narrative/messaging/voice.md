@@ -5,7 +5,7 @@ version: 1.0.0
 created: 2024-01-15
 updated: 2024-10-15
 status: active
-owners: [marketing@codepilot.io, content@codepilot.io]
+owners: [julie@principal-ade.com]
 tags: [voice, tone, brand, communication]
 ---
 
@@ -15,11 +15,11 @@ tags: [voice, tone, brand, communication]
 
 ### We Are
 
-- **Technically Credible**: We speak developer-to-developer. We know the difference between a linter and a code review. We use precise terminology.
-  - Example: "CodePilot analyzes AST patterns and control flow" not "Our AI looks at your code"
+- **Technically Credible**: We speak developer-to-developer. We use precise terminology.
+  - Example: "Principal AI renders your codebase as a living map" not "Our AI looks at your code"
 
 - **Confidently Humble**: We're proud of what we've built but honest about limitations. We don't overpromise.
-  - Example: "CodePilot catches 85% of common issues" not "CodePilot catches all bugs"
+  - Example: "Principal Feed shows exactly who changed what, and when" not "Principal AI catches everything"
 
 - **Helpfully Direct**: We respect developers' time. No fluff, no marketing speak, no unnecessary words.
   - Example: "Review time: 47 seconds" not "Experience lightning-fast review capabilities"
@@ -29,7 +29,7 @@ tags: [voice, tone, brand, communication]
 
 ### We Are Not
 
-- **Hyperbolic**: We don't use "revolutionary", "game-changing", "10x". Let results speak.
+- **Hyperbolic**: We don't use `revolutionary`, `game-changing`, `10x`. Let results speak.
 - **Condescending**: We don't explain basic concepts. Our audience knows what a PR is.
 - **Robotic**: We're not a faceless corporation. We have opinions and personality.
 - **Salesy**: We educate and demonstrate. We don't push or pressure.
@@ -39,7 +39,7 @@ tags: [voice, tone, brand, communication]
 | Context | Tone | Example |
 |---------|------|---------|
 | Product UI | Concise, helpful | "3 issues found. 2 auto-fixable." |
-| Documentation | Clear, thorough | "This guide walks through configuring CodePilot for monorepos." |
+| Documentation | Clear, thorough | "This guide walks through configuring Principal Feed for your organization." |
 | Marketing | Confident, benefit-focused | "Ship better code in half the time." |
 | Support | Patient, solution-oriented | "I understand the frustration. Here's what's happening..." |
 | Social Media | Thoughtful, engaging | "Hot take: Code review shouldn't take longer than writing the code." |
@@ -48,14 +48,14 @@ tags: [voice, tone, brand, communication]
 ## Writing Guidelines
 
 ### Do
-- Use "we" for CodePilot, "you" for the user
+- Use "we" for Principal AI, "you" for the user
 - Lead with the benefit, follow with the feature
 - Use concrete numbers over vague claims
 - Write in active voice
 - Include code examples where relevant
 
 ### Don't
-- Use jargon without purpose ("leverage", "synergy", "paradigm")
+- Use jargon without purpose (`leverage`, `synergy`, `paradigm`)
 - Make claims without proof layer backing
 - Use exclamation points excessively!!!!
 - Write paragraphs when bullets work
@@ -65,18 +65,18 @@ tags: [voice, tone, brand, communication]
 
 | Concept | Approved Analogy | Context |
 |---------|------------------|---------|
-| CodePilot's role | "Like a senior dev who never sleeps, reviewing every PR instantly" | General explanation |
-| AI suggestions | "A second pair of eyes that explains what it sees" | Trust/transparency |
-| Learning system | "Gets smarter with every review, like a team member ramping up" | Continuous improvement |
-| Speed | "Review at the speed of commit" | Performance marketing |
+| Principal AI's role | "The window into your software organization's work" | General explanation |
+| Principal Feed | "A living record of what's being built and by whom" | Activity/narrative |
+| File City | "Your codebase as a city — structure made visible" | Visualization |
+| ADE | "The private workspace where deep work happens" | Product framing |
 
 ## Forbidden Language
 
 | Forbidden | Reason | Alternative |
 |-----------|--------|-------------|
-| Revolutionary | Overhyped, meaningless | "Fundamentally different approach" |
-| AI-powered (standalone) | Vague, everyone says it | "AI that explains its reasoning" |
-| Best-in-class | Unsubstantiated | Cite specific metric or proof |
+| `Revolutionary` | Overhyped, meaningless | "Fundamentally different approach" |
+| `AI-powered` (standalone) | Vague, everyone says it | Describe what it actually does |
+| `Best-in-class` | Unsubstantiated | Cite specific metric or proof |
 | Automagically | Undermines technical credibility | "Automatically" |
 | Crush/kill/destroy | Violent metaphors | "Address", "resolve", "fix" |
 | Cheap/budget | Devalues product | "Cost-effective", "accessible" |
