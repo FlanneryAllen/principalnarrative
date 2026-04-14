@@ -5036,30 +5036,35 @@ async function addMinedToCanon() {
    ============================================================ */
 async function startWithoutRepo() {
   try {
-    const res = await fetch('/api/workspaces', {
+    // Create a guest session
+    const guestRes = await fetch('/api/guest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'My Narrative' }),
     });
-    if (res.status === 401) {
-      // Not logged in — create a pseudo-session for workspace-only mode
-      // The server requires auth, so for now redirect to a simulated login
-      alert('Please sign in with GitHub first, then use "Start without a repo" to create a memory workspace.');
+
+    if (!guestRes.ok) {
+      alert('Failed to create guest session');
       return;
     }
-    const data = await res.json();
-    if (!res.ok) { alert('Failed to create workspace: ' + (data.error || 'Unknown error')); return; }
-    state.currentWorkspace = data.id;
-    state.currentRepo = `workspace:${data.id}`;
-    state.user = state.user || { login: 'local', name: 'Local User', avatar_url: '' };
-    // Show app and wizard
+
+    const guestData = await guestRes.json();
+    state.user = guestData.user;
+    state.currentRepo = 'guest-workspace';
+    state.isGuest = true;
+
+    // Show app in guest mode
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     document.getElementById('repoPicker').classList.remove('active');
     document.getElementById('dashboardView').style.display = '';
-    document.getElementById('userName').textContent = data.name;
-    // Show wizard for setup
-    document.getElementById('wizardOverlay').classList.add('active');
+    document.getElementById('userName').textContent = 'Guest Mode';
+
+    // Initialize with empty narrative
+    state.canon = { units: [], skills: {} };
+    state.lastCheck = null;
+
+    // Show a welcome message for guest mode
+    renderDashboard();
   } catch (err) {
     alert('Error: ' + err.message);
   }

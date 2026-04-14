@@ -619,6 +619,35 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ---- Guest Mode (no auth required) ----
+
+    if (pathname === '/api/guest' && req.method === 'POST') {
+      // Create a guest session with no GitHub token
+      const sessionId = createSessionId();
+      sessions.set(sessionId, {
+        githubToken: null,
+        user: {
+          login: 'guest',
+          name: 'Guest User',
+          avatar_url: '',
+          id: 'guest-' + Date.now(),
+        },
+        connectedRepos: new Set(),
+        rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
+        isGuest: true,
+      });
+
+      setSessionCookie(res, sessionId);
+      json(res, 200, {
+        user: {
+          login: 'guest',
+          name: 'Guest User',
+          avatar_url: '',
+        },
+      });
+      return;
+    }
+
     // ---- All routes below require auth ----
 
     const session = getSession(req);
