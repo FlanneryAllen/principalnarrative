@@ -5056,15 +5056,20 @@ async function startWithoutRepo() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     document.getElementById('repoPicker').classList.remove('active');
-    document.getElementById('dashboardView').style.display = '';
+    document.getElementById('dashboardView').classList.add('active');
     document.getElementById('userName').textContent = 'Guest Mode';
+    updateRepoSelect();
 
     // Initialize with empty narrative
     state.canon = { units: [], skills: {} };
-    state.lastCheck = null;
+    state.repoData = {
+      metrics: { narrativeCoherenceIndex: 0, coverageRatio: 0, totalEdges: 0, layerHealth: {} },
+      drift: { driftRate: 0, driftedUnits: [] },
+      cover: { coverage: 0, gaps: [], orphans: [] }
+    };
 
-    // Show a welcome message for guest mode
-    renderDashboard();
+    // Show wizard to help create first narrative units
+    showWizard();
   } catch (err) {
     alert('Error: ' + err.message);
   }
