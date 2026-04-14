@@ -26,5 +26,8 @@
     "organizational-intent"
   ],
   "author": "Julie Allen",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.3.4"
+  }
 }
