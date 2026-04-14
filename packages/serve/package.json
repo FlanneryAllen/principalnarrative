@@ -11,7 +11,8 @@
     "narrative-init": "init.js"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node web-app.js",
+    "local": "node server.js",
     "web": "node web-app.js",
     "test": "node test-cli.js",
     "test:web": "node test-web-app.js"
