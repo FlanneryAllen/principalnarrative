@@ -2477,6 +2477,7 @@ body {
         <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
         <button class="tab-btn" data-tab="storymining">Live Lab</button>
         <button class="tab-btn" data-tab="harvest">Harvest</button>
+        <button class="tab-btn" data-tab="actions">Actions</button>
       </div>
 
       <!-- Overview Tab -->
@@ -2497,6 +2498,16 @@ body {
               </div>
             </div>
             <div id="layerHealth" class="layers-panel"></div>
+            <div id="weightedNCI" style="margin-top:12px; padding:12px; background:var(--navy-dark); border-radius:8px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Weighted NCI</span>
+                <span id="wnciValue" style="font-size:18px; font-weight:700; color:var(--copper);"></span>
+              </div>
+              <div style="font-size:10px; color:var(--text-dim); margin-bottom:6px;">Core misalignment weighs 3× more than communication drift</div>
+              <div id="wnciBreakdown" style="display:flex; flex-direction:column; gap:3px;"></div>
+              <button id="configWeightsBtn" onclick="toggleWeightConfig()" style="margin-top:8px; font-size:10px; padding:3px 8px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--text-dim); cursor:pointer;">⚙ Configure Weights</button>
+              <div id="weightConfigPanel" style="display:none; margin-top:8px;"></div>
+            </div>
           </div>
 
           <div class="metrics-row">
@@ -2778,6 +2789,18 @@ body {
         </div>
       </div>
 
+      <!-- Actions Tab -->
+      <div id="tab-actions" class="tab-content">
+        <div style="padding:28px;">
+          <h2 style="font-size:20px; font-weight:700; color:var(--text-primary); margin:0 0 4px 0;">Prescriptive Actions</h2>
+          <p style="font-size:13px; color:var(--text-dim); margin:0 0 24px 0;">Concrete next steps for every tension in your narrative graph. Critical items first.</p>
+
+          <div id="actionsSummary" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;"></div>
+          <div id="actionsLoading" style="text-align:center; padding:40px; color:var(--text-dim);">Select a repo to see actions</div>
+          <div id="actionsList" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+      </div>
+
 <script>
 /* ============================================================
    App State
@@ -2991,6 +3014,7 @@ async function selectRepo(fullName) {
     renderLayerHealth(metrics.layerHealth);
     renderGraph(metrics);
     renderUnits(metrics);
+    renderWeightedNCI(metrics);
     renderDrift(drift, cover);
   } catch (err) {
     console.error('Select repo error:', err);
@@ -3299,6 +3323,268 @@ async function classifyTension(unitId, intent) {
 }
 
 /* ============================================================
+   Weighted NCI + Prescriptive Actions
+   ============================================================ */
+const LAYER_LABELS_SHORT = {
+  core_story: 'Core', positioning: 'Position', product_narrative: 'Product',
+  operational: 'Ops', evidence: 'Evidence', communication: 'Comms',
+};
+
+async function renderWeightedNCI(metrics) {
+  if (!metrics || !metrics.weightedNCI) return;
+
+  const panel = document.getElementById('weightedNCI');
+  panel.style.display = 'block';
+
+  const wnci = Math.round(metrics.weightedNCI * 100);
+  document.getElementById('wnciValue').textContent = wnci + '%';
+  document.getElementById('wnciValue').style.color =
+    wnci >= 80 ? 'var(--green)' : wnci >= 50 ? 'var(--yellow)' : 'var(--red)';
+
+  const breakdown = document.getElementById('wnciBreakdown');
+  if (metrics.weightedBreakdown) {
+    breakdown.innerHTML = Object.entries(metrics.weightedBreakdown)
+      .filter(([, v]) => v.total > 0)
+      .map(([layer, v]) => {
+        const pct = Math.round(v.weightedContribution * 100);
+        const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
+        return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:10px;">
+          <span style="color:var(--text-dim);">${LAYER_LABELS_SHORT[layer] || layer} <span style="opacity:0.5;">${v.weight}x</span></span>
+          <div style="flex:1; margin:0 8px; height:3px; background:var(--border); border-radius:2px; overflow:hidden;">
+            <div style="width:${pct}%; height:100%; background:${color}; border-radius:2px;"></div>
+          </div>
+          <span style="color:${color}; min-width:32px; text-align:right;">${pct}%</span>
+        </div>`;
+      }).join('');
+  }
+}
+
+function toggleWeightConfig() {
+  const panel = document.getElementById('weightConfigPanel');
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    renderWeightConfig();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function renderWeightConfig() {
+  const panel = document.getElementById('weightConfigPanel');
+  const weights = state.layerWeights || {
+    core_story: 3.0, positioning: 2.5, product_narrative: 2.0,
+    operational: 1.5, evidence: 1.0, communication: 1.0,
+  };
+  panel.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      ${Object.entries(weights).map(([layer, w]) => `
+        <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+          <span style="color:var(--text-dim); min-width:60px;">${LAYER_LABELS_SHORT[layer] || layer}</span>
+          <input type="range" min="0.5" max="5" step="0.5" value="${w}"
+            data-layer="${layer}" class="weight-slider"
+            style="flex:1; accent-color:var(--copper);">
+          <span class="weight-val" style="color:var(--text-secondary); min-width:28px; text-align:right;">${w}x</span>
+        </div>
+      `).join('')}
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button onclick="saveWeights()" style="flex:1; font-size:11px; padding:6px; border-radius:6px; border:1px solid var(--copper); background:transparent; color:var(--copper); cursor:pointer;">Save Weights</button>
+        <button onclick="resetWeights()" style="font-size:11px; padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-dim); cursor:pointer;">Reset</button>
+      </div>
+    </div>
+  `;
+  // Wire up sliders
+  panel.querySelectorAll('.weight-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      e.target.nextElementSibling.textContent = e.target.value + 'x';
+    });
+  });
+}
+
+async function saveWeights() {
+  const sliders = document.querySelectorAll('#weightConfigPanel .weight-slider');
+  const weights = {};
+  sliders.forEach(s => { weights[s.dataset.layer] = parseFloat(s.value); });
+  state.layerWeights = weights;
+
+  if (state.currentWorkspace) {
+    try {
+      await fetch(`/api/workspaces/${state.currentWorkspace}/weights`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weights }),
+      });
+    } catch { /* non-fatal */ }
+  }
+  // Refresh metrics
+  if (state.currentRepo) await selectRepo(state.currentRepo);
+}
+
+async function resetWeights() {
+  state.layerWeights = null;
+  if (state.currentWorkspace) {
+    try {
+      await fetch(`/api/workspaces/${state.currentWorkspace}/weights`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weights: { core_story: 3, positioning: 2.5, product_narrative: 2, operational: 1.5, evidence: 1, communication: 1 } }),
+      });
+    } catch { /* non-fatal */ }
+  }
+  renderWeightConfig();
+  if (state.currentRepo) await selectRepo(state.currentRepo);
+}
+
+// --- Prescriptive Actions ---
+
+const PRIORITY_COLORS = { critical: 'var(--red)', high: '#f59e0b', medium: 'var(--blue)', low: 'var(--text-dim)' };
+const ACTION_ICONS = {
+  resolve_contest: '\u2694', update_canon: '\u270e', schedule_review: '\ud83d\udcc5',
+  escalate: '\ud83d\udea8', mark_intent: '\ud83c\udfaf', add_evidence: '\ud83d\udccb',
+};
+
+async function loadActions() {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  const loadingEl = document.getElementById('actionsLoading');
+  const listEl = document.getElementById('actionsList');
+  const summaryEl = document.getElementById('actionsSummary');
+
+  loadingEl.textContent = 'Loading actions...';
+  loadingEl.style.display = 'block';
+  listEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/actions`);
+    const data = await res.json();
+    loadingEl.style.display = 'none';
+
+    // Summary cards
+    const s = data.summary;
+    summaryEl.innerHTML = [
+      { label: 'Critical', count: s.byPriority.critical || 0, color: 'var(--red)' },
+      { label: 'High', count: s.byPriority.high || 0, color: '#f59e0b' },
+      { label: 'Medium', count: s.byPriority.medium || 0, color: 'var(--blue)' },
+      { label: 'Low', count: s.byPriority.low || 0, color: 'var(--text-dim)' },
+    ].map(c => `
+      <div style="text-align:center; padding:16px; background:var(--navy-dark); border-radius:8px; border-top:3px solid ${c.color};">
+        <div style="font-size:24px; font-weight:700; color:${c.color};">${c.count}</div>
+        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">${c.label}</div>
+      </div>
+    `).join('');
+
+    if (data.actions.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center; padding:40px; color:var(--green); font-size:14px;">\u2713 No actions needed. Your narrative graph is coherent.</div>';
+      return;
+    }
+
+    // Action cards
+    listEl.innerHTML = data.actions.map((a, i) => `
+      <div class="action-card" style="padding:16px 20px; background:var(--navy-mid); border:1px solid var(--border); border-radius:10px; border-left:4px solid ${PRIORITY_COLORS[a.priority] || 'var(--text-dim)'};">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">${ACTION_ICONS[a.type] || '\u25cf'}</span>
+            <span style="font-size:14px; font-weight:600; color:var(--text-primary);">${esc(a.title)}</span>
+          </div>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <span style="font-size:10px; padding:2px 8px; border-radius:10px; background:${PRIORITY_COLORS[a.priority]}20; color:${PRIORITY_COLORS[a.priority]};">${a.priority}</span>
+            ${a.unitScope ? `<span class="unit-badge unit-badge-scope">\ud83c\udfef ${esc(a.unitScope)}</span>` : ''}
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); font-family:var(--mono); margin-bottom:4px;">${esc(a.unitId)} \u2014 ${esc(a.unitType)}</div>
+        <div style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">${esc(a.description)}</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${renderActionButtons(a)}
+          <button class="tension-btn" onclick="getLLMRecommendation('${esc(a.unitId)}', this)" title="Get AI-powered recommendation">\ud83e\udde0 AI Recommendation</button>
+        </div>
+        <div id="llm-rec-${a.unitId}-${i}" style="display:none; margin-top:12px; padding:12px; background:var(--navy-dark); border-radius:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; white-space:pre-wrap;"></div>
+      </div>
+    `).join('');
+  } catch (err) {
+    loadingEl.textContent = 'Failed to load actions: ' + err.message;
+  }
+}
+
+function renderActionButtons(action) {
+  if (!action.operation) return '';
+  const op = action.operation;
+
+  switch (op.action) {
+    case 'classify_tension':
+      return `
+        <button class="tension-btn" onclick="classifyTension('${esc(op.unitId)}', 'drift')" title="Mark as unintentional drift">\u26a0 Drift</button>
+        <button class="tension-btn" onclick="classifyTension('${esc(op.unitId)}', 'evolution')" title="Mark as intentional evolution">\ud83d\udd04 Evolution</button>
+        <button class="tension-btn" onclick="classifyTension('${esc(op.unitId)}', 'deliberate_tension')" title="Mark as deliberate">\u2696 Deliberate</button>
+      `;
+    case 'edit_unit':
+      return `<button class="tension-btn" onclick="document.querySelector('[data-tab=editor]').click()" style="border-color:var(--copper); color:var(--copper);">\u270e Edit in Editor</button>`;
+    case 'schedule_review':
+      return `<button class="tension-btn" onclick="scheduleReview('${esc(op.unitId)}', '${op.reviewType || 'general'}')" style="border-color:var(--blue); color:var(--blue);">\ud83d\udcc5 Schedule Review</button>`;
+    case 'escalate':
+      return `<button class="tension-btn" onclick="escalateUnit('${esc(op.unitId)}', '${esc(op.targetScope || '')}')" style="border-color:var(--red); color:var(--red);">\ud83d\udea8 Escalate</button>`;
+    case 'validate_unit':
+      return `<button class="tension-btn" onclick="validateUnit('${esc(op.unitId)}')" style="border-color:var(--green); color:var(--green);">\u2713 Validate</button>`;
+    case 'navigate_to_unit':
+      return `<button class="tension-btn" onclick="document.querySelector('[data-tab=editor]').click()" style="border-color:var(--copper); color:var(--copper);">\u2192 Go to Unit</button>`;
+    case 'attribute_unit':
+      return `<button class="tension-btn" onclick="document.querySelector('[data-tab=editor]').click()">\ud83d\udc64 Add Author</button>`;
+    default:
+      return '';
+  }
+}
+
+async function getLLMRecommendation(unitId, btn) {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  btn.disabled = true;
+  btn.textContent = '\ud83e\udde0 Thinking...';
+
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/actions/recommend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unitId }),
+    });
+    const data = await res.json();
+
+    // Find the closest recommendation div
+    const card = btn.closest('.action-card');
+    const recDiv = card.querySelector('[id^="llm-rec-"]');
+    if (recDiv) {
+      if (data.llmRecommendation) {
+        recDiv.textContent = data.llmRecommendation;
+        recDiv.style.display = 'block';
+      } else {
+        recDiv.textContent = data.llmAvailable === false
+          ? 'LLM not configured. Set OPENAI_API_KEY to enable AI recommendations.'
+          : 'No recommendation available.';
+        recDiv.style.display = 'block';
+        recDiv.style.color = 'var(--text-dim)';
+      }
+    }
+  } catch (err) {
+    console.error('LLM recommendation failed:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '\ud83e\udde0 AI Recommendation';
+  }
+}
+
+function scheduleReview(unitId, reviewType) {
+  alert(`Review scheduled for unit: ${unitId} (${reviewType})\n\nIn a production version, this would create a calendar event or task.`);
+}
+
+function escalateUnit(unitId, targetScope) {
+  alert(`Escalated unit: ${unitId}${targetScope ? ` to ${targetScope} scope owner` : ''}\n\nIn a production version, this would send a notification.`);
+}
+
+async function validateUnit(unitId) {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  await fetch(`/api/repos/${owner}/${repo}/validate`, { method: 'POST' });
+  await loadActions();
+}
+
+/* ============================================================
    Tabs
    ============================================================ */
 function setupTabs() {
@@ -3317,6 +3603,10 @@ function setupTabs() {
       // Initialize Live Lab when its tab is activated
       if (btn.dataset.tab === 'storymining') {
         initLiveLab();
+      }
+      // Load prescriptive actions when Actions tab is activated
+      if (btn.dataset.tab === 'actions') {
+        loadActions();
       }
     });
   });

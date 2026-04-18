@@ -288,6 +288,23 @@ class NarrativeStore {
   }
 
   /**
+   * Get layer weights for weighted NCI. Returns null if using defaults.
+   * @returns {Promise<Object|null>}
+   */
+  async getWeights() {
+    return null; // default: use algebra defaults
+  }
+
+  /**
+   * Save layer weights.
+   * @param {Object} weights - { core_story: 3.0, positioning: 2.5, ... }
+   * @returns {Promise<{saved: boolean}>}
+   */
+  async saveWeights(weights) {
+    throw new Error('NarrativeStore.saveWeights() must be implemented by subclass');
+  }
+
+  /**
    * Get store info.
    * @returns {{type: string, name: string}}
    */
@@ -423,6 +440,7 @@ class MemoryAdapter extends NarrativeStore {
     this._units = [];
     this._skills = {};
     this._files = [];
+    this._weights = null; // null = use defaults
     this._created = new Date().toISOString();
   }
 
@@ -519,6 +537,15 @@ class MemoryAdapter extends NarrativeStore {
     results.files.push('tone-of-voice.yml');
 
     return results;
+  }
+
+  async getWeights() {
+    return this._weights ? { ...this._weights } : null;
+  }
+
+  async saveWeights(weights) {
+    this._weights = { ...weights };
+    return { saved: true };
   }
 
   getInfo() {

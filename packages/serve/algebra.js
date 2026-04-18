@@ -42,6 +42,16 @@ const ALL_LAYERS = [
   'operational', 'evidence', 'communication',
 ];
 
+/** Default layer weights for weighted NCI. Higher = more impactful on score. */
+const DEFAULT_LAYER_WEIGHTS = {
+  core_story: 3.0,
+  positioning: 2.5,
+  product_narrative: 2.0,
+  operational: 1.5,
+  evidence: 1.0,
+  communication: 1.0,
+};
+
 const STAKEHOLDER_PRESETS = {
   board: {
     typeFilter: ['core_story', 'positioning', 'evidence'],
@@ -874,11 +884,90 @@ class NarrativeAlgebra {
   // ==========================================================================
 
   /**
+   * Compute Weighted NCI.
+   *
+   * WNCI(G, w) = Σ(layer) w[layer] * aligned[layer] / Σ(layer) w[layer] * total[layer]
+   *
+   * A core_story misalignment costs 3x more than a communication misalignment.
+   * If no weights provided, uses DEFAULT_LAYER_WEIGHTS.
+   *
+   * @param {Object} [weights] - Layer weight overrides (e.g., { core_story: 4.0, ... })
+   * @returns {{ weightedNCI: number, breakdown: Object, weights: Object }}
+   */
+  computeWeightedNCI(weights) {
+    const w = { ...DEFAULT_LAYER_WEIGHTS, ...(weights || {}) };
+    const allUnits = this.graph.getAllUnits();
+
+    let weightedAligned = 0;
+    let weightedTotal = 0;
+    const breakdown = {};
+
+    for (const layer of ALL_LAYERS) {
+      const layerWeight = w[layer] || 1.0;
+      const layerUnits = allUnits.filter(u => u.type === layer);
+      const layerAligned = layerUnits.filter(u => u.validationState === 'ALIGNED');
+
+      const contribution = layerWeight * layerUnits.length;
+      const alignedContribution = layerWeight * layerAligned.length;
+
+      weightedTotal += contribution;
+      weightedAligned += alignedContribution;
+
+      breakdown[layer] = {
+        weight: layerWeight,
+        total: layerUnits.length,
+        aligned: layerAligned.length,
+        rawNCI: layerUnits.length > 0 ? layerAligned.length / layerUnits.length : 1.0,
+        weightedContribution: contribution > 0 ? alignedContribution / contribution : 1.0,
+        impactOnScore: contribution,
+      };
+    }
+
+    return {
+      weightedNCI: weightedTotal > 0 ? weightedAligned / weightedTotal : 1.0,
+      breakdown,
+      weights: w,
+    };
+  }
+
+  /**
+   * Compute scoped weighted NCI — per-scope weighted scores.
+   * Shows which department is dragging the overall score down.
+   */
+  computeScopedWeightedNCI(weights) {
+    const w = { ...DEFAULT_LAYER_WEIGHTS, ...(weights || {}) };
+    const scopes = this.graph.getScopes();
+    const result = {};
+
+    for (const scope of scopes) {
+      const scopeUnits = this.graph.getUnitsByScope(scope);
+      let wAligned = 0;
+      let wTotal = 0;
+
+      for (const unit of scopeUnits) {
+        const layerWeight = w[unit.type] || 1.0;
+        wTotal += layerWeight;
+        if (unit.validationState === 'ALIGNED') {
+          wAligned += layerWeight;
+        }
+      }
+
+      result[scope] = {
+        weightedNCI: wTotal > 0 ? wAligned / wTotal : 1.0,
+        unitCount: scopeUnits.length,
+        weightedTotal: wTotal,
+      };
+    }
+
+    return result;
+  }
+
+  /**
    * Compute the Narrative Coherence Index and related metrics.
    *
    * NCI(G) = |{n ∈ G | V(n) = ALIGNED}| / |G|
    */
-  computeMetrics() {
+  computeMetrics(weights) {
     const allUnits = this.graph.getAllUnits();
     const totalUnits = allUnits.length;
 
@@ -926,11 +1015,19 @@ class NarrativeAlgebra {
       totalEdges += unit.dependencies.length;
     }
 
+    // Weighted NCI
+    const wnci = this.computeWeightedNCI(weights);
+    const scopedWNCI = this.computeScopedWeightedNCI(weights);
+
     return {
       narrativeCoherenceIndex: totalUnits > 0 ? aligned.length / totalUnits : 1.0,
+      weightedNCI: wnci.weightedNCI,
+      weightedBreakdown: wnci.breakdown,
+      layerWeights: wnci.weights,
       coverageRatio: coverResult.coverage,
       layerHealth,
       scopeHealth,
+      scopedWeightedNCI: scopedWNCI,
       totalUnits,
       totalEdges,
       contestedCount: contested.length,
@@ -1042,5 +1139,6 @@ module.exports = {
   createAlgebra,
   LAYER_ORDER,
   ALL_LAYERS,
+  DEFAULT_LAYER_WEIGHTS,
   STAKEHOLDER_PRESETS,
 };

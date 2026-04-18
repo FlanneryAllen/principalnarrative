@@ -71,6 +71,8 @@ const {
 const { mineNarrativeUnits } = require('./storymining');
 const { llmMineNarrativeUnits, getLLMConfig } = require('./storymining-llm');
 const { harvestUrl, guessSourceType } = require('./url-harvest');
+const { generateActions, generateAllActions, summarizeActions, buildLLMPrompt } = require('./prescriptive-actions');
+const { DEFAULT_LAYER_WEIGHTS } = require('./algebra');
 
 // ============================================================================
 // Config
@@ -782,7 +784,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const { canon } = data;
-      const { algebra } = createAlgebra(canon.units);
+      const { graph, algebra } = createAlgebra(canon.units);
 
       // Route: /api/repos/:owner/:repo/scan
       if (rest === 'scan' && req.method === 'GET') {
@@ -1005,6 +1007,109 @@ const server = http.createServer(async (req, res) => {
           confidence: validationResult.confidence,
           reasons: validationResult.reasons,
         });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/weighted-nci — weighted NCI with optional custom weights
+      if (rest === 'weighted-nci' && req.method === 'GET') {
+        const wnci = algebra.computeWeightedNCI();
+        const scopedWNCI = algebra.computeScopedWeightedNCI();
+        json(res, 200, { ...wnci, scopedWeightedNCI: scopedWNCI });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/actions — prescriptive actions for all units
+      if (rest === 'actions' && req.method === 'GET') {
+        const allActions = generateAllActions(graph, algebra);
+        const summary = summarizeActions(allActions);
+        json(res, 200, { actions: allActions, summary });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/actions/unit/:unitId — actions for a specific unit
+      if (rest.startsWith('actions/unit/') && req.method === 'GET') {
+        const targetUnitId = rest.replace('actions/unit/', '');
+        const unit = graph.getUnit(targetUnitId);
+        if (!unit) { json(res, 404, { error: `Unit ${targetUnitId} not found` }); return; }
+        const unitActions = generateActions(unit, { graph, algebra, allUnits: graph.getAllUnits() });
+        json(res, 200, { unitId: targetUnitId, actions: unitActions });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/actions/recommend — LLM recommendation for a unit
+      if (rest === 'actions/recommend' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { unitId } = body || {};
+        if (!unitId) { json(res, 400, { error: 'Missing unitId' }); return; }
+        const unit = graph.getUnit(unitId);
+        if (!unit) { json(res, 404, { error: `Unit ${unitId} not found` }); return; }
+
+        const ruleBasedActions = generateActions(unit, { graph, algebra, allUnits: graph.getAllUnits() });
+        const deps = graph.getDependencies(unitId);
+        const dependents = graph.getDependents(unitId);
+        const prompt = buildLLMPrompt(unit, {
+          relatedUnits: { dependencies: deps, dependents },
+          ruleBasedActions,
+        });
+
+        const llmConfig = getLLMConfig();
+        if (!llmConfig.available) {
+          json(res, 200, {
+            unitId,
+            ruleBasedActions,
+            llmRecommendation: null,
+            llmAvailable: false,
+            prompt, // include prompt so client can use it elsewhere
+          });
+          return;
+        }
+
+        // Call LLM
+        try {
+          const https = require('https');
+          const llmBody = JSON.stringify({
+            model: llmConfig.model || 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.3,
+            max_tokens: 1000,
+          });
+          const llmRes = await new Promise((resolve, reject) => {
+            const req = https.request({
+              hostname: new URL(llmConfig.baseUrl || 'https://api.openai.com').hostname,
+              path: '/v1/chat/completions',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${llmConfig.apiKey}`,
+                'Content-Length': Buffer.byteLength(llmBody),
+              },
+            }, (res) => {
+              let data = '';
+              res.on('data', chunk => { data += chunk; });
+              res.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); } });
+            });
+            req.on('error', reject);
+            req.write(llmBody);
+            req.end();
+          });
+
+          const recommendation = llmRes.choices?.[0]?.message?.content || null;
+          json(res, 200, {
+            unitId,
+            ruleBasedActions,
+            llmRecommendation: recommendation,
+            llmAvailable: true,
+          });
+        } catch (err) {
+          json(res, 200, {
+            unitId,
+            ruleBasedActions,
+            llmRecommendation: null,
+            llmAvailable: false,
+            error: err.message,
+          });
+        }
         return;
       }
 
@@ -1382,6 +1487,27 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // GET /api/workspaces/:id/weights — get layer weights
+      if (wsRest === 'weights' && req.method === 'GET') {
+        const weights = await store.getWeights();
+        json(res, 200, { weights: weights || DEFAULT_LAYER_WEIGHTS, isCustom: weights !== null });
+        return;
+      }
+
+      // PUT /api/workspaces/:id/weights — save layer weights
+      if (wsRest === 'weights' && req.method === 'PUT') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { weights } = body || {};
+        if (!weights || typeof weights !== 'object') {
+          json(res, 400, { error: 'Missing or invalid weights object' });
+          return;
+        }
+        await store.saveWeights(weights);
+        json(res, 200, { saved: true, weights });
+        return;
+      }
+
       // POST /api/workspaces/:id/harvest — URL-based narrative harvest
       if (wsRest === 'harvest' && req.method === 'POST') {
         let body;
@@ -1601,4 +1727,9 @@ module.exports = {
   // LLM StoryMining (re-exported from storymining-llm.js)
   llmMineNarrativeUnits,
   getLLMConfig,
+  // Prescriptive actions (re-exported from prescriptive-actions.js)
+  generateActions,
+  generateAllActions,
+  summarizeActions,
+  buildLLMPrompt,
 };
