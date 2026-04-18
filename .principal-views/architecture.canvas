@@ -1,4 +1,81 @@
 {
-  "nodes": [],
-  "edges": []
+  "name": "Narrative Agent Architecture",
+  "markdown": ".principal-views/architecture.md",
+  "nodes": [
+    {
+      "id": "user-interface",
+      "type": "text",
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 80,
+      "color": "#4B5563",
+      "text": "User Interface\n(Web App)"
+    },
+    {
+      "id": "intent-engine",
+      "type": "text",
+      "x": 400,
+      "y": 100,
+      "width": 200,
+      "height": 80,
+      "color": "#10B981",
+      "text": "Intent Engine\n(Core Logic)"
+    },
+    {
+      "id": "signal-miner",
+      "type": "text",
+      "x": 400,
+      "y": 250,
+      "width": 200,
+      "height": 80,
+      "color": "#3B82F6",
+      "text": "Signal Miner\n(Story Analysis)"
+    },
+    {
+      "id": "validator",
+      "type": "text",
+      "x": 700,
+      "y": 100,
+      "width": 200,
+      "height": 80,
+      "color": "#8B5CF6",
+      "text": "Intent Validator\n(Quality Checks)"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ui-to-engine",
+      "fromNode": "user-interface",
+      "toNode": "intent-engine",
+      "fromSide": "right",
+      "toSide": "left",
+      "edgeType": "data-flow",
+      "label": "User Input"
+    },
+    {
+      "id": "engine-to-signal",
+      "fromNode": "intent-engine",
+      "toNode": "signal-miner",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "edgeType": "data-flow",
+      "label": "Story Data"
+    },
+    {
+      "id": "engine-to-validator",
+      "fromNode": "intent-engine",
+      "toNode": "validator",
+      "fromSide": "right",
+      "toSide": "left",
+      "edgeType": "data-flow",
+      "label": "Intent Validation"
+    }
+  ],
+  "edgeTypes": {
+    "data-flow": {
+      "color": "#6B7280",
+      "style": "solid"
+    }
+  }
 }

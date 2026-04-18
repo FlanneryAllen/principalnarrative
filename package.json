@@ -10,13 +10,20 @@
     "narrative": "packages/serve/cli.js"
   },
   "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
     "narrative": "node packages/serve/cli.js",
     "test": "node packages/serve/test-cli.js",
+    "test:coverage": "node packages/serve/test-cli.js --coverage",
     "check": "node packages/serve/check.js",
     "serve": "node packages/serve/server.js",
     "web": "node packages/serve/web-app.js",
     "start": "node packages/serve/web-app.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix"
   },
   "keywords": [
     "narrative",
@@ -32,6 +39,9 @@
     "yaml": "^2.3.4"
   },
   "devDependencies": {
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "@types/node": "^20.10.5"
   }
 }

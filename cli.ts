@@ -63,7 +63,7 @@ async function cmdQuery() {
   }
 
   console.log('📋 Intent Chain:');
-  intent.intentChain.forEach(i => {
+  intent.intentChain.forEach((i: any) => {
     console.log(`   [${i.type}] ${i.assertion}`);
   });
 
