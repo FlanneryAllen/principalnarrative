@@ -88,12 +88,14 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 60; // requests per window
+const HARVEST_RATE_LIMIT_MAX = 3; // max harvests per minute (expensive operation)
+const HARVEST_RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 
 // ============================================================================
 // In-Memory Store
 // ============================================================================
 
-/** @type {Map<string, {githubToken: string, user: object, connectedRepos: Set<string>, rateLimit: {count: number, resetAt: number}, llmConfig?: {provider: string, encryptedKey: string, iv: string}}>} */
+/** @type {Map<string, {githubToken: string, user: object, connectedRepos: Set<string>, rateLimit: {count: number, resetAt: number}, harvestRateLimit: {count: number, resetAt: number}, llmConfig?: {provider: string, encryptedKey: string, iv: string}, csrfToken: string}>} */
 const sessions = new Map();
 
 /** @type {Map<string, {canon: object, lastCheck: object, history: object[]}>} */
@@ -111,6 +113,10 @@ const workspaces = new Map();
 
 function createSessionId() {
   return crypto.randomBytes(24).toString('hex');
+}
+
+function createCSRFToken() {
+  return crypto.randomBytes(32).toString('hex');
 }
 
 // Encryption functions for API key storage
@@ -184,11 +190,45 @@ function getSessionId(req) {
   return verifySession(signed);
 }
 
-function setSessionCookie(res, sessionId) {
+function setSessionCookie(res, sessionId, csrfToken = null) {
   const signed = signSession(sessionId);
   const isSecure = BASE_URL.startsWith('https');
-  res.setHeader('Set-Cookie',
+  const cookies = [
     `na_session=${signed}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${isSecure ? '; Secure' : ''}`
+  ];
+
+  // Also set CSRF token as a separate cookie (not HttpOnly so JS can read it)
+  if (csrfToken) {
+    cookies.push(
+      `csrf_token=${csrfToken}; Path=/; SameSite=Strict; Max-Age=604800${isSecure ? '; Secure' : ''}`
+    );
+  }
+
+  res.setHeader('Set-Cookie', cookies);
+}
+
+function validateCSRF(req, session) {
+  // Skip CSRF for GET requests
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    return true;
+  }
+
+  // Get CSRF token from header or cookie
+  const headerToken = req.headers['x-csrf-token'];
+  const cookies = parseCookies(req);
+  const cookieToken = cookies.csrf_token;
+
+  // Use header token if provided, otherwise fall back to cookie
+  const clientToken = headerToken || cookieToken;
+
+  if (!clientToken || !session || !session.csrfToken) {
+    return false;
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(clientToken),
+    Buffer.from(session.csrfToken)
   );
 }
 
@@ -209,6 +249,18 @@ function checkRateLimit(session) {
   }
   session.rateLimit.count++;
   return session.rateLimit.count <= RATE_LIMIT_MAX;
+}
+
+// Enhanced rate limiting for harvest endpoint (expensive operation)
+function checkHarvestRateLimit(session) {
+  if (!session) return false; // Require session for harvest
+  const now = Date.now();
+  if (!session.harvestRateLimit || now > session.harvestRateLimit.resetAt) {
+    session.harvestRateLimit = { count: 1, resetAt: now + HARVEST_RATE_LIMIT_WINDOW };
+    return true;
+  }
+  session.harvestRateLimit.count++;
+  return session.harvestRateLimit.count <= HARVEST_RATE_LIMIT_MAX;
 }
 
 // GitHub API helpers, YAML serializers, and fetchRepoCanon are imported from store.js
@@ -525,9 +577,30 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, BASE_URL);
   const pathname = url.pathname;
 
-  // CORS — same-origin only for hosted app
+  // SECURITY: Comprehensive security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+  // HSTS (only for HTTPS)
+  if (BASE_URL.startsWith('https')) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+
+  // Content Security Policy - strict but allows D3.js
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://d3js.org",  // unsafe-inline needed for existing inline scripts
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  // unsafe-inline for inline styles
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join('; '));
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
@@ -564,10 +637,12 @@ const server = http.createServer(async (req, res) => {
       const userRes = await githubGet('/user', token);
       if (userRes.status !== 200) { json(res, 401, { error: 'Failed to get user info' }); return; }
 
-      // Create session
+      // Create session with CSRF token
       const sessionId = createSessionId();
+      const csrfToken = createCSRFToken();
       sessions.set(sessionId, {
         githubToken: token,
+        csrfToken: csrfToken,
         user: {
           login: userRes.body.login,
           name: userRes.body.name,
@@ -576,9 +651,10 @@ const server = http.createServer(async (req, res) => {
         },
         connectedRepos: new Set(),
         rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
+        harvestRateLimit: { count: 0, resetAt: Date.now() + HARVEST_RATE_LIMIT_WINDOW },
       });
 
-      setSessionCookie(res, sessionId);
+      setSessionCookie(res, sessionId, csrfToken);
       redirect(res, '/');
       return;
     }
@@ -663,10 +739,12 @@ const server = http.createServer(async (req, res) => {
     // ---- Guest Mode (no auth required) ----
 
     if (pathname === '/api/guest' && req.method === 'POST') {
-      // Create a guest session with no GitHub token
+      // Create a guest session with CSRF token
       const sessionId = createSessionId();
+      const csrfToken = createCSRFToken();
       sessions.set(sessionId, {
         githubToken: null,
+        csrfToken: csrfToken,
         user: {
           login: 'guest',
           name: 'Guest User',
@@ -675,10 +753,11 @@ const server = http.createServer(async (req, res) => {
         },
         connectedRepos: new Set(),
         rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
+        harvestRateLimit: { count: 0, resetAt: Date.now() + HARVEST_RATE_LIMIT_WINDOW },
         isGuest: true,
       });
 
-      setSessionCookie(res, sessionId);
+      setSessionCookie(res, sessionId, csrfToken);
       json(res, 200, {
         user: {
           login: 'guest',
@@ -752,6 +831,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/repos/connect' && req.method === 'POST') {
+      // SECURITY: Validate CSRF token
+      if (!validateCSRF(req, session)) {
+        json(res, 403, { error: 'Invalid CSRF token. Please refresh and try again.' });
+        return;
+      }
+
       let body;
       try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
       const { owner, repo } = body || {};
@@ -1368,6 +1453,12 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // SECURITY: Validate CSRF token
+      if (!validateCSRF(req, session)) {
+        json(res, 403, { error: 'Invalid CSRF token. Please refresh and try again.' });
+        return;
+      }
+
       let body;
       try { body = await readBody(req); } catch (err) {
         json(res, 413, { error: err.message });
@@ -1613,6 +1704,21 @@ const server = http.createServer(async (req, res) => {
 
       // POST /api/workspaces/:id/harvest — URL-based narrative harvest
       if (wsRest === 'harvest' && req.method === 'POST') {
+        // SECURITY: Validate CSRF token
+        if (!validateCSRF(req, session)) {
+          json(res, 403, { error: 'Invalid CSRF token. Please refresh and try again.' });
+          return;
+        }
+
+        // SECURITY: Check harvest-specific rate limit
+        if (!checkHarvestRateLimit(session)) {
+          json(res, 429, {
+            error: 'Harvest rate limit exceeded. Maximum 3 harvests per minute.',
+            retryAfter: 60
+          });
+          return;
+        }
+
         let body;
         try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
         // SECURITY FIX: Remove llmConfig from client - use server-stored encrypted keys
