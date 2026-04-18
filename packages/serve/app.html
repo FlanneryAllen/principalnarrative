@@ -2448,6 +2448,7 @@ body {
         <button class="tab-btn" data-tab="resonate">Resonate</button>
         <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
         <button class="tab-btn" data-tab="storymining">Live Lab</button>
+        <button class="tab-btn" data-tab="harvest">Harvest</button>
       </div>
 
       <!-- Overview Tab -->
@@ -2672,6 +2673,74 @@ body {
   </div>
   <button class="editor-save-btn" id="editorSaveBtn" onclick="editorSaveAll()">Save All</button>
 </div>
+
+      <!-- Harvest Tab -->
+      <div id="tab-harvest" class="tab-content">
+        <div style="padding:28px; max-width:800px;">
+          <div style="margin-bottom:24px;">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; font-size:11px; color:var(--copper); margin-bottom:8px;">URL Harvest</div>
+            <div style="font-size:22px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">Seed your narrative graph from any URL</div>
+            <div style="font-size:14px; color:var(--text-dim); line-height:1.5;">Point Narrative Agent at a website. It fetches pages, extracts content, runs StoryMining on each page, and populates your graph with discovered narrative units.</div>
+          </div>
+
+          <!-- Harvest Form -->
+          <div id="harvestForm" style="background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:20px;">
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">URL</label>
+              <input type="url" id="harvestUrl" placeholder="https://yourcompany.com/about" style="width:100%; padding:10px 12px; background:var(--navy-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:14px; font-family:var(--mono); outline:none; box-sizing:border-box;" />
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+              <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Depth</label>
+                <select id="harvestDepth" style="width:100%; padding:10px 12px; background:var(--navy-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:13px; outline:none;">
+                  <option value="0">Just this page</option>
+                  <option value="1" selected>+ Linked pages</option>
+                  <option value="2">Two levels deep</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Content from</label>
+                <select id="harvestDate" style="width:100%; padding:10px 12px; background:var(--navy-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:13px; outline:none;">
+                  <option value="">All time</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last quarter</option>
+                  <option value="365">Last year</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Path filter</label>
+                <input type="text" id="harvestPath" placeholder="/about" style="width:100%; padding:10px 12px; background:var(--navy-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:13px; font-family:var(--mono); outline:none; box-sizing:border-box;" />
+              </div>
+            </div>
+
+            <button id="harvestBtn" onclick="runHarvest()" style="padding:10px 24px; background:var(--copper); color:var(--navy-dark); border:none; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--sans); letter-spacing:0.02em;">
+              ⮕ Harvest
+            </button>
+          </div>
+
+          <!-- Progress -->
+          <div id="harvestProgress" style="display:none; background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:20px;">
+            <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:12px;" id="harvestPhase">Fetching pages...</div>
+            <div style="background:var(--navy-dark); border-radius:4px; height:6px; overflow:hidden; margin-bottom:8px;">
+              <div id="harvestBar" style="height:100%; background:var(--copper); border-radius:4px; width:0%; transition:width 0.3s ease;"></div>
+            </div>
+            <div style="font-size:12px; color:var(--text-dim); font-family:var(--mono);" id="harvestStatus"></div>
+          </div>
+
+          <!-- Results -->
+          <div id="harvestResults" style="display:none;">
+            <!-- Summary -->
+            <div id="harvestSummary" style="background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:16px;"></div>
+
+            <!-- Units grouped by layer -->
+            <div id="harvestUnits" style="margin-bottom:20px;"></div>
+
+            <!-- Errors -->
+            <div id="harvestErrors" style="display:none; background:rgba(220,80,60,0.08); border:1px solid rgba(220,80,60,0.2); border-radius:8px; padding:16px; margin-bottom:16px;"></div>
+          </div>
+        </div>
+      </div>
 
 <script>
 /* ============================================================
@@ -3264,6 +3333,205 @@ async function runResonate() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Analyze Resonance';
+  }
+}
+
+/* ============================================================
+   URL Harvest
+   ============================================================ */
+async function runHarvest() {
+  const urlInput = document.getElementById('harvestUrl');
+  const url = urlInput.value.trim();
+  if (!url) { urlInput.focus(); return; }
+
+  if (!state.currentWorkspace) {
+    alert('Select or create a workspace first.');
+    return;
+  }
+
+  const depth = parseInt(document.getElementById('harvestDepth').value, 10);
+  const dateDays = document.getElementById('harvestDate').value;
+  const pathPrefix = document.getElementById('harvestPath').value.trim() || undefined;
+  const btn = document.getElementById('harvestBtn');
+  const progressEl = document.getElementById('harvestProgress');
+  const resultsEl = document.getElementById('harvestResults');
+  const phaseEl = document.getElementById('harvestPhase');
+  const barEl = document.getElementById('harvestBar');
+  const statusEl = document.getElementById('harvestStatus');
+
+  // Build dateAfter ISO string
+  let dateAfter;
+  if (dateDays) {
+    const d = new Date();
+    d.setDate(d.getDate() - parseInt(dateDays, 10));
+    dateAfter = d.toISOString();
+  }
+
+  // Reset UI
+  btn.disabled = true;
+  btn.textContent = 'Harvesting...';
+  progressEl.style.display = 'block';
+  resultsEl.style.display = 'none';
+  phaseEl.textContent = 'Fetching pages...';
+  barEl.style.width = '10%';
+  statusEl.textContent = `Crawling ${url} (depth ${depth})...`;
+
+  try {
+    barEl.style.width = '25%';
+    phaseEl.textContent = 'Fetching and mining pages...';
+
+    const res = await fetch(`/api/workspaces/${state.currentWorkspace}/harvest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        depth,
+        maxPages: 20,
+        dateAfter: dateAfter || null,
+        pathPrefix: pathPrefix || null,
+      }),
+    });
+
+    barEl.style.width = '80%';
+    phaseEl.textContent = 'Processing results...';
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    barEl.style.width = '100%';
+    phaseEl.textContent = 'Done';
+    statusEl.textContent = `${data.totalPages} page${data.totalPages !== 1 ? 's' : ''} fetched, ${data.totalUnits} narrative unit${data.totalUnits !== 1 ? 's' : ''} discovered`;
+
+    // Render results
+    renderHarvestResults(data);
+
+    // Refresh dashboard data if we added units
+    if (data.totalUnits > 0 && state.currentRepo) {
+      try {
+        const fullName = state.currentRepo;
+        await selectRepo(fullName);
+      } catch { /* non-fatal */ }
+    }
+
+  } catch (err) {
+    barEl.style.width = '100%';
+    barEl.style.background = 'var(--red)';
+    phaseEl.textContent = 'Harvest failed';
+    statusEl.textContent = err.message;
+    console.error('Harvest error:', err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⮕ Harvest';
+  }
+}
+
+function renderHarvestResults(data) {
+  const resultsEl = document.getElementById('harvestResults');
+  const summaryEl = document.getElementById('harvestSummary');
+  const unitsEl = document.getElementById('harvestUnits');
+  const errorsEl = document.getElementById('harvestErrors');
+
+  resultsEl.style.display = 'block';
+
+  // --- Summary ---
+  const nci = data.algebra && data.algebra.nci != null ? Math.round(data.algebra.nci * 100) : '—';
+  const coverage = data.algebra && data.algebra.coverage != null ? Math.round(data.algebra.coverage * 100) : '—';
+  const drift = data.algebra && data.algebra.drift != null ? Math.round(data.algebra.drift * 100) : '—';
+
+  summaryEl.innerHTML = `
+    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">Harvest Summary</div>
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;">
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--copper);">${data.totalPages}</div>
+        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Pages</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--green);">${data.totalUnits}</div>
+        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Units</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--blue);">${nci}${nci !== '—' ? '%' : ''}</div>
+        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">NCI</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--purple);">${coverage}${coverage !== '—' ? '%' : ''}</div>
+        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Coverage</div>
+      </div>
+    </div>
+    ${data.pages && data.pages.length > 0 ? `
+      <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Pages Crawled</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        ${data.pages.map(p => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--navy-dark); border-radius:6px; font-size:12px;">
+            <div style="color:var(--text-secondary); font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;" title="${esc(p.url)}">${esc(p.title || p.url)}</div>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <span style="color:var(--text-dim);">${p.wordCount ? p.wordCount.toLocaleString() + ' words' : ''}</span>
+              <span style="color:${p.unitsFound > 0 ? 'var(--green)' : 'var(--text-dim)'};">${p.unitsFound} unit${p.unitsFound !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+
+  // --- Units grouped by layer ---
+  if (data.candidates && data.candidates.length > 0) {
+    const byLayer = {};
+    for (const c of data.candidates) {
+      const layer = c.type || 'unknown';
+      if (!byLayer[layer]) byLayer[layer] = [];
+      byLayer[layer].push(c);
+    }
+
+    const layerOrder = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
+    const sortedLayers = Object.keys(byLayer).sort((a, b) => {
+      const ai = layerOrder.indexOf(a);
+      const bi = layerOrder.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+
+    unitsEl.innerHTML = sortedLayers.map(layer => `
+      <div style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <div style="width:10px; height:10px; border-radius:50%; background:${LAYER_COLORS[layer] || 'var(--text-dim)'}"></div>
+          <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${layer.replace(/_/g, ' ')}</div>
+          <div style="font-size:11px; color:var(--text-dim);">${byLayer[layer].length}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${byLayer[layer].map(c => `
+            <div style="padding:12px 16px; background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; border-left:3px solid ${LAYER_COLORS[layer] || 'var(--text-dim)'};">
+              <div style="font-size:11px; font-family:var(--mono); color:${LAYER_COLORS[layer] || 'var(--text-dim)'}; margin-bottom:4px;">${esc(c.id)}</div>
+              <div style="font-size:14px; color:var(--text-primary); line-height:1.5;">${esc(c.assertion)}</div>
+              ${c.source ? `<div style="font-size:11px; color:var(--text-dim); margin-top:6px; font-family:var(--mono);">from ${esc(c.source.title || c.source.url)}</div>` : ''}
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <span style="font-size:11px; color:var(--text-dim);">confidence: ${Math.round((c.confidence || 0) * 100)}%</span>
+                ${c.dependencies && c.dependencies.length > 0 ? `<span style="font-size:11px; color:var(--text-dim);">deps: ${c.dependencies.join(', ')}</span>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  } else {
+    unitsEl.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:14px;">No narrative units discovered. Try a different URL or increase crawl depth.</div>';
+  }
+
+  // --- Errors ---
+  if (data.errors && data.errors.length > 0) {
+    errorsEl.style.display = 'block';
+    errorsEl.innerHTML = `
+      <div style="font-size:12px; font-weight:600; color:var(--red); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Fetch Errors (${data.errors.length})</div>
+      ${data.errors.map(e => `
+        <div style="font-size:12px; color:var(--text-dim); margin-bottom:4px; font-family:var(--mono);">
+          ${esc(e.url)}: ${esc(e.error)}
+        </div>
+      `).join('')}
+    `;
+  } else {
+    errorsEl.style.display = 'none';
   }
 }
 

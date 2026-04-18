@@ -70,6 +70,7 @@ const {
 } = require('./store');
 const { mineNarrativeUnits } = require('./storymining');
 const { llmMineNarrativeUnits, getLLMConfig } = require('./storymining-llm');
+const { harvestUrl, guessSourceType } = require('./url-harvest');
 
 // ============================================================================
 // Config
@@ -397,6 +398,17 @@ function broadcastSSE(repoFullName, event, data) {
 }
 
 // ============================================================================
+// Text Similarity (word-overlap Jaccard for dedup)
+function assertionSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const wordsA = new Set(a.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2));
+  const wordsB = new Set(b.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let intersection = 0;
+  for (const w of wordsA) { if (wordsB.has(w)) intersection++; }
+  return intersection / Math.max(wordsA.size, wordsB.size);
+}
+
 // Request Helpers
 // ============================================================================
 
@@ -1248,6 +1260,144 @@ const server = http.createServer(async (req, res) => {
           result = mineNarrativeUnits(text, { sourceType, existingGraph: existing.units });
         }
         json(res, 200, result);
+        return;
+      }
+
+      // POST /api/workspaces/:id/harvest — URL-based narrative harvest
+      if (wsRest === 'harvest' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { url: harvestUrlStr, depth, maxPages, dateAfter, pathPrefix } = body || {};
+        if (!harvestUrlStr || typeof harvestUrlStr !== 'string') {
+          json(res, 400, { error: 'Missing or invalid url field' });
+          return;
+        }
+
+        try {
+          // 1. Fetch pages
+          const harvest = await harvestUrl(harvestUrlStr, {
+            depth: depth || 0,
+            maxPages: maxPages || 20,
+            dateAfter: dateAfter || null,
+            sameDomain: true,
+            pathPrefix: pathPrefix || null,
+          });
+
+          if (harvest.pages.length === 0) {
+            json(res, 200, {
+              pages: [],
+              candidates: [],
+              algebra: {},
+              totalPages: 0,
+              totalUnits: 0,
+              errors: harvest.errors,
+            });
+            return;
+          }
+
+          // 2. Mine each page
+          const existing = await store.load();
+          const allCandidates = [];
+          const pageResults = [];
+          const useLLM = getLLMConfig().available;
+
+          for (const page of harvest.pages) {
+            let mineResult;
+            const combinedGraph = [...(existing.units || []), ...allCandidates];
+            try {
+              if (useLLM) {
+                mineResult = await llmMineNarrativeUnits(page.text, {
+                  sourceType: page.sourceType,
+                  existingGraph: combinedGraph,
+                });
+              } else {
+                mineResult = mineNarrativeUnits(page.text, {
+                  sourceType: page.sourceType,
+                  existingGraph: combinedGraph,
+                });
+              }
+            } catch {
+              mineResult = { candidates: [], coverage: {}, meta: {} };
+            }
+
+            // Dedup: skip candidates whose assertion is >80% similar to existing
+            const newCandidates = [];
+            for (const c of mineResult.candidates) {
+              const isDup = allCandidates.some(existing =>
+                assertionSimilarity(c.assertion, existing.assertion) > 0.8
+              );
+              if (!isDup) {
+                // Tag with source URL
+                c.source = { url: page.url, title: page.title };
+                newCandidates.push(c);
+                allCandidates.push(c);
+              }
+            }
+
+            pageResults.push({
+              url: page.url,
+              title: page.title,
+              wordCount: page.wordCount,
+              sourceType: page.sourceType,
+              publishDate: page.publishDate,
+              unitsFound: newCandidates.length,
+            });
+          }
+
+          // 3. Run algebra on merged set
+          const algebraUnits = allCandidates.map(c => ({
+            id: c.id,
+            type: c.type,
+            assertion: c.assertion,
+            confidence: c.confidence,
+            dependencies: c.dependencies || [],
+            intent: {},
+            validationState: 'pending',
+          }));
+
+          let algebraResult = {};
+          if (algebraUnits.length > 0) {
+            try {
+              const { algebra } = createAlgebra(algebraUnits);
+              const metrics = algebra.computeMetrics();
+              algebraResult.nci = metrics.narrativeCoherenceIndex;
+              algebraResult.layerHealth = metrics.layerHealth;
+              algebraResult.totalEdges = metrics.totalEdges;
+              try {
+                const coverResult = algebra.cover();
+                algebraResult.coverage = coverResult.coverage;
+                algebraResult.gaps = coverResult.gaps.map(u => u.id);
+              } catch { algebraResult.coverage = 0; }
+              try {
+                const driftResult = algebra.drift();
+                algebraResult.drift = driftResult.driftRate;
+              } catch { algebraResult.drift = 0; }
+            } catch { /* algebra may fail on minimal data */ }
+          }
+
+          // 4. Auto-save to workspace
+          if (allCandidates.length > 0) {
+            const unitsToSave = algebraUnits;
+            try {
+              await store.saveUnits(unitsToSave, 'harvest-' + Date.now() + '.yaml', {
+                source: harvestUrlStr,
+                harvestedAt: new Date().toISOString(),
+                pageCount: harvest.pages.length,
+              });
+            } catch { /* save failure is non-fatal */ }
+          }
+
+          json(res, 200, {
+            pages: pageResults,
+            candidates: allCandidates,
+            algebra: algebraResult,
+            totalPages: harvest.totalFetched,
+            totalUnits: allCandidates.length,
+            errors: harvest.errors,
+          });
+        } catch (err) {
+          json(res, 500, { error: `Harvest failed: ${err.message}` });
+        }
         return;
       }
 
