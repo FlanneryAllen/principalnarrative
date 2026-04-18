@@ -1,0 +1,176 @@
+# Writing Style — How we sound across different contexts
+# This is NOT a prompt library. This is a validation lens.
+# The agent checks content against these rules automatically.
+
+version: "1.0"
+last_updated: "2026-04-13"
+owner: "julie@principal-ade.com"
+
+voice:
+  name: "Principal AI Voice"
+
+  # These are EVALUATION CRITERIA, not templates.
+  # When you write something, the agent checks it against these rules.
+  # When the narrative graph changes, it re-evaluates everything.
+
+  styles:
+    - id: hal_riney
+      name: "Hal Riney — Simple Emotional Truths"
+      essence: "Say the thing everyone feels but nobody says. Simple. Human. True."
+
+      # When to use:
+      apply_to:
+        - layer: ["vision", "mission"]
+        - unit_type: ["belief", "value"]
+        - context: ["brand campaigns", "founder letters", "why we exist"]
+
+      # What the agent checks for:
+      characteristics:
+        - rule: "Short sentences that land emotionally"
+          pattern: "Simple subject-verb-object. No subclauses."
+
+        - rule: "Nostalgia without sentimentality"
+          pattern: "Evoke memory, not manipulation"
+
+        - rule: "The universal in the specific"
+          pattern: "Talk about ONE thing that means EVERYTHING"
+
+      # How it evaluates:
+      violations:
+        - pattern: "compound sentences with 'and'"
+          severity: warning
+          message: "Riney breaks thoughts into separate sentences"
+
+        - pattern: "abstract nouns (productivity, efficiency, innovation)"
+          severity: error
+          message: "Riney uses concrete images, not concepts"
+
+        - pattern: "exclamation points"
+          severity: error
+          message: "Riney doesn't shout. He whispers truths."
+
+      examples:
+        # These aren't templates. They're REFERENCE for the agent's evaluation.
+        good:
+          - text: "The best builders don't want to code less. They want to see more."
+            why: "Simple truth. No cleverness. Human longing."
+
+          - text: "Your codebase is alive. Watch it breathe."
+            why: "Concrete image. Emotional without being sappy."
+
+        bad:
+          - text: "We empower developers to achieve unprecedented productivity through our AI-powered platform."
+            why: "Abstract, corporate, no emotional truth"
+            violation: "Uses forbidden terms + compound sentence + no human feeling"
+
+    - id: chiat_day
+      name: "Chiat/Day — Bold Provocations"
+      essence: "Challenge the assumption everyone makes. Two words that change everything."
+
+      apply_to:
+        - layer: ["strategy", "position"]
+        - unit_type: ["differentiation", "stance"]
+        - context: ["product launches", "competitive positioning", "manifestos"]
+
+      characteristics:
+        - rule: "Shorter is better. Two words > two sentences."
+          pattern: "Think Different. Just Do It. Got Milk?"
+
+        - rule: "Provoke, don't explain"
+          pattern: "Make them think. Don't think for them."
+
+        - rule: "Brave choices, not safe ones"
+          pattern: "Say the thing competitors won't say"
+
+      violations:
+        - pattern: "more than 8 words in a headline"
+          severity: warning
+          message: "Chiat/Day headlines are scalpels, not paragraphs"
+
+        - pattern: "explains the benefit"
+          severity: error
+          message: "Show, don't tell. Make them discover it."
+
+        - pattern: "uses 'we' or 'our'"
+          severity: warning
+          message: "Chiat/Day is about the audience, not the brand"
+
+      examples:
+        good:
+          - text: "Think Different."
+            why: "Grammatically wrong. Culturally perfect. Brave."
+
+          - text: "Your entire codebase, rendered as a living map."
+            why: "No 'we help you' — just the truth of what it is"
+
+        bad:
+          - text: "We help developers understand their code better"
+            why: "Safe. Explanatory. Nobody would remember this."
+            violation: "Explains instead of provokes + uses 'we' + too long"
+
+# ==============================================================================
+# HOW THIS IS DIFFERENT FROM A PROMPT LIBRARY
+# ==============================================================================
+#
+# Prompt Library:
+#   - You: "Write this in Hal Riney style" → AI: [generates text]
+#   - One-off, isolated, manual
+#
+# Narrative Agent Skill:
+#   - Agent reads your narrative graph
+#   - Sees unit U-001 is type:vision, layer:mission
+#   - Automatically applies hal_riney evaluation criteria
+#   - Checks for violations
+#   - Propagates through dependencies (if U-001 changes, checks U-002, U-003...)
+#   - Triggers clarion call if drift detected
+#
+# Example Flow:
+#
+#   1. You write: "Principal AI helps developers maximize code visibility"
+#
+#   2. Agent checks narrative graph:
+#      - Unit type: vision
+#      - Applies hal_riney style (per apply_to rules)
+#
+#   3. Agent detects violations:
+#      ❌ "maximize" → forbidden term
+#      ❌ "helps developers" → explains instead of states truth
+#      ❌ "code visibility" → abstract concept, not concrete image
+#
+#   4. Agent returns coherence score: 23/100
+#      - Terminology violations: 1
+#      - Tone violations: 2
+#      - Resonance with graph: low
+#
+#   5. You revise: "Your entire codebase. Alive. Visible."
+#
+#   6. Agent re-checks:
+#      ✓ Short sentences
+#      ✓ Concrete image ("alive")
+#      ✓ Emotional truth
+#      Score: 94/100
+#
+# ==============================================================================
+# HOW THE AGENT USES THIS
+# ==============================================================================
+#
+# 1. During clarion calls (automatic coherence checks):
+#    - Evaluates every unit against its style criteria
+#    - Reports tone violations alongside graph drift
+#
+# 2. During compose() operations:
+#    - Filters units for stakeholder
+#    - Applies appropriate style based on unit type/layer
+#
+# 3. During resonate() checks:
+#    - Scores input signal against narrative graph
+#    - ALSO checks if the signal matches your voice
+#
+# 4. During review operations:
+#    - Takes arbitrary text
+#    - Checks against terminology, brand, AND style
+#    - Returns violations + resonance score
+#
+# This is why it's a skill, not a prompt library.
+# It's ACTIVE. It VALIDATES. It PROPAGATES.
+#

@@ -15,7 +15,8 @@
     "check": "node packages/serve/check.js",
     "serve": "node packages/serve/server.js",
     "web": "node packages/serve/web-app.js",
-    "start": "node packages/serve/web-app.js"
+    "start": "node packages/serve/web-app.js",
+    "prepare": "husky"
   },
   "keywords": [
     "narrative",
@@ -29,5 +30,8 @@
   "license": "MIT",
   "dependencies": {
     "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }

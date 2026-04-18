@@ -1,0 +1,24 @@
+# Principal View Component Library
+version: "1.0.0"
+name: "Component Library"
+description: "Component library for Principal View visualizations"
+
+# Service resource registry
+# Define all services in this repository with their OTEL resource attributes
+# Each service configures its own resources at runtime, but declaring them here provides:
+# - Service documentation/registry
+# - Expected resource schema for validation
+# - Dev workspace trace routing
+#
+# Example:
+# resources:
+#   my-service:
+#     service.name: "my-service"
+#     service.version: "1.0.0"
+#     deployment.environment: "development"
+#
+resources: {}
+
+nodeComponents: {}
+
+edgeComponents: {}
