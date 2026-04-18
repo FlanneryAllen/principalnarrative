@@ -1471,15 +1471,23 @@ body {
 }
 
 .editor-unit-id-input {
-  flex: 1;
-  background: none;
-  border: none;
+  flex: 0.3;
+  background: var(--navy-darker);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
   outline: none;
   font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--copper);
+  font-size: 10px;
+  font-weight: normal;
+  color: var(--text-dim);
   min-width: 0;
+  opacity: 0.5;
+}
+.editor-unit-id-input:focus {
+  opacity: 1;
+  border-color: var(--copper);
+  color: var(--text-secondary);
 }
 .editor-unit-id-input::placeholder { color: var(--text-dim); }
 
@@ -1531,15 +1539,16 @@ body {
 
 .editor-assertion {
   width: 100%;
-  padding: 10px 12px;
+  padding: 14px 16px;
   background: var(--navy);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.7;
   resize: none;
+  min-height: 80px;
   outline: none;
   transition: border-color var(--transition);
   overflow: hidden;
@@ -1563,13 +1572,17 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 11px;
-  font-family: var(--mono);
+  font-size: 12px;
+  font-family: var(--sans);
   cursor: pointer;
   border: 1.5px solid transparent;
   user-select: none;
+  max-width: 300px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
   transition: all var(--transition);
   background: var(--navy-mid);
   color: var(--text-dim);
@@ -2221,20 +2234,63 @@ body {
      ============================================================ -->
 <div id="loginPage" class="login-page">
   <div class="login-logo">Narrative Agent</div>
-  <h1 class="login-title">Align your organization.<br>Mathematically.</h1>
+  <h1 class="login-title">Is your company story<br>working?</h1>
   <p class="login-subtitle">
-    Declare your narrative once in YAML. Check everything against it.
-    Six algebraic operations. One coherence index. Zero drift.
+    Enter your website. We'll analyze your narrative and show you<br>
+    what's resonating, what's missing, and how to improve it.
   </p>
-  <a href="/auth/github" class="login-btn">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
-    Sign in with GitHub
-  </a>
-  <button class="login-btn" style="background: var(--navy-light); border: 1px solid var(--border); margin-top: 12px;" onclick="startWithoutRepo()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-    Start without a repo
-  </button>
-  <div class="login-features">
+
+  <!-- LLM Status Badge -->
+  <div id="llmStatusBadge" style="text-align:center; margin-bottom:20px;">
+    <div style="display:inline-block; padding:6px 12px; background:var(--navy-mid); border:1px solid var(--border); border-radius:20px; font-size:12px;">
+      <span id="llmDot" style="display:inline-block; width:8px; height:8px; background:var(--red); border-radius:50%; margin-right:6px;"></span>
+      <span id="llmText">AI: Not configured</span>
+    </div>
+    <div style="margin-top:8px; font-size:11px; color:var(--text-dim);">
+      <a href="#" onclick="showLLMSetup(); return false;" style="color:var(--copper);">Configure AI for better results →</a>
+    </div>
+  </div>
+
+  <!-- Hero URL Input -->
+  <div class="hero-url-input">
+    <input
+      type="url"
+      id="heroUrlInput"
+      placeholder="https://yourcompany.com"
+      style="width:100%; max-width:500px; padding:16px 20px; background:var(--navy-mid); border:2px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:16px; font-family:var(--mono); outline:none; box-sizing:border-box; transition: border-color 0.2s;"
+      onfocus="this.style.borderColor='var(--copper)'"
+      onblur="this.style.borderColor='var(--border)'"
+    />
+    <button
+      onclick="quickHarvest()"
+      class="login-btn"
+      style="margin-top: 16px; min-width: 200px; font-size: 16px; padding: 14px 32px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px; margin-right: 8px;">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      Analyze Now
+    </button>
+  </div>
+
+  <!-- Secondary Auth Options -->
+  <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); max-width: 600px; margin-left: auto; margin-right: auto;">
+    <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px;">
+      Already have a GitHub repo with narrative config?
+    </p>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="/auth/github" class="login-btn" style="background: var(--navy-light); border: 1px solid var(--border); min-width: 180px; font-size: 14px;">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        Sign in with GitHub
+      </a>
+      <button class="login-btn" style="background: transparent; border: 1px solid var(--border); min-width: 180px; font-size: 14px;" onclick="startWithoutRepo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Create from scratch
+      </button>
+    </div>
+  </div>
+
+  <!-- Feature Cards - Below the fold -->
+  <div class="login-features" style="margin-top: 64px;">
     <div class="feature-card">
       <span class="feature-icon">Σ</span>
       <h3>Compose</h3>
@@ -2470,18 +2526,19 @@ body {
     <!-- Dashboard -->
     <div id="dashboardView" class="dashboard">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="overview">Overview</button>
-        <button class="tab-btn" data-tab="editor">Editor</button>
-        <button class="tab-btn" data-tab="compose">Compose</button>
-        <button class="tab-btn" data-tab="resonate">Resonate</button>
-        <button class="tab-btn" data-tab="drift">Drift &amp; Coverage</button>
-        <button class="tab-btn" data-tab="storymining">Live Lab</button>
-        <button class="tab-btn" data-tab="harvest">Harvest</button>
-        <button class="tab-btn" data-tab="actions">Actions</button>
+        <button class="tab-btn active" data-tab="harvest">📍 Discover</button>
+        <button class="tab-btn" data-tab="overview">📊 Story Map</button>
+        <button class="tab-btn" data-tab="editor">✏️ Refine</button>
+        <button class="tab-btn" data-tab="compose">🎯 Generate</button>
+        <button class="tab-btn" data-tab="resonate">✅ Test</button>
+        <!-- Hide complex tabs for MVP -->
+        <button class="tab-btn" data-tab="drift" style="display:none">Drift &amp; Coverage</button>
+        <button class="tab-btn" data-tab="storymining" style="display:none">Live Lab</button>
+        <button class="tab-btn" data-tab="actions" style="display:none">Actions</button>
       </div>
 
       <!-- Overview Tab -->
-      <div id="tab-overview" class="tab-content active">
+      <div id="tab-overview" class="tab-content">
         <div class="overview-grid">
           <div class="nci-panel panel">
             <div class="panel-title">Narrative Coherence Index</div>
@@ -2722,7 +2779,7 @@ body {
 </div>
 
       <!-- Harvest Tab -->
-      <div id="tab-harvest" class="tab-content">
+      <div id="tab-harvest" class="tab-content active">
         <div style="padding:28px; max-width:800px;">
           <div style="margin-bottom:24px;">
             <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; font-size:11px; color:var(--copper); margin-bottom:8px;">URL Harvest</div>
@@ -2803,6 +2860,199 @@ body {
 
 <script>
 /* ============================================================
+   LLM Configuration
+   ============================================================ */
+async function checkLLMStatus() {
+  const dot = document.getElementById('llmDot');
+  const text = document.getElementById('llmText');
+
+  // First check localStorage for browser-configured API key
+  const localApiKey = localStorage.getItem('llm_api_key');
+  const localProvider = localStorage.getItem('llm_provider') || 'anthropic';
+
+  if (localApiKey && dot && text) {
+    dot.style.background = 'var(--green)';
+    text.textContent = `AI: ${localProvider === 'anthropic' ? 'Claude' : 'GPT-4'}`;
+    return { available: true, provider: localProvider, model: localProvider === 'anthropic' ? 'claude-3-5-sonnet' : 'gpt-4o-mini' };
+  }
+
+  // Otherwise check server for env-configured API key
+  try {
+    const res = await fetch('/api/llm/status');
+    if (res.ok) {
+      const config = await res.json();
+      if (dot && text) {
+        if (config.available) {
+          dot.style.background = 'var(--green)';
+          text.textContent = `AI: ${config.model}`;
+        } else {
+          dot.style.background = 'var(--red)';
+          text.textContent = 'AI: Not configured';
+        }
+      }
+      return config;
+    }
+  } catch (err) {
+    console.error('Failed to check LLM status:', err);
+  }
+
+  // No LLM configured
+  if (dot && text) {
+    dot.style.background = 'var(--red)';
+    text.textContent = 'AI: Not configured';
+  }
+  return { available: false };
+}
+
+function showLLMSetup() {
+  const existingKey = localStorage.getItem('llm_api_key') || '';
+  const existingProvider = localStorage.getItem('llm_provider') || 'anthropic';
+
+  // Create modal HTML
+  const modal = document.createElement('div');
+  modal.id = 'llmModal';
+  modal.innerHTML = `
+    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:10000;">
+      <div style="background:var(--navy); border:2px solid var(--border); border-radius:12px; padding:32px; max-width:500px; width:90%;">
+        <h2 style="margin:0 0 8px 0; color:var(--text-primary); font-size:20px;">🤖 Configure AI Enhancement</h2>
+        <p style="margin:0 0 24px 0; color:var(--text-secondary); font-size:14px;">
+          Enable AI to discover 3-5x more narrative units with better accuracy.
+        </p>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block; margin-bottom:8px; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">
+            Choose AI Provider
+          </label>
+          <select id="llmProvider" style="width:100%; padding:10px; background:var(--navy-mid); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:14px; outline:none;">
+            <option value="anthropic" ${existingProvider === 'anthropic' ? 'selected' : ''}>Claude (Anthropic) - Better for narrative</option>
+            <option value="openai" ${existingProvider === 'openai' ? 'selected' : ''}>GPT-4 (OpenAI)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block; margin-bottom:8px; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">
+            API Key
+          </label>
+          <input
+            type="password"
+            id="llmApiKey"
+            placeholder="sk-ant-... or sk-..."
+            value="${existingKey}"
+            style="width:100%; padding:10px; background:var(--navy-mid); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-size:14px; outline:none; font-family:var(--mono);"
+          />
+          <div style="margin-top:8px; font-size:11px; color:var(--text-dim);">
+            <span id="getKeyLink">Get a key: <a href="#" onclick="openKeyPage(); return false;" style="color:var(--copper);">Click here</a></span>
+          </div>
+        </div>
+
+        <div style="background:var(--navy-darker); padding:12px; border-radius:6px; margin-bottom:20px;">
+          <div style="font-size:12px; color:var(--text-secondary); line-height:1.6;">
+            <div style="margin-bottom:8px;"><strong style="color:var(--green);">✓ With AI:</strong></div>
+            <div>• 100+ units from most sites (vs ~40)</div>
+            <div>• Smarter categorization</div>
+            <div>• Better relationship detection</div>
+            <div>• Higher quality insights</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <button onclick="saveLLMConfig()" style="flex:1; padding:12px; background:var(--copper); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer;">
+            Save & Enable AI
+          </button>
+          <button onclick="closeLLMModal()" style="flex:1; padding:12px; background:var(--navy-light); color:var(--text-primary); border:1px solid var(--border); border-radius:6px; font-weight:600; cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+
+        ${existingKey ? `
+          <div style="margin-top:12px; text-align:center;">
+            <button onclick="clearLLMConfig()" style="padding:8px 16px; background:transparent; color:var(--red); border:1px solid var(--red); border-radius:4px; font-size:12px; cursor:pointer;">
+              Remove API Key
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Update link based on provider selection
+  document.getElementById('llmProvider').addEventListener('change', updateKeyLink);
+  updateKeyLink();
+}
+
+function updateKeyLink() {
+  const provider = document.getElementById('llmProvider').value;
+  const link = document.getElementById('getKeyLink');
+  if (provider === 'anthropic') {
+    link.innerHTML = 'Get a key: <a href="#" onclick="openKeyPage(); return false;" style="color:var(--copper);">console.anthropic.com</a>';
+  } else {
+    link.innerHTML = 'Get a key: <a href="#" onclick="openKeyPage(); return false;" style="color:var(--copper);">platform.openai.com</a>';
+  }
+}
+
+function openKeyPage() {
+  const provider = document.getElementById('llmProvider').value;
+  if (provider === 'anthropic') {
+    window.open('https://console.anthropic.com/settings/keys', '_blank');
+  } else {
+    window.open('https://platform.openai.com/api-keys', '_blank');
+  }
+}
+
+function saveLLMConfig() {
+  const provider = document.getElementById('llmProvider').value;
+  const apiKey = document.getElementById('llmApiKey').value.trim();
+
+  if (!apiKey) {
+    alert('Please enter an API key');
+    return;
+  }
+
+  // Save to localStorage
+  localStorage.setItem('llm_provider', provider);
+  localStorage.setItem('llm_api_key', apiKey);
+
+  // Update UI
+  const dot = document.getElementById('llmDot');
+  const text = document.getElementById('llmText');
+  if (dot && text) {
+    dot.style.background = 'var(--green)';
+    text.textContent = `AI: ${provider === 'anthropic' ? 'Claude' : 'GPT-4'}`;
+  }
+
+  closeLLMModal();
+
+  // Show success message
+  const msg = document.createElement('div');
+  msg.style = 'position:fixed; top:20px; right:20px; background:var(--green); color:white; padding:12px 20px; border-radius:6px; z-index:10000; animation: slideIn 0.3s;';
+  msg.textContent = '✓ AI enabled! Your next harvest will be much richer.';
+  document.body.appendChild(msg);
+  setTimeout(() => msg.remove(), 3000);
+}
+
+function clearLLMConfig() {
+  localStorage.removeItem('llm_provider');
+  localStorage.removeItem('llm_api_key');
+
+  // Update UI
+  const dot = document.getElementById('llmDot');
+  const text = document.getElementById('llmText');
+  if (dot && text) {
+    dot.style.background = 'var(--red)';
+    text.textContent = 'AI: Not configured';
+  }
+
+  closeLLMModal();
+}
+
+function closeLLMModal() {
+  const modal = document.getElementById('llmModal');
+  if (modal) modal.remove();
+}
+
+/* ============================================================
    App State
    ============================================================ */
 const state = {
@@ -2845,9 +3095,13 @@ const TONE_OPTIONS = ['professional', 'casual', 'technical', 'inspirational', 'a
    ============================================================ */
 async function init() {
   try {
+    // Check LLM status first
+    checkLLMStatus();
+
     const res = await fetch('/api/me');
     if (res.status === 401) {
       document.getElementById('loginPage').style.display = '';
+      checkLLMStatus(); // Also check on login page
       return;
     }
     const data = await res.json();
@@ -3585,6 +3839,67 @@ async function validateUnit(unitId) {
 }
 
 /* ============================================================
+   Overview Tab Initialization
+   ============================================================ */
+function initOverview() {
+  console.log('🔄 Initializing Overview tab...');
+
+  // If we're in a workspace, use the data already loaded
+  if (state.currentRepo && state.currentRepo.startsWith('workspace:')) {
+    if (state.repoData) {
+      console.log('📊 Rendering Overview with workspace data');
+      renderNCI(state.repoData.metrics?.narrativeCoherenceIndex || 0);
+      renderMetrics(state.repoData.metrics || {}, state.repoData.drift || {}, state.repoData.cover || {});
+      renderLayerHealth(state.repoData.metrics?.layerHealth || {});
+      renderGraph(state.repoData.metrics || {});
+
+      // Render units in the side panel
+      if (state.units && state.units.length > 0) {
+        const container = document.getElementById('unitList');
+        if (container) {
+          // Group units by layer
+          const byLayer = {};
+          state.units.forEach(unit => {
+            const layer = unit.type || 'core_story';
+            if (!byLayer[layer]) byLayer[layer] = [];
+            byLayer[layer].push(unit);
+          });
+
+          // Render units grouped by layer
+          container.innerHTML = Object.entries(byLayer).map(([layer, units]) => `
+            <div style="margin-bottom:16px;">
+              <div style="font-size:11px; font-weight:600; color:${LAYER_COLORS[layer] || 'var(--text-dim)'}; margin-bottom:8px; text-transform:uppercase;">
+                ${layer.replace(/_/g, ' ')} (${units.length})
+              </div>
+              ${units.slice(0, 5).map(unit => `
+                <div style="padding:10px; background:var(--navy-mid); border-radius:6px; margin-bottom:6px; border-left:3px solid ${LAYER_COLORS[layer] || 'var(--text-dim)'};">
+                  <div style="font-size:13px; color:var(--text-primary); line-height:1.4;">
+                    ${esc(unit.assertion || 'No assertion')}
+                  </div>
+                  <div style="font-size:10px; color:var(--text-dim); margin-top:4px;">
+                    ${Math.round((unit.confidence || 0) * 100)}% confidence
+                  </div>
+                </div>
+              `).join('')}
+              ${units.length > 5 ? `<div style="font-size:11px; color:var(--text-dim); text-align:center;">+${units.length - 5} more...</div>` : ''}
+            </div>
+          `).join('');
+          console.log(`✅ Rendered ${state.units.length} units in Overview`);
+        }
+      }
+    } else {
+      console.warn('⚠️ No repo data available for Overview');
+    }
+  } else if (state.currentRepo) {
+    // For GitHub repos, use the existing renderUnits function
+    console.log('📊 Overview for GitHub repo:', state.currentRepo);
+    if (typeof renderUnits === 'function') {
+      renderUnits();
+    }
+  }
+}
+
+/* ============================================================
    Tabs
    ============================================================ */
 function setupTabs() {
@@ -3596,6 +3911,10 @@ function setupTabs() {
       const tabId = 'tab-' + btn.dataset.tab;
       document.getElementById(tabId).classList.add('active');
 
+      // Initialize Overview when its tab is activated
+      if (btn.dataset.tab === 'overview') {
+        initOverview();
+      }
       // Initialize editor when its tab is activated
       if (btn.dataset.tab === 'editor') {
         initEditor();
@@ -3784,16 +4103,30 @@ async function runHarvest() {
     barEl.style.width = '25%';
     phaseEl.textContent = 'Fetching and mining pages...';
 
+    // Include LLM config if available
+    const llmProvider = localStorage.getItem('llm_provider');
+    const llmApiKey = localStorage.getItem('llm_api_key');
+    const harvestBody = {
+      url,
+      depth,
+      maxPages: 20,
+      dateAfter: dateAfter || null,
+      pathPrefix: pathPrefix || null,
+    };
+
+    // Add LLM config to request if available
+    if (llmApiKey) {
+      harvestBody.llmConfig = {
+        provider: llmProvider || 'anthropic',
+        apiKey: llmApiKey
+      };
+      phaseEl.textContent = 'Using AI to extract narrative...';
+    }
+
     const res = await fetch(`/api/workspaces/${state.currentWorkspace}/harvest`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        depth,
-        maxPages: 20,
-        dateAfter: dateAfter || null,
-        pathPrefix: pathPrefix || null,
-      }),
+      body: JSON.stringify(harvestBody),
     });
 
     barEl.style.width = '80%';
@@ -3846,23 +4179,38 @@ function renderHarvestResults(data) {
   const drift = data.algebra && data.algebra.drift != null ? Math.round(data.algebra.drift * 100) : '—';
 
   summaryEl.innerHTML = `
-    <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">Harvest Summary</div>
-    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;">
-      <div style="text-align:center;">
-        <div style="font-size:28px; font-weight:700; color:var(--copper);">${data.totalPages}</div>
-        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Pages</div>
+    <div style="background: linear-gradient(135deg, var(--navy-mid) 0%, var(--navy) 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border);">
+      <h2 style="font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
+        ✨ We discovered your narrative!
+      </h2>
+      <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px;">
+        Analyzed ${data.totalPages} pages and found ${data.totalUnits} narrative elements
+      </p>
+
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+        <div style="background:var(--navy-darker); padding:16px; border-radius:8px; text-align:center;">
+          <div style="font-size:32px; font-weight:700; color:var(--green);">${data.totalUnits}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Story Elements Found</div>
+        </div>
+        <div style="background:var(--navy-darker); padding:16px; border-radius:8px; text-align:center;">
+          <div style="font-size:32px; font-weight:700; color:var(--copper);">
+            ${nci !== '—' ? nci + '%' : '🎯'}
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Story Coherence</div>
+        </div>
+        <div style="background:var(--navy-darker); padding:16px; border-radius:8px; text-align:center;">
+          <div style="font-size:32px; font-weight:700; color:var(--blue);">${data.totalPages}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Pages Analyzed</div>
+        </div>
       </div>
-      <div style="text-align:center;">
-        <div style="font-size:28px; font-weight:700; color:var(--green);">${data.totalUnits}</div>
-        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Units</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:28px; font-weight:700; color:var(--blue);">${nci}${nci !== '—' ? '%' : ''}</div>
-        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">NCI</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:28px; font-weight:700; color:var(--purple);">${coverage}${coverage !== '—' ? '%' : ''}</div>
-        <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;">Coverage</div>
+
+      <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+        <button onclick="document.querySelector('[data-tab=editor]').click()" style="background:var(--copper); color:white; border:none; padding:12px 24px; border-radius:6px; font-weight:600; cursor:pointer; margin-right:12px;">
+          ✏️ Refine Your Story
+        </button>
+        <button onclick="document.querySelector('[data-tab=overview]').click()" style="background:var(--navy-light); color:var(--text-primary); border:1px solid var(--border); padding:12px 24px; border-radius:6px; font-weight:600; cursor:pointer;">
+          📊 View Story Map
+        </button>
       </div>
     </div>
     ${data.pages && data.pages.length > 0 ? `
@@ -3881,7 +4229,7 @@ function renderHarvestResults(data) {
     ` : ''}
   `;
 
-  // --- Units grouped by layer ---
+  // --- Top discovered insights (simplified view) ---
   if (data.candidates && data.candidates.length > 0) {
     const byLayer = {};
     for (const c of data.candidates) {
@@ -3890,35 +4238,59 @@ function renderHarvestResults(data) {
       byLayer[layer].push(c);
     }
 
-    const layerOrder = ['core_story', 'positioning', 'product_narrative', 'operational', 'evidence', 'communication'];
-    const sortedLayers = Object.keys(byLayer).sort((a, b) => {
-      const ai = layerOrder.indexOf(a);
-      const bi = layerOrder.indexOf(b);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    });
+    // Group into meaningful categories for users
+    const userCategories = {
+      'Core Message': byLayer['core_story'] || [],
+      'Key Benefits': byLayer['positioning'] || [],
+      'Product Features': byLayer['product_narrative'] || [],
+      'Proof Points': byLayer['evidence'] || [],
+      'How We Work': byLayer['operational'] || [],
+      'Our Voice': byLayer['communication'] || []
+    };
 
-    unitsEl.innerHTML = sortedLayers.map(layer => `
-      <div style="margin-bottom:16px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <div style="width:10px; height:10px; border-radius:50%; background:${LAYER_COLORS[layer] || 'var(--text-dim)'}"></div>
-          <div style="font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${layer.replace(/_/g, ' ')}</div>
-          <div style="font-size:11px; color:var(--text-dim);">${byLayer[layer].length}</div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          ${byLayer[layer].map(c => `
-            <div style="padding:12px 16px; background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; border-left:3px solid ${LAYER_COLORS[layer] || 'var(--text-dim)'};">
-              <div style="font-size:11px; font-family:var(--mono); color:${LAYER_COLORS[layer] || 'var(--text-dim)'}; margin-bottom:4px;">${esc(c.id)}</div>
-              <div style="font-size:14px; color:var(--text-primary); line-height:1.5;">${esc(c.assertion)}</div>
-              ${c.source ? `<div style="font-size:11px; color:var(--text-dim); margin-top:6px; font-family:var(--mono);">from ${esc(c.source.title || c.source.url)}</div>` : ''}
-              <div style="display:flex; gap:8px; margin-top:6px;">
-                <span style="font-size:11px; color:var(--text-dim);">confidence: ${Math.round((c.confidence || 0) * 100)}%</span>
-                ${c.dependencies && c.dependencies.length > 0 ? `<span style="font-size:11px; color:var(--text-dim);">deps: ${c.dependencies.join(', ')}</span>` : ''}
+    // Show only top items per category to avoid overwhelm
+    const MAX_PER_CATEGORY = 3;
+
+    unitsEl.innerHTML = `
+      <h3 style="font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
+        📝 Key Story Elements We Found
+      </h3>
+      ${Object.entries(userCategories).filter(([_, items]) => items.length > 0).map(([category, items]) => {
+        const topItems = items.slice(0, MAX_PER_CATEGORY);
+        const hasMore = items.length > MAX_PER_CATEGORY;
+
+        return `
+        <div style="margin-bottom:24px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <h4 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0;">
+              ${category}
+            </h4>
+            <span style="font-size:11px; color:var(--text-dim);">${items.length} found</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${topItems.map(c => `
+              <div style="padding:14px; background:var(--navy-mid); border:1px solid var(--border); border-radius:8px; transition: all 0.2s;">
+                <div style="font-size:14px; color:var(--text-primary); line-height:1.6;">
+                  ${esc(c.assertion)}
+                </div>
+                ${c.source ? `
+                  <div style="font-size:11px; color:var(--text-dim); margin-top:8px;">
+                    From: ${esc(c.source.title || 'Page').substring(0, 50)}...
+                  </div>
+                ` : ''}
               </div>
-            </div>
-          `).join('')}
+            `).join('')}
+            ${hasMore ? `
+              <button onclick="document.querySelector('[data-tab=editor]').click()"
+                style="background:transparent; border:1px solid var(--border); padding:8px; border-radius:6px;
+                       color:var(--text-secondary); font-size:12px; cursor:pointer; text-align:center;">
+                + ${items.length - MAX_PER_CATEGORY} more ${category.toLowerCase()}...
+              </button>
+            ` : ''}
+          </div>
         </div>
-      </div>
-    `).join('');
+        `}).join('')}
+    `;
   } else {
     unitsEl.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim); font-size:14px;">No narrative units discovered. Try a different URL or increase crawl depth.</div>';
   }
@@ -4445,6 +4817,22 @@ async function initEditor() {
     return;
   }
 
+  // Check if this is a workspace
+  if (state.currentRepo.startsWith('workspace:')) {
+    // For workspaces, use the units already loaded in state
+    console.log('Loading workspace units into Editor. Units in state:', state.units?.length || 0);
+    editorState.canonData = state.canon || { units: state.units || [], skills: {} };
+    editorState.units = JSON.parse(JSON.stringify(state.units || []));
+    editorState.brandData = state.canon?.skills?.terminology || null;
+    editorState.voiceData = state.canon?.skills?.tone || null;
+    editorState.initialized = true;
+
+    // Render the units
+    renderEditorUnits();
+    renderEditorGraph();
+    return;
+  }
+
   const [owner, repo] = state.currentRepo.split('/');
 
   // Fetch canon
@@ -4563,12 +4951,18 @@ function renderEditorUnitCard(unit, idx, type) {
           <div class="editor-deps-wrap" id="editorDeps-${esc(unit.id)}">
             ${allOtherIds.length === 0
               ? '<span style="font-size: 11px; color: var(--text-dim);">No other units yet</span>'
-              : allOtherIds.map(depId => `
+              : allOtherIds.map(depId => {
+                const depUnit = editorState.units.find(u => u.id === depId);
+                const displayText = depUnit?.assertion ?
+                  (depUnit.assertion.substring(0, 40) + (depUnit.assertion.length > 40 ? '...' : '')) :
+                  depId.substring(0, 20) + '...';
+                return `
                 <div class="editor-dep-chip ${deps.includes(depId) ? 'selected' : ''}"
-                  onclick="editorToggleDep('${esc(unit.id)}', '${esc(depId)}', this)">
-                  ${esc(depId)}
+                  onclick="editorToggleDep('${esc(unit.id)}', '${esc(depId)}', this)"
+                  title="${esc((depUnit?.assertion || depId).replace(/"/g, '&quot;'))}">
+                  ${esc(displayText)}
                 </div>
-              `).join('')}
+              `}).join('')}
           </div>
         </div>
 
@@ -5700,6 +6094,284 @@ async function addMinedToCanon() {
   } catch (err) {
     const errEl = document.getElementById('llUnitsList') || document.getElementById('mineResults');
     if (errEl) errEl.innerHTML += `<div style="color:var(--red)">Save failed: ${err.message}</div>`;
+  }
+}
+
+/* ============================================================
+   Quick Harvest (Landing Page → Instant Analysis)
+   ============================================================ */
+async function quickHarvest() {
+  console.log('🚀 quickHarvest started');
+
+  const urlInput = document.getElementById('heroUrlInput');
+  if (!urlInput) {
+    console.error('❌ heroUrlInput not found!');
+    return;
+  }
+
+  const url = urlInput.value.trim();
+  console.log('📍 URL:', url);
+
+  if (!url) {
+    urlInput.focus();
+    urlInput.style.borderColor = 'var(--red)';
+    setTimeout(() => urlInput.style.borderColor = 'var(--border)', 2000);
+    return;
+  }
+
+  try {
+    console.log('🔄 Creating guest session...');
+    // Create guest session
+    const guestRes = await fetch('/api/guest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+    });
+
+    if (!guestRes.ok) {
+      alert('Failed to create guest session');
+      return;
+    }
+
+    const guestData = await guestRes.json();
+    state.user = guestData.user;
+    state.isGuest = true;
+
+    // Create a workspace for this harvest
+    const workspaceRes = await fetch('/api/workspaces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Quick Harvest' }),
+      credentials: 'same-origin',
+    });
+
+    if (!workspaceRes.ok) {
+      alert('Failed to create workspace');
+      return;
+    }
+
+    const workspaceData = await workspaceRes.json();
+    state.currentWorkspace = workspaceData.id;
+    state.currentRepo = `workspace:${workspaceData.id}`;
+
+    // Initialize with empty narrative
+    state.canon = { units: [], skills: {} };
+    state.repoData = {
+      metrics: { narrativeCoherenceIndex: 0, coverageRatio: 0, totalEdges: 0, layerHealth: {} },
+      drift: { driftRate: 0, driftedUnits: [] },
+      cover: { coverage: 0, gaps: [], orphans: [] }
+    };
+    state.units = [];
+
+    // Show app and dashboard (NOT repo picker)
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('userName').textContent = 'Guest Mode';
+    document.getElementById('repoPicker').classList.remove('active');
+    document.getElementById('dashboardView').classList.add('active');
+
+    // Set up tabs (critical for tab click handlers!)
+    setupTabs();
+    setupStakeholders();
+
+    // Update repo dropdown AFTER setup to avoid being overwritten
+    const select = document.getElementById('repoSelect');
+    if (select) {
+      select.innerHTML = `<option value="workspace:${workspaceData.id}" selected>Quick Harvest Workspace</option>`;
+    }
+
+    // Switch to Harvest tab
+    const harvestTab = document.querySelector('[data-tab="harvest"]');
+    if (harvestTab) {
+      harvestTab.click();
+    }
+
+    // Auto-run harvest after a brief delay
+    setTimeout(async () => {
+      const harvestUrlInput = document.getElementById('harvestUrl');
+      const harvestDepth = document.getElementById('harvestDepth');
+      const harvestBtn = document.getElementById('harvestBtn');
+      const progressEl = document.getElementById('harvestProgress');
+      const resultsEl = document.getElementById('harvestResults');
+      const phaseEl = document.getElementById('harvestPhase');
+      const barEl = document.getElementById('harvestBar');
+      const statusEl = document.getElementById('harvestStatus');
+      const formEl = document.getElementById('harvestForm');
+
+      if (!harvestUrlInput || !harvestBtn) return;
+
+      // Pre-fill and hide form
+      harvestUrlInput.value = url;
+      if (formEl) formEl.style.display = 'none';
+
+      // Show progress immediately
+      harvestBtn.disabled = true;
+      harvestBtn.textContent = 'Analyzing...';
+      progressEl.style.display = 'block';
+      resultsEl.style.display = 'none';
+      phaseEl.textContent = 'Analyzing your narrative...';
+      barEl.style.width = '10%';
+      statusEl.textContent = `Fetching content from ${url}...`;
+
+      try {
+        barEl.style.width = '25%';
+        phaseEl.textContent = 'Extracting narrative elements...';
+
+        // Include LLM config if available
+        const llmProvider = localStorage.getItem('llm_provider');
+        const llmApiKey = localStorage.getItem('llm_api_key');
+        const harvestBody = {
+          url,
+          depth: 1,
+          maxPages: 20,
+          dateAfter: null,
+          pathPrefix: null,
+        };
+
+        // Add LLM config to request if available
+        if (llmApiKey) {
+          harvestBody.llmConfig = {
+            provider: llmProvider || 'anthropic',
+            apiKey: llmApiKey
+          };
+        }
+
+        const res = await fetch(`/api/workspaces/${state.currentWorkspace}/harvest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(harvestBody),
+        });
+
+        barEl.style.width = '80%';
+        phaseEl.textContent = 'Processing results...';
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+        barEl.style.width = '100%';
+        phaseEl.textContent = 'Analysis complete!';
+        statusEl.textContent = `${data.totalPages} page${data.totalPages !== 1 ? 's' : ''} analyzed, ${data.totalUnits} narrative element${data.totalUnits !== 1 ? 's' : ''} discovered`;
+
+        // Show results
+        renderHarvestResults(data);
+
+        // CRITICAL: Load harvested units into app state so other tabs can use them!
+        console.log('🔍 Harvest complete. totalUnits:', data.totalUnits, 'totalPages:', data.totalPages);
+
+        if (data.totalUnits > 0) {
+          console.log(`📥 Loading ${data.totalUnits} units into app state...`);
+          try {
+            const canonUrl = `/api/workspaces/${state.currentWorkspace}/canon`;
+            console.log('Fetching canon from:', canonUrl);
+
+            const canonRes = await fetch(canonUrl, {
+              credentials: 'same-origin',
+            });
+
+            console.log('Canon fetch status:', canonRes.status, canonRes.statusText);
+
+            if (canonRes.ok) {
+              const canonData = await canonRes.json();
+              console.log('Canon data loaded:', canonData.units ? `${canonData.units.length} units` : 'no units');
+
+              state.units = canonData.units || [];
+              state.canon = canonData;
+
+              // Update metrics
+              state.repoData = {
+                metrics: {
+                  narrativeCoherenceIndex: data.algebra?.nci || 0,
+                  coverageRatio: data.algebra?.coverage || 0,
+                  totalEdges: data.algebra?.totalEdges || 0,
+                  layerHealth: data.algebra?.layerHealth || {}
+                },
+                drift: { driftRate: data.algebra?.drift || 0, driftedUnits: [] },
+                cover: { coverage: data.algebra?.coverage || 0, gaps: data.algebra?.gaps || [], orphans: [] }
+              };
+
+              console.log('📊 Updated state.repoData with metrics');
+
+              // Update Editor state with harvested units
+              if (typeof editorState !== 'undefined') {
+                console.log('📝 Updating Editor state...');
+                editorState.units = JSON.parse(JSON.stringify(state.units)); // Deep copy
+                editorState.canonData = canonData;
+                if (typeof renderEditorUnits === 'function') {
+                  renderEditorUnits();
+                  console.log('✅ Editor units rendered');
+                }
+                if (typeof renderEditorGraph === 'function') {
+                  renderEditorGraph();
+                  console.log('✅ Editor graph rendered');
+                }
+              } else {
+                console.warn('⚠️ editorState is undefined!');
+              }
+
+              // Refresh Overview tab to show the data
+              if (typeof renderNCI === 'function') {
+                renderNCI(data.algebra?.nci || 0);
+                console.log('✅ NCI rendered');
+              }
+              if (typeof renderMetrics === 'function' && state.repoData) {
+                renderMetrics(state.repoData.metrics, state.repoData.drift, state.repoData.cover);
+                console.log('✅ Metrics rendered');
+              }
+              if (typeof renderLayerHealth === 'function' && data.algebra?.layerHealth) {
+                renderLayerHealth(data.algebra.layerHealth);
+                console.log('✅ Layer health rendered');
+              }
+              if (typeof renderUnits === 'function') {
+                renderUnits(state.units);
+                console.log('✅ Units rendered');
+              }
+
+              console.log(`✅ SUCCESS: Loaded ${state.units.length} harvested units into app state`);
+            } else {
+              console.error('❌ Canon fetch failed:', canonRes.status, await canonRes.text());
+            }
+          } catch (err) {
+            console.error('❌ Failed to load harvested units into state:', err);
+            console.error('Error stack:', err.stack);
+          }
+        } else {
+          console.warn('⚠️ No units to load (totalUnits = 0)');
+        }
+
+        // Show form again for another harvest
+        if (formEl) {
+          setTimeout(() => {
+            formEl.style.display = 'block';
+            harvestUrlInput.value = '';
+          }, 2000);
+        }
+
+      } catch (err) {
+        barEl.style.width = '100%';
+        barEl.style.background = 'var(--red)';
+        phaseEl.textContent = 'Analysis failed';
+        statusEl.textContent = err.message;
+        console.error('Harvest error:', err);
+
+        // Show form again
+        if (formEl) {
+          setTimeout(() => {
+            formEl.style.display = 'block';
+          }, 3000);
+        }
+      } finally {
+        harvestBtn.disabled = false;
+        harvestBtn.textContent = '⮕ Harvest';
+      }
+    }, 500);
+
+  } catch (err) {
+    console.error('Quick harvest error:', err);
+    alert('Error: ' + err.message);
   }
 }
 

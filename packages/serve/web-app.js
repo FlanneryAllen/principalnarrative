@@ -1512,7 +1512,7 @@ const server = http.createServer(async (req, res) => {
       if (wsRest === 'harvest' && req.method === 'POST') {
         let body;
         try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
-        const { url: harvestUrlStr, depth, maxPages, dateAfter, pathPrefix } = body || {};
+        const { url: harvestUrlStr, depth, maxPages, dateAfter, pathPrefix, llmConfig } = body || {};
         if (!harvestUrlStr || typeof harvestUrlStr !== 'string') {
           json(res, 400, { error: 'Missing or invalid url field' });
           return;
@@ -1544,7 +1544,25 @@ const server = http.createServer(async (req, res) => {
           const existing = await store.load();
           const allCandidates = [];
           const pageResults = [];
-          const useLLM = getLLMConfig().available;
+
+          // Check if LLM config provided in request, otherwise check env vars
+          let useLLM = false;
+          let tempEnvBackup = null;
+
+          if (llmConfig && llmConfig.apiKey) {
+            // Temporarily set env var for this request
+            if (llmConfig.provider === 'openai') {
+              tempEnvBackup = process.env.OPENAI_API_KEY;
+              process.env.OPENAI_API_KEY = llmConfig.apiKey;
+              useLLM = true;
+            } else {
+              tempEnvBackup = process.env.ANTHROPIC_API_KEY;
+              process.env.ANTHROPIC_API_KEY = llmConfig.apiKey;
+              useLLM = true;
+            }
+          } else {
+            useLLM = getLLMConfig().available;
+          }
 
           for (const page of harvest.pages) {
             let mineResult;
@@ -1632,6 +1650,17 @@ const server = http.createServer(async (req, res) => {
             } catch { /* save failure is non-fatal */ }
           }
 
+          // Restore original env vars if temporarily overridden
+          if (llmConfig && llmConfig.apiKey) {
+            if (llmConfig.provider === 'openai') {
+              if (tempEnvBackup) process.env.OPENAI_API_KEY = tempEnvBackup;
+              else delete process.env.OPENAI_API_KEY;
+            } else {
+              if (tempEnvBackup) process.env.ANTHROPIC_API_KEY = tempEnvBackup;
+              else delete process.env.ANTHROPIC_API_KEY;
+            }
+          }
+
           json(res, 200, {
             pages: pageResults,
             candidates: allCandidates,
@@ -1641,6 +1670,16 @@ const server = http.createServer(async (req, res) => {
             errors: harvest.errors,
           });
         } catch (err) {
+          // Restore original env vars on error too
+          if (llmConfig && llmConfig.apiKey) {
+            if (llmConfig.provider === 'openai') {
+              if (tempEnvBackup) process.env.OPENAI_API_KEY = tempEnvBackup;
+              else delete process.env.OPENAI_API_KEY;
+            } else {
+              if (tempEnvBackup) process.env.ANTHROPIC_API_KEY = tempEnvBackup;
+              else delete process.env.ANTHROPIC_API_KEY;
+            }
+          }
           json(res, 500, { error: `Harvest failed: ${err.message}` });
         }
         return;
