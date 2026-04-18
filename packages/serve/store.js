@@ -30,6 +30,11 @@ function unitsToYaml(units, metadata = {}) {
     ...(metadata.owner ? { owner: metadata.owner } : {}),
     units: units.map(u => {
       const unit = { id: u.id, type: u.type, assertion: u.assertion };
+      if (u.author) unit.author = u.author;
+      if (u.authoredAt) unit.authored_at = u.authoredAt;
+      if (u.scope) unit.scope = u.scope;
+      if (u.tensionIntent) unit.tension_intent = u.tensionIntent;
+      if (u.contestedBy && u.contestedBy.length > 0) unit.contested_by = u.contestedBy;
       if (u.intent && Object.keys(u.intent).length > 0) unit.intent = u.intent;
       if (u.evidence_required && u.evidence_required.length > 0) unit.evidence_required = u.evidence_required;
       unit.dependencies = u.dependencies || [];
@@ -201,6 +206,11 @@ async function fetchRepoCanon(owner, repo, token) {
             id: unit.id,
             type: unit.type,
             assertion: (unit.assertion || '').trim(),
+            author: unit.author || null,
+            authoredAt: unit.authored_at || null,
+            scope: unit.scope || null,
+            tensionIntent: unit.tension_intent || null,
+            contestedBy: unit.contested_by || [],
             intent: unit.intent || {},
             dependencies: unit.dependencies || [],
             confidence: unit.confidence ?? 1.0,
@@ -435,6 +445,11 @@ class MemoryAdapter extends NarrativeStore {
         id: u.id,
         type: u.type,
         assertion: (u.assertion || '').trim(),
+        author: u.author || null,
+        authoredAt: u.authoredAt || null,
+        scope: u.scope || null,
+        tensionIntent: u.tensionIntent || null,
+        contestedBy: u.contestedBy || [],
         intent: u.intent || {},
         dependencies: u.dependencies || [],
         confidence: u.confidence ?? 1.0,

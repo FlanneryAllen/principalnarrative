@@ -94,12 +94,17 @@ class NarrativeGraph {
     this.dependentsMap = new Map();
 
     for (const raw of units) {
-      // Ensure every unit has a validationState
+      // Ensure every unit has a validationState + attribution fields
       const unit = {
         ...raw,
         validationState: raw.validationState || 'UNKNOWN',
         dependencies: raw.dependencies || [],
         confidence: raw.confidence ?? 1.0,
+        author: raw.author || null,
+        authoredAt: raw.authoredAt || null,
+        scope: raw.scope || null,
+        tensionIntent: raw.tensionIntent || null,
+        contestedBy: raw.contestedBy || [],
       };
       this.unitMap.set(unit.id, unit);
       // Initialize dependents set
@@ -156,6 +161,80 @@ class NarrativeGraph {
         unit.confidence = confidence;
       }
     }
+  }
+
+  /** Update a unit's attribution metadata */
+  updateAttribution(unitId, { author, authoredAt, scope }) {
+    const unit = this.getUnit(unitId);
+    if (!unit) return null;
+    if (author !== undefined) unit.author = author;
+    if (authoredAt !== undefined) unit.authoredAt = authoredAt;
+    if (scope !== undefined) unit.scope = scope;
+    return unit;
+  }
+
+  /** Mark a unit as contested by another unit (or a named author) */
+  markContested(unitId, contestedByUnitId) {
+    const unit = this.getUnit(unitId);
+    if (!unit) return null;
+    if (!unit.contestedBy) unit.contestedBy = [];
+    if (!unit.contestedBy.includes(contestedByUnitId)) {
+      unit.contestedBy.push(contestedByUnitId);
+    }
+    unit.validationState = 'CONTESTED';
+    return unit;
+  }
+
+  /** Set tension intent on a unit: 'drift', 'evolution', or 'deliberate_tension' */
+  setTensionIntent(unitId, intent, metadata = {}) {
+    const unit = this.getUnit(unitId);
+    if (!unit) return null;
+    unit.tensionIntent = intent;
+    if (metadata.classifiedBy) unit.tensionClassifiedBy = metadata.classifiedBy;
+    if (metadata.classifiedAt) unit.tensionClassifiedAt = metadata.classifiedAt;
+    if (metadata.reason) unit.tensionReason = metadata.reason;
+    return unit;
+  }
+
+  /** Get all units in a given scope (department/team subgraph) */
+  getUnitsByScope(scope) {
+    return this.getAllUnits().filter(u => u.scope === scope);
+  }
+
+  /** Get all distinct scopes in the graph */
+  getScopes() {
+    const scopes = new Set();
+    for (const u of this.unitMap.values()) {
+      if (u.scope) scopes.add(u.scope);
+    }
+    return Array.from(scopes);
+  }
+
+  /** Get all contested units */
+  getContestedUnits() {
+    return this.getAllUnits().filter(
+      u => u.validationState === 'CONTESTED' || (u.contestedBy && u.contestedBy.length > 0)
+    );
+  }
+
+  /** Get boundary units: units whose dependencies cross scope boundaries */
+  getBoundaryUnits() {
+    const boundaries = [];
+    for (const unit of this.unitMap.values()) {
+      if (!unit.scope) continue;
+      for (const depId of unit.dependencies) {
+        const dep = this.getUnit(depId);
+        if (dep && dep.scope && dep.scope !== unit.scope) {
+          boundaries.push({
+            unit,
+            dependency: dep,
+            fromScope: unit.scope,
+            toScope: dep.scope,
+          });
+        }
+      }
+    }
+    return boundaries;
   }
 
   /** Graph statistics */
@@ -262,6 +341,105 @@ class NarrativeAlgebra {
       throw new Error(`Unknown stakeholder preset: ${preset}. Available: ${Object.keys(STAKEHOLDER_PRESETS).join(', ')}`);
     }
     return this.compose(config);
+  }
+
+  /**
+   * Compose by scope: generate a department/team-specific subgraph.
+   * Includes all units in the given scope + shared (unscoped) units
+   * that they depend on.
+   */
+  composeByScope(scope) {
+    const allUnits = this.graph.getAllUnits();
+
+    // Step 1: Get all units in this scope + unscoped units
+    const scopedUnits = allUnits.filter(u => u.scope === scope);
+    const unscopedDeps = new Set();
+
+    // Step 2: Also pull in unscoped units that scoped units depend on
+    for (const unit of scopedUnits) {
+      for (const depId of unit.dependencies) {
+        const dep = this.graph.getUnit(depId);
+        if (dep && !dep.scope) {
+          unscopedDeps.add(dep.id);
+        }
+      }
+    }
+
+    const candidates = allUnits.filter(
+      u => u.scope === scope || unscopedDeps.has(u.id)
+    );
+
+    // Build edges (only between included units)
+    const includedIds = new Set(candidates.map(u => u.id));
+    const edges = [];
+    for (const unit of candidates) {
+      for (const depId of unit.dependencies) {
+        if (includedIds.has(depId)) {
+          edges.push({ from: unit.id, to: depId });
+        }
+      }
+    }
+
+    candidates.sort((a, b) => LAYER_ORDER[a.type] - LAYER_ORDER[b.type]);
+
+    return {
+      units: candidates,
+      edges,
+      provenance: {
+        operation: 'compose',
+        parameters: { scope },
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Measure coherence at scope boundaries.
+   * Returns cross-scope dependency pairs where the two units
+   * are misaligned (different validation states), excluding
+   * pairs where tension is marked deliberate.
+   */
+  measureBoundaryCoherence() {
+    const boundaries = this.graph.getBoundaryUnits();
+    const tensions = [];
+    let alignedCount = 0;
+
+    for (const b of boundaries) {
+      const unitState = b.unit.validationState;
+      const depState = b.dependency.validationState;
+      const isAligned = unitState === depState ||
+        (unitState === 'ALIGNED' && depState === 'ALIGNED');
+
+      if (isAligned) {
+        alignedCount++;
+      } else {
+        // Check if this tension is deliberate
+        const isDeliberate = b.unit.tensionIntent === 'deliberate_tension' ||
+          b.dependency.tensionIntent === 'deliberate_tension';
+
+        tensions.push({
+          unit: b.unit,
+          dependency: b.dependency,
+          fromScope: b.fromScope,
+          toScope: b.toScope,
+          deliberate: isDeliberate,
+          unitState,
+          depState,
+        });
+      }
+    }
+
+    const total = boundaries.length;
+    const actionableTensions = tensions.filter(t => !t.deliberate);
+
+    return {
+      totalBoundaries: total,
+      aligned: alignedCount,
+      coherence: total > 0 ? alignedCount / total : 1.0,
+      tensions,
+      actionableTensions,
+      deliberateTensions: tensions.filter(t => t.deliberate),
+    };
   }
 
   /** Compose on an existing subgraph (closure property). */
@@ -384,22 +562,47 @@ class NarrativeAlgebra {
     }
 
     // Validation rules:
-    // 1. If any dependency is BROKEN, this unit is at least DRIFTED
-    // 2. If any dependency is DRIFTED, this unit confidence drops
-    // 3. If all dependencies are ALIGNED, this unit can be ALIGNED
+    // 0. If unit is CONTESTED, preserve that state (requires manual resolution)
+    // 1. If unit has deliberate_tension intent, keep current state with note
+    // 2. If any dependency is BROKEN, this unit is at least DRIFTED
+    // 3. If any dependency is DRIFTED, this unit confidence drops
+    // 4. If any dependency is CONTESTED, flag this unit too
+    // 5. If all dependencies are ALIGNED, this unit can be ALIGNED
 
     const brokenDeps = deps.filter(d => d.validationState === 'BROKEN');
     const driftedDeps = deps.filter(d => d.validationState === 'DRIFTED');
+    const contestedDeps = deps.filter(d => d.validationState === 'CONTESTED');
     const unknownDeps = deps.filter(d => d.validationState === 'UNKNOWN');
 
     let newState;
     let confidence;
 
-    if (brokenDeps.length > 0) {
+    // Preserve CONTESTED state — it requires human resolution
+    if (unit.validationState === 'CONTESTED' && (!unit.tensionIntent || unit.tensionIntent === 'drift')) {
+      newState = 'CONTESTED';
+      confidence = unit.confidence;
+      reasons.push('Unit is CONTESTED — awaiting resolution');
+    } else if (unit.tensionIntent === 'deliberate_tension') {
+      // Deliberate tension: suppress drift/alarm signals
+      newState = previousState === 'UNKNOWN' ? 'ALIGNED' : previousState;
+      confidence = unit.confidence;
+      reasons.push('Tension marked as DELIBERATE — suppressing alerts');
+    } else if (unit.tensionIntent === 'evolution') {
+      // Evolution: unit is intentionally changing — flag but don't alarm
+      newState = 'DRIFTED';
+      confidence = unit.confidence;
+      reasons.push('Unit marked as EVOLUTION — intentional strategic shift');
+    } else if (brokenDeps.length > 0) {
       newState = 'DRIFTED';
       confidence = Math.max(0.1, 1.0 - (brokenDeps.length / Math.max(deps.length, 1)));
       reasons.push(
         `${brokenDeps.length} dependency(ies) are BROKEN: ${brokenDeps.map(d => d.id).join(', ')}`
+      );
+    } else if (contestedDeps.length > 0) {
+      newState = 'CONTESTED';
+      confidence = Math.max(0.3, unit.confidence - (contestedDeps.length * 0.15));
+      reasons.push(
+        `${contestedDeps.length} dependency(ies) are CONTESTED: ${contestedDeps.map(d => d.id).join(', ')}`
       );
     } else if (driftedDeps.length > 0) {
       newState = 'DRIFTED';
@@ -681,6 +884,9 @@ class NarrativeAlgebra {
 
     const aligned = allUnits.filter(u => u.validationState === 'ALIGNED');
 
+    const contested = allUnits.filter(u => u.validationState === 'CONTESTED');
+    const deliberateTensions = allUnits.filter(u => u.tensionIntent === 'deliberate_tension');
+
     // Layer health
     const layerHealth = {};
     for (const layer of ALL_LAYERS) {
@@ -688,17 +894,31 @@ class NarrativeAlgebra {
       const layerAligned = layerUnits.filter(u => u.validationState === 'ALIGNED');
       const layerDrifted = layerUnits.filter(u => u.validationState === 'DRIFTED');
       const layerBroken = layerUnits.filter(u => u.validationState === 'BROKEN');
+      const layerContested = layerUnits.filter(u => u.validationState === 'CONTESTED');
       layerHealth[layer] = {
         nci: layerUnits.length > 0 ? layerAligned.length / layerUnits.length : 1.0,
         unitCount: layerUnits.length,
         alignedCount: layerAligned.length,
         driftedCount: layerDrifted.length,
         brokenCount: layerBroken.length,
+        contestedCount: layerContested.length,
       };
     }
 
     // Coverage
     const coverResult = this.cover();
+
+    // Scope health
+    const scopes = this.graph.getScopes();
+    const scopeHealth = {};
+    for (const scope of scopes) {
+      const scopeUnits = this.graph.getUnitsByScope(scope);
+      const scopeAligned = scopeUnits.filter(u => u.validationState === 'ALIGNED');
+      scopeHealth[scope] = {
+        unitCount: scopeUnits.length,
+        nci: scopeUnits.length > 0 ? scopeAligned.length / scopeUnits.length : 1.0,
+      };
+    }
 
     // Total edges
     let totalEdges = 0;
@@ -710,8 +930,11 @@ class NarrativeAlgebra {
       narrativeCoherenceIndex: totalUnits > 0 ? aligned.length / totalUnits : 1.0,
       coverageRatio: coverResult.coverage,
       layerHealth,
+      scopeHealth,
       totalUnits,
       totalEdges,
+      contestedCount: contested.length,
+      deliberateTensionCount: deliberateTensions.length,
     };
   }
 

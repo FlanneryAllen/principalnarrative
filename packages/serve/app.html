@@ -675,6 +675,34 @@ body {
 .unit-state.DRIFTED { background: var(--yellow-dim); color: var(--yellow); }
 .unit-state.BROKEN { background: var(--red-dim); color: var(--red); }
 .unit-state.UNKNOWN { background: rgba(100,116,139,0.15); color: var(--text-dim); }
+.unit-state.CONTESTED { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+.unit-contested { border-left: 3px solid #a855f7; }
+
+.unit-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  font-family: var(--mono); white-space: nowrap;
+}
+.unit-badge-author { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+.unit-badge-scope { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+.unit-badge-intent {
+  background: rgba(251, 191, 36, 0.12); color: #fbbf24;
+}
+.unit-badge-intent[data-intent="deliberate_tension"] {
+  background: rgba(168, 85, 247, 0.12); color: #a855f7;
+}
+.unit-badge-intent[data-intent="evolution"] {
+  background: rgba(59, 130, 246, 0.12); color: #60a5fa;
+}
+
+.tension-btn {
+  font-size: 11px; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--navy-dark);
+  color: var(--text-secondary); cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tension-btn:hover { background: var(--navy-mid); color: var(--text-primary); border-color: var(--copper); }
 
 /* ============================================================
    Compose Tab
@@ -2488,6 +2516,14 @@ body {
               <div id="metricDrift" class="metric-value" style="color: var(--green)">—</div>
               <div class="metric-label">Drift Rate</div>
             </div>
+            <div class="metric-card">
+              <div id="metricContested" class="metric-value" style="color: var(--green)">0</div>
+              <div class="metric-label">Contested</div>
+            </div>
+            <div class="metric-card">
+              <div id="metricScopes" class="metric-value" style="color: var(--text)">0</div>
+              <div class="metric-label">Scopes</div>
+            </div>
           </div>
 
           <div class="graph-panel panel" style="grid-column: 2; grid-row: 2;">
@@ -2941,6 +2977,8 @@ async function selectRepo(fullName) {
     const scanData = await scanRes.json();
 
     state.repoData = { metrics, drift, cover, scan: scanData };
+    // Store units for author/scope lookups
+    state.units = (scanData.units || []);
 
     // Show dashboard
     document.getElementById('repoPicker').classList.remove('active');
@@ -3009,6 +3047,19 @@ function renderMetrics(metrics, drift, cover) {
   const driftEl = document.getElementById('metricDrift');
   driftEl.textContent = driftPct + '%';
   driftEl.style.color = driftPct === 0 ? 'var(--green)' : driftPct < 20 ? 'var(--yellow)' : 'var(--red)';
+
+  // Contested + Scope indicators
+  const contestedEl = document.getElementById('metricContested');
+  if (contestedEl) {
+    const count = metrics.contestedCount || 0;
+    contestedEl.textContent = count;
+    contestedEl.style.color = count === 0 ? 'var(--green)' : 'var(--purple, #a855f7)';
+  }
+  const scopesEl = document.getElementById('metricScopes');
+  if (scopesEl) {
+    const scopeCount = metrics.scopeHealth ? Object.keys(metrics.scopeHealth).length : 0;
+    scopesEl.textContent = scopeCount;
+  }
 }
 
 /* ============================================================
@@ -3172,16 +3223,79 @@ function renderUnits(metrics) {
     .then(r => r.json())
     .then(data => {
       const container = document.getElementById('unitList');
-      container.innerHTML = (data.results || []).map(r => `
-        <div class="unit-card">
-          <div class="unit-id">${r.unitId}</div>
-          <div class="unit-type">${r.newState === r.previousState ? r.newState : r.previousState + ' → ' + r.newState}</div>
-          <div class="unit-assertion">${r.reasons.join('. ')}</div>
-          <span class="unit-state ${r.newState}">${r.newState}</span>
-          <span class="unit-state" style="background: rgba(100,116,139,0.1); color: var(--text-dim); margin-left: 4px;">${Math.round(r.confidence * 100)}%</span>
-        </div>
-      `).join('');
+      container.innerHTML = (data.results || []).map(r => {
+        // Look up full unit data from state for author/scope
+        const unitData = (state.units || []).find(u => u.id === r.unitId) || {};
+        const authorBadge = unitData.author
+          ? `<span class="unit-badge unit-badge-author" title="Authored by ${esc(unitData.author)}">👤 ${esc(unitData.author)}</span>`
+          : '';
+        const scopeBadge = unitData.scope
+          ? `<span class="unit-badge unit-badge-scope" title="Scope: ${esc(unitData.scope)}">🏯 ${esc(unitData.scope)}</span>`
+          : '';
+        const contestedBadge = r.newState === 'CONTESTED'
+          ? `<span class="unit-state CONTESTED" title="This unit is contested">CONTESTED</span>`
+          : '';
+        const intentBadge = unitData.tensionIntent
+          ? `<span class="unit-badge unit-badge-intent" data-intent="${unitData.tensionIntent}">${intentLabel(unitData.tensionIntent)}</span>`
+          : '';
+
+        // Tension intent controls for DRIFTED or CONTESTED units
+        const showIntentControls = (r.newState === 'DRIFTED' || r.newState === 'CONTESTED') && !unitData.tensionIntent;
+        const intentControls = showIntentControls ? `
+          <div class="tension-intent-controls" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:11px; color:var(--text-dim); line-height:24px;">Classify:</span>
+            <button class="tension-btn" onclick="classifyTension('${esc(r.unitId)}', 'drift')" title="Unintentional — needs resolution">⚠ Drift</button>
+            <button class="tension-btn" onclick="classifyTension('${esc(r.unitId)}', 'evolution')" title="Intentional strategic shift — update canon">🔄 Evolution</button>
+            <button class="tension-btn" onclick="classifyTension('${esc(r.unitId)}', 'deliberate_tension')" title="By design — suppress future alerts">⚖ Deliberate</button>
+          </div>
+        ` : '';
+
+        return `
+          <div class="unit-card ${r.newState === 'CONTESTED' ? 'unit-contested' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="unit-id">${r.unitId}</div>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                ${authorBadge}${scopeBadge}${intentBadge}
+              </div>
+            </div>
+            <div class="unit-type">${r.newState === r.previousState ? r.newState : r.previousState + ' → ' + r.newState}</div>
+            <div class="unit-assertion">${r.reasons.join('. ')}</div>
+            <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
+              <span class="unit-state ${r.newState}">${r.newState}</span>
+              ${contestedBadge}
+              <span class="unit-state" style="background: rgba(100,116,139,0.1); color: var(--text-dim);">${Math.round(r.confidence * 100)}%</span>
+            </div>
+            ${intentControls}
+          </div>
+        `;
+      }).join('');
     });
+}
+
+function intentLabel(intent) {
+  const labels = { drift: '⚠ Drift', evolution: '🔄 Evolution', deliberate_tension: '⚖ Deliberate' };
+  return labels[intent] || intent;
+}
+
+async function classifyTension(unitId, intent) {
+  if (!state.currentRepo) return;
+  const [owner, repo] = state.currentRepo.split('/');
+  try {
+    const res = await fetch(`/api/repos/${owner}/${repo}/units/tension-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ unitId, intent }),
+    });
+    if (res.ok) {
+      // Update local unit data
+      const unit = (state.units || []).find(u => u.id === unitId);
+      if (unit) unit.tensionIntent = intent;
+      // Refresh the units display
+      renderUnits();
+    }
+  } catch (err) {
+    console.error('Failed to classify tension:', err);
+  }
 }
 
 /* ============================================================

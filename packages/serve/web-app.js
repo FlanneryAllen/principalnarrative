@@ -889,6 +889,125 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // Route: /api/repos/:owner/:repo/scopes — list scopes + boundary coherence
+      if (rest === 'scopes' && req.method === 'GET') {
+        const scopes = graph.getScopes();
+        const scopeDetails = {};
+        for (const scope of scopes) {
+          const scopeUnits = graph.getUnitsByScope(scope);
+          const aligned = scopeUnits.filter(u => u.validationState === 'ALIGNED');
+          const contested = scopeUnits.filter(u => u.validationState === 'CONTESTED');
+          scopeDetails[scope] = {
+            unitCount: scopeUnits.length,
+            nci: scopeUnits.length > 0 ? aligned.length / scopeUnits.length : 1.0,
+            contestedCount: contested.length,
+            units: scopeUnits.map(u => ({ id: u.id, type: u.type, assertion: u.assertion, author: u.author, validationState: u.validationState })),
+          };
+        }
+        const boundary = algebra.measureBoundaryCoherence();
+        json(res, 200, {
+          scopes: scopeDetails,
+          boundary: {
+            totalBoundaries: boundary.totalBoundaries,
+            coherence: boundary.coherence,
+            actionableTensions: boundary.actionableTensions.map(t => ({
+              unitId: t.unit.id, unitAssertion: t.unit.assertion, fromScope: t.fromScope,
+              depId: t.dependency.id, depAssertion: t.dependency.assertion, toScope: t.toScope,
+            })),
+            deliberateTensions: boundary.deliberateTensions.map(t => ({
+              unitId: t.unit.id, unitAssertion: t.unit.assertion, fromScope: t.fromScope,
+              depId: t.dependency.id, depAssertion: t.dependency.assertion, toScope: t.toScope,
+            })),
+          },
+        });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/contested — list contested units
+      if (rest === 'contested' && req.method === 'GET') {
+        const contested = graph.getContestedUnits();
+        json(res, 200, {
+          contested: contested.map(u => ({
+            id: u.id, type: u.type, assertion: u.assertion,
+            author: u.author, scope: u.scope,
+            contestedBy: u.contestedBy,
+            tensionIntent: u.tensionIntent,
+            validationState: u.validationState,
+          })),
+        });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/units/attribute — update author/scope on a unit
+      if (rest === 'units/attribute' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { unitId, author, scope } = body || {};
+        if (!unitId) { json(res, 400, { error: 'Missing unitId' }); return; }
+        const unit = graph.getUnit(unitId);
+        if (!unit) { json(res, 404, { error: `Unit ${unitId} not found` }); return; }
+        graph.updateAttribution(unitId, {
+          author: author !== undefined ? author : undefined,
+          authoredAt: author !== undefined ? new Date().toISOString() : undefined,
+          scope: scope !== undefined ? scope : undefined,
+        });
+        json(res, 200, {
+          unitId, author: unit.author, authoredAt: unit.authoredAt, scope: unit.scope,
+        });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/units/contest — mark a unit as contested
+      if (rest === 'units/contest' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { unitId, contestedByUnitId } = body || {};
+        if (!unitId || !contestedByUnitId) {
+          json(res, 400, { error: 'Missing unitId or contestedByUnitId' });
+          return;
+        }
+        const result = graph.markContested(unitId, contestedByUnitId);
+        if (!result) { json(res, 404, { error: `Unit ${unitId} not found` }); return; }
+        json(res, 200, {
+          unitId, validationState: result.validationState,
+          contestedBy: result.contestedBy,
+        });
+        return;
+      }
+
+      // Route: /api/repos/:owner/:repo/units/tension-intent — classify tension
+      if (rest === 'units/tension-intent' && req.method === 'POST') {
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+        const { unitId, intent, reason } = body || {};
+        if (!unitId || !intent) {
+          json(res, 400, { error: 'Missing unitId or intent' });
+          return;
+        }
+        const validIntents = ['drift', 'evolution', 'deliberate_tension'];
+        if (!validIntents.includes(intent)) {
+          json(res, 400, { error: `Invalid intent. Must be one of: ${validIntents.join(', ')}` });
+          return;
+        }
+        const unit = graph.getUnit(unitId);
+        if (!unit) { json(res, 404, { error: `Unit ${unitId} not found` }); return; }
+        graph.setTensionIntent(unitId, intent, {
+          classifiedBy: session?.githubUser || 'anonymous',
+          classifiedAt: new Date().toISOString(),
+          reason: reason || null,
+        });
+        // Re-validate the unit with the new intent
+        const validationResult = algebra.validate(unitId);
+        json(res, 200, {
+          unitId,
+          tensionIntent: intent,
+          validationState: validationResult.newState,
+          confidence: validationResult.confidence,
+          reasons: validationResult.reasons,
+        });
+        return;
+      }
+
       // Route: /api/repos/:owner/:repo/review
       if (rest === 'review' && req.method === 'POST') {
         let body;
