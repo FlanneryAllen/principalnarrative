@@ -2860,25 +2860,24 @@ body {
 
 <script>
 /* ============================================================
-   LLM Configuration
+   LLM Configuration - SECURITY PATCHED
    ============================================================ */
 async function checkLLMStatus() {
   const dot = document.getElementById('llmDot');
   const text = document.getElementById('llmText');
 
-  // First check localStorage for browser-configured API key
-  const localApiKey = localStorage.getItem('llm_api_key');
-  const localProvider = localStorage.getItem('llm_provider') || 'anthropic';
-
-  if (localApiKey && dot && text) {
-    dot.style.background = 'var(--green)';
-    text.textContent = `AI: ${localProvider === 'anthropic' ? 'Claude' : 'GPT-4'}`;
-    return { available: true, provider: localProvider, model: localProvider === 'anthropic' ? 'claude-3-5-sonnet' : 'gpt-4o-mini' };
+  // SECURITY FIX: Clear any old localStorage API keys
+  if (localStorage.getItem('llm_api_key')) {
+    console.warn('Clearing insecure API key from localStorage');
+    localStorage.removeItem('llm_api_key');
+    localStorage.removeItem('llm_provider');
   }
 
-  // Otherwise check server for env-configured API key
+  // Check server for LLM configuration (now includes session-stored keys)
   try {
-    const res = await fetch('/api/llm/status');
+    const res = await fetch('/api/llm/status', {
+      credentials: 'same-origin'
+    });
     if (res.ok) {
       const config = await res.json();
       if (dot && text) {
@@ -2982,14 +2981,30 @@ function showLLMSetup() {
   updateKeyLink();
 }
 
+// SECURITY FIX: Use safe DOM manipulation instead of innerHTML
 function updateKeyLink() {
   const provider = document.getElementById('llmProvider').value;
   const link = document.getElementById('getKeyLink');
-  if (provider === 'anthropic') {
-    link.innerHTML = 'Get a key: <a href="#" onclick="openKeyPage(); return false;" style="color:var(--copper);">console.anthropic.com</a>';
-  } else {
-    link.innerHTML = 'Get a key: <a href="#" onclick="openKeyPage(); return false;" style="color:var(--copper);">platform.openai.com</a>';
+
+  // Clear existing content safely
+  while (link.firstChild) {
+    link.removeChild(link.firstChild);
   }
+
+  // Add text
+  link.appendChild(document.createTextNode('Get a key: '));
+
+  // Create safe link element
+  const a = document.createElement('a');
+  a.href = '#';
+  a.style.color = 'var(--copper)';
+  a.textContent = provider === 'anthropic' ? 'console.anthropic.com' : 'platform.openai.com';
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    openKeyPage();
+  });
+
+  link.appendChild(a);
 }
 
 function openKeyPage() {
@@ -3001,7 +3016,7 @@ function openKeyPage() {
   }
 }
 
-function saveLLMConfig() {
+async function saveLLMConfig() {
   const provider = document.getElementById('llmProvider').value;
   const apiKey = document.getElementById('llmApiKey').value.trim();
 
@@ -3010,41 +3025,68 @@ function saveLLMConfig() {
     return;
   }
 
-  // Save to localStorage
-  localStorage.setItem('llm_provider', provider);
-  localStorage.setItem('llm_api_key', apiKey);
+  // SECURITY FIX: Save to server with encryption, not localStorage
+  try {
+    const res = await fetch('/api/user/llm-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ provider, apiKey })
+    });
 
-  // Update UI
-  const dot = document.getElementById('llmDot');
-  const text = document.getElementById('llmText');
-  if (dot && text) {
-    dot.style.background = 'var(--green)';
-    text.textContent = `AI: ${provider === 'anthropic' ? 'Claude' : 'GPT-4'}`;
+    if (!res.ok) {
+      throw new Error('Failed to save configuration');
+    }
+
+    // Update UI
+    const dot = document.getElementById('llmDot');
+    const text = document.getElementById('llmText');
+    if (dot && text) {
+      dot.style.background = 'var(--green)';
+      text.textContent = `AI: ${provider === 'anthropic' ? 'Claude' : 'GPT-4'}`;
+    }
+
+    closeLLMModal();
+
+    // Show success message
+    const msg = document.createElement('div');
+    msg.style = 'position:fixed; top:20px; right:20px; background:var(--green); color:white; padding:12px 20px; border-radius:6px; z-index:10000; animation: slideIn 0.3s;';
+    msg.textContent = '✓ AI enabled securely! Your next harvest will be much richer.';
+    document.body.appendChild(msg);
+    setTimeout(() => msg.remove(), 3000);
+  } catch (err) {
+    alert('Failed to save API key: ' + err.message);
   }
-
-  closeLLMModal();
-
-  // Show success message
-  const msg = document.createElement('div');
-  msg.style = 'position:fixed; top:20px; right:20px; background:var(--green); color:white; padding:12px 20px; border-radius:6px; z-index:10000; animation: slideIn 0.3s;';
-  msg.textContent = '✓ AI enabled! Your next harvest will be much richer.';
-  document.body.appendChild(msg);
-  setTimeout(() => msg.remove(), 3000);
 }
 
-function clearLLMConfig() {
-  localStorage.removeItem('llm_provider');
-  localStorage.removeItem('llm_api_key');
+async function clearLLMConfig() {
+  // SECURITY FIX: Clear from server, not localStorage
+  try {
+    const res = await fetch('/api/user/llm-config', {
+      method: 'DELETE',
+      credentials: 'same-origin'
+    });
 
-  // Update UI
-  const dot = document.getElementById('llmDot');
-  const text = document.getElementById('llmText');
-  if (dot && text) {
-    dot.style.background = 'var(--red)';
-    text.textContent = 'AI: Not configured';
+    if (!res.ok) {
+      throw new Error('Failed to clear configuration');
+    }
+
+    // Also clear any legacy localStorage (cleanup)
+    localStorage.removeItem('llm_provider');
+    localStorage.removeItem('llm_api_key');
+
+    // Update UI
+    const dot = document.getElementById('llmDot');
+    const text = document.getElementById('llmText');
+    if (dot && text) {
+      dot.style.background = 'var(--red)';
+      text.textContent = 'AI: Not configured';
+    }
+
+    closeLLMModal();
+  } catch (err) {
+    alert('Failed to clear configuration: ' + err.message);
   }
-
-  closeLLMModal();
 }
 
 function closeLLMModal() {
@@ -4103,9 +4145,7 @@ async function runHarvest() {
     barEl.style.width = '25%';
     phaseEl.textContent = 'Fetching and mining pages...';
 
-    // Include LLM config if available
-    const llmProvider = localStorage.getItem('llm_provider');
-    const llmApiKey = localStorage.getItem('llm_api_key');
+    // SECURITY FIX: LLM config now handled server-side
     const harvestBody = {
       url,
       depth,
@@ -4114,12 +4154,9 @@ async function runHarvest() {
       pathPrefix: pathPrefix || null,
     };
 
-    // Add LLM config to request if available
-    if (llmApiKey) {
-      harvestBody.llmConfig = {
-        provider: llmProvider || 'anthropic',
-        apiKey: llmApiKey
-      };
+    // Check if AI is configured server-side
+    const llmStatus = await checkLLMStatus();
+    if (llmStatus.available) {
       phaseEl.textContent = 'Using AI to extract narrative...';
     }
 
@@ -4671,6 +4708,7 @@ function removeTag(tagKey, wrapId, idx) {
   renderTagsInWrap(tagKey, wrapId);
 }
 
+// SECURITY FIX: Refactored to use event listeners instead of inline onclick
 function renderTagsInWrap(tagKey, wrapId) {
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
@@ -4678,7 +4716,24 @@ function renderTagsInWrap(tagKey, wrapId) {
   const chips = (tagData[tagKey] || []).map((t, i) => {
     const div = document.createElement('span');
     div.className = 'tag-chip';
-    div.innerHTML = `${esc(t)}<button class="tag-remove" onclick="removeTag('${tagKey}','${wrapId}',${i})">×</button>`;
+
+    // Create text span safely
+    const textSpan = document.createElement('span');
+    textSpan.textContent = t;
+    div.appendChild(textSpan);
+
+    // Create remove button safely
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'tag-remove';
+    removeBtn.textContent = '×';
+    removeBtn.dataset.tagKey = tagKey;
+    removeBtn.dataset.wrapId = wrapId;
+    removeBtn.dataset.index = i;
+    removeBtn.addEventListener('click', function() {
+      removeTag(this.dataset.tagKey, this.dataset.wrapId, parseInt(this.dataset.index));
+    });
+    div.appendChild(removeBtn);
+
     return div;
   });
   // Clear old chips
@@ -4686,17 +4741,62 @@ function renderTagsInWrap(tagKey, wrapId) {
   chips.forEach(c => wrap.insertBefore(c, input));
 }
 
-function tagChipHtml(text, tagKey, wrapId) {
+// SECURITY FIX: Returns safe DOM element instead of HTML string
+function createTagChip(text, tagKey, wrapId) {
   const i = (tagData[tagKey] || []).indexOf(text);
-  return `<span class="tag-chip">${esc(text)}<button class="tag-remove" onclick="removeTag('${tagKey}','${wrapId}',${i})">×</button></span>`;
+  const chip = document.createElement('span');
+  chip.className = 'tag-chip';
+
+  const textSpan = document.createElement('span');
+  textSpan.textContent = text;
+  chip.appendChild(textSpan);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'tag-remove';
+  removeBtn.textContent = '×';
+  removeBtn.dataset.tagKey = tagKey;
+  removeBtn.dataset.wrapId = wrapId;
+  removeBtn.dataset.index = i;
+  removeBtn.addEventListener('click', function() {
+    removeTag(this.dataset.tagKey, this.dataset.wrapId, parseInt(this.dataset.index));
+  });
+  chip.appendChild(removeBtn);
+
+  return chip;
 }
 
 function getTagData(key) {
   return (tagData[key] || []).slice();
 }
 
+// SECURITY FIX: Comprehensive HTML escaping function
 function esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
+}
+
+// SECURITY FIX: Safe DOM element creation
+function safeCreateElement(tag, attrs = {}, textContent = '') {
+  const el = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'className') {
+      el.className = value;
+    } else if (key.startsWith('data-')) {
+      el.setAttribute(key, value);
+    } else if (key === 'style' && typeof value === 'object') {
+      Object.assign(el.style, value);
+    } else {
+      el.setAttribute(key, value);
+    }
+  }
+  if (textContent) el.textContent = textContent;
+  return el;
 }
 
 function wizSkip() {
@@ -6217,9 +6317,7 @@ async function quickHarvest() {
         barEl.style.width = '25%';
         phaseEl.textContent = 'Extracting narrative elements...';
 
-        // Include LLM config if available
-        const llmProvider = localStorage.getItem('llm_provider');
-        const llmApiKey = localStorage.getItem('llm_api_key');
+        // SECURITY FIX: LLM config now handled server-side
         const harvestBody = {
           url,
           depth: 1,
@@ -6228,13 +6326,7 @@ async function quickHarvest() {
           pathPrefix: null,
         };
 
-        // Add LLM config to request if available
-        if (llmApiKey) {
-          harvestBody.llmConfig = {
-            provider: llmProvider || 'anthropic',
-            apiKey: llmApiKey
-          };
-        }
+        // API keys are now securely stored server-side
 
         const res = await fetch(`/api/workspaces/${state.currentWorkspace}/harvest`, {
           method: 'POST',

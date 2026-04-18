@@ -93,7 +93,7 @@ const RATE_LIMIT_MAX = 60; // requests per window
 // In-Memory Store
 // ============================================================================
 
-/** @type {Map<string, {githubToken: string, user: object, connectedRepos: Set<string>, rateLimit: {count: number, resetAt: number}}>} */
+/** @type {Map<string, {githubToken: string, user: object, connectedRepos: Set<string>, rateLimit: {count: number, resetAt: number}, llmConfig?: {provider: string, encryptedKey: string, iv: string}}>} */
 const sessions = new Map();
 
 /** @type {Map<string, {canon: object, lastCheck: object, history: object[]}>} */
@@ -111,6 +111,33 @@ const workspaces = new Map();
 
 function createSessionId() {
   return crypto.randomBytes(24).toString('hex');
+}
+
+// Encryption functions for API key storage
+function encryptApiKey(apiKey, sessionId) {
+  const algorithm = 'aes-256-cbc';
+  const key = crypto.createHash('sha256').update(SESSION_SECRET + sessionId).digest();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
+
+  let encrypted = cipher.update(apiKey, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return {
+    encryptedKey: encrypted,
+    iv: iv.toString('hex')
+  };
+}
+
+function decryptApiKey(encryptedKey, iv, sessionId) {
+  const algorithm = 'aes-256-cbc';
+  const key = crypto.createHash('sha256').update(SESSION_SECRET + sessionId).digest();
+  const decipher = crypto.createDecipheriv(algorithm, key, Buffer.from(iv, 'hex'));
+
+  let decrypted = decipher.update(encryptedKey, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
 }
 
 function signSession(sessionId) {
@@ -1305,7 +1332,83 @@ const server = http.createServer(async (req, res) => {
     // ---- LLM Status ----
 
     if (pathname === '/api/llm/status' && req.method === 'GET') {
-      json(res, 200, getLLMConfig());
+      // Check if session has configured LLM
+      if (session && session.llmConfig) {
+        json(res, 200, {
+          available: true,
+          provider: session.llmConfig.provider,
+          model: session.llmConfig.provider === 'anthropic' ? 'claude-3-5-sonnet' : 'gpt-4o-mini',
+          source: 'session'
+        });
+      } else {
+        // Fall back to environment config
+        json(res, 200, getLLMConfig());
+      }
+      return;
+    }
+
+    // ---- Secure LLM Configuration ----
+
+    if (pathname === '/api/user/llm-config' && req.method === 'GET') {
+      if (!session) {
+        json(res, 401, { error: 'Not authenticated' });
+        return;
+      }
+
+      json(res, 200, {
+        configured: !!session.llmConfig,
+        provider: session.llmConfig?.provider || null
+      });
+      return;
+    }
+
+    if (pathname === '/api/user/llm-config' && req.method === 'POST') {
+      if (!session) {
+        json(res, 401, { error: 'Not authenticated' });
+        return;
+      }
+
+      let body;
+      try { body = await readBody(req); } catch (err) {
+        json(res, 413, { error: err.message });
+        return;
+      }
+
+      const { provider, apiKey } = body || {};
+
+      if (!provider || !apiKey) {
+        json(res, 400, { error: 'Provider and API key required' });
+        return;
+      }
+
+      // Validate provider
+      if (!['anthropic', 'openai'].includes(provider)) {
+        json(res, 400, { error: 'Invalid provider' });
+        return;
+      }
+
+      // Encrypt and store API key in session
+      const sessionId = getSessionId(req);
+      const encrypted = encryptApiKey(apiKey, sessionId);
+
+      session.llmConfig = {
+        provider,
+        encryptedKey: encrypted.encryptedKey,
+        iv: encrypted.iv
+      };
+
+      json(res, 200, { saved: true });
+      return;
+    }
+
+    if (pathname === '/api/user/llm-config' && req.method === 'DELETE') {
+      if (!session) {
+        json(res, 401, { error: 'Not authenticated' });
+        return;
+      }
+
+      delete session.llmConfig;
+      json(res, 200, { deleted: true });
       return;
     }
 
@@ -1512,7 +1615,8 @@ const server = http.createServer(async (req, res) => {
       if (wsRest === 'harvest' && req.method === 'POST') {
         let body;
         try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
-        const { url: harvestUrlStr, depth, maxPages, dateAfter, pathPrefix, llmConfig } = body || {};
+        // SECURITY FIX: Remove llmConfig from client - use server-stored encrypted keys
+        const { url: harvestUrlStr, depth, maxPages, dateAfter, pathPrefix } = body || {};
         if (!harvestUrlStr || typeof harvestUrlStr !== 'string') {
           json(res, 400, { error: 'Missing or invalid url field' });
           return;
@@ -1545,19 +1649,28 @@ const server = http.createServer(async (req, res) => {
           const allCandidates = [];
           const pageResults = [];
 
-          // Check if LLM config provided in request, otherwise check env vars
+          // SECURITY FIX: Use server-side encrypted keys instead of client-provided keys
           let useLLM = false;
           let tempEnvBackup = null;
+          let tempEnvBackup2 = null;
 
-          if (llmConfig && llmConfig.apiKey) {
+          if (session && session.llmConfig) {
+            // Decrypt API key from session
+            const sessionId = getSessionId(req);
+            const apiKey = decryptApiKey(
+              session.llmConfig.encryptedKey,
+              session.llmConfig.iv,
+              sessionId
+            );
+
             // Temporarily set env var for this request
-            if (llmConfig.provider === 'openai') {
+            if (session.llmConfig.provider === 'openai') {
               tempEnvBackup = process.env.OPENAI_API_KEY;
-              process.env.OPENAI_API_KEY = llmConfig.apiKey;
+              process.env.OPENAI_API_KEY = apiKey;
               useLLM = true;
             } else {
-              tempEnvBackup = process.env.ANTHROPIC_API_KEY;
-              process.env.ANTHROPIC_API_KEY = llmConfig.apiKey;
+              tempEnvBackup2 = process.env.ANTHROPIC_API_KEY;
+              process.env.ANTHROPIC_API_KEY = apiKey;
               useLLM = true;
             }
           } else {
@@ -1651,12 +1764,12 @@ const server = http.createServer(async (req, res) => {
           }
 
           // Restore original env vars if temporarily overridden
-          if (llmConfig && llmConfig.apiKey) {
-            if (llmConfig.provider === 'openai') {
+          if (session && session.llmConfig) {
+            if (session.llmConfig.provider === 'openai') {
               if (tempEnvBackup) process.env.OPENAI_API_KEY = tempEnvBackup;
               else delete process.env.OPENAI_API_KEY;
             } else {
-              if (tempEnvBackup) process.env.ANTHROPIC_API_KEY = tempEnvBackup;
+              if (tempEnvBackup2) process.env.ANTHROPIC_API_KEY = tempEnvBackup2;
               else delete process.env.ANTHROPIC_API_KEY;
             }
           }
@@ -1671,12 +1784,12 @@ const server = http.createServer(async (req, res) => {
           });
         } catch (err) {
           // Restore original env vars on error too
-          if (llmConfig && llmConfig.apiKey) {
-            if (llmConfig.provider === 'openai') {
+          if (session && session.llmConfig) {
+            if (session.llmConfig.provider === 'openai') {
               if (tempEnvBackup) process.env.OPENAI_API_KEY = tempEnvBackup;
               else delete process.env.OPENAI_API_KEY;
             } else {
-              if (tempEnvBackup) process.env.ANTHROPIC_API_KEY = tempEnvBackup;
+              if (tempEnvBackup2) process.env.ANTHROPIC_API_KEY = tempEnvBackup2;
               else delete process.env.ANTHROPIC_API_KEY;
             }
           }
