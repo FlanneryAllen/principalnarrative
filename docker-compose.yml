@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: narrative-agent:dev
+    container_name: narrative-agent-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - ./packages:/app/packages
+      - ./src:/app/src
+      - ./cli.ts:/app/cli.ts
+      - ./tsconfig.json:/app/tsconfig.json
+    command: npm run serve
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: narrative-agent:test
+    container_name: narrative-agent-test
+    environment:
+      - NODE_ENV=test
+    volumes:
+      - ./packages:/app/packages
+      - ./src:/app/src
+      - ./cli.ts:/app/cli.ts
+      - ./tsconfig.json:/app/tsconfig.json
+    command: npm test
+    profiles:
+      - test
+
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: narrative-agent:lint
+    container_name: narrative-agent-lint
+    volumes:
+      - ./packages:/app/packages
+      - ./src:/app/src
+      - ./cli.ts:/app/cli.ts
+      - ./.eslintrc.json:/app/.eslintrc.json
+    command: npm run lint
+    profiles:
+      - lint
