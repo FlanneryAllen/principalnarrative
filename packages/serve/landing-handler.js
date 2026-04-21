@@ -37,10 +37,10 @@ async function checkGitHubRepo(owner, repo, token = null) {
       headers['Authorization'] = `token ${token}`;
     }
 
-    // Check for narrative.yaml in root
+    // Check for .narrative/ directory (canon files)
     const options = {
       hostname: 'api.github.com',
-      path: `/repos/${owner}/${repo}/contents/narrative.yaml`,
+      path: `/repos/${owner}/${repo}/contents/.narrative/canon`,
       method: 'GET',
       headers
     };
@@ -54,11 +54,12 @@ async function checkGitHubRepo(owner, repo, token = null) {
 
       res.on('end', () => {
         if (res.statusCode === 200) {
-          const content = JSON.parse(data);
+          const listing = JSON.parse(data);
+          const files = Array.isArray(listing) ? listing.map(f => f.name) : [];
           resolve({
             exists: true,
             hasNarrative: true,
-            content: Buffer.from(content.content, 'base64').toString('utf-8')
+            canonFiles: files,
           });
         } else if (res.statusCode === 404) {
           // Repo exists but no narrative.yaml

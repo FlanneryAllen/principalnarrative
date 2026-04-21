@@ -36,6 +36,7 @@
   "author": "Julie Allen",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
     "yaml": "^2.3.4"
   },
   "devDependencies": {

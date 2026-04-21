@@ -722,16 +722,141 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // ---- Dashboard ----
+    // ---- Landing Page / Dashboard ----
 
     if ((pathname === '/' || pathname === '/index.html') && req.method === 'GET') {
-      const dashboardPath = path.join(__dirname, 'app.html');
-      if (fs.existsSync(dashboardPath)) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(fs.readFileSync(dashboardPath, 'utf-8'));
+      const session = getSession(req);
+
+      if (session) {
+        // Authenticated → serve the app dashboard
+        const dashboardPath = path.join(__dirname, 'app.html');
+        if (fs.existsSync(dashboardPath)) {
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(fs.readFileSync(dashboardPath, 'utf-8'));
+        } else {
+          res.writeHead(404);
+          res.end('Dashboard not found.');
+        }
       } else {
-        res.writeHead(404);
-        res.end('Dashboard not found.');
+        // Not authenticated → serve the landing page
+        const landingPath = path.join(__dirname, 'landing-page.html');
+        if (fs.existsSync(landingPath)) {
+          res.writeHead(200, {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'public, max-age=3600',
+          });
+          res.end(fs.readFileSync(landingPath, 'utf-8'));
+        } else {
+          // Fallback to app.html if landing page missing
+          const dashboardPath = path.join(__dirname, 'app.html');
+          if (fs.existsSync(dashboardPath)) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(fs.readFileSync(dashboardPath, 'utf-8'));
+          } else {
+            res.writeHead(404);
+            res.end('Not found.');
+          }
+        }
+      }
+      return;
+    }
+
+    // ---- Landing Page API (no auth required) ----
+
+    if (pathname === '/api/ai/status' && req.method === 'GET') {
+      const session = getSession(req);
+      const configured = !!(
+        process.env.OPENAI_API_KEY ||
+        process.env.ANTHROPIC_API_KEY ||
+        process.env.GROQ_API_KEY ||
+        session?.llmConfig
+      );
+      json(res, 200, { configured, provider: configured ? 'Available' : null });
+      return;
+    }
+
+    if (pathname === '/api/analyze-url' && req.method === 'POST') {
+      let body;
+      try { body = await readBody(req); }
+      catch (err) { json(res, 413, { error: err.message }); return; }
+
+      const { url } = body || {};
+      if (!url) { json(res, 400, { error: 'URL is required' }); return; }
+
+      try {
+        const { analyzeURL } = require('./landing-handler');
+        const analysis = await analyzeURL(url);
+
+        // Create guest session if not authenticated
+        const session = getSession(req);
+        if (!session) {
+          const sid = createSessionId();
+          const csrf = createCSRFToken();
+          sessions.set(sid, {
+            githubToken: null, csrfToken: csrf,
+            user: { login: 'guest', name: 'Guest User', avatar_url: '', id: 'guest-' + Date.now() },
+            connectedRepos: new Set(),
+            rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
+            harvestRateLimit: { count: 0, resetAt: Date.now() + HARVEST_RATE_LIMIT_WINDOW },
+            isGuest: true,
+          });
+          setSessionCookie(res, sid, csrf);
+        }
+
+        json(res, 200, { success: true, data: analysis });
+      } catch (error) {
+        json(res, 400, { success: false, error: error.message });
+      }
+      return;
+    }
+
+    if (pathname.startsWith('/api/demo/') && req.method === 'GET') {
+      const demoType = pathname.slice('/api/demo/'.length);
+      try {
+        const { loadDemoData } = require('./landing-handler');
+        const demo = await loadDemoData(demoType);
+
+        const session = getSession(req);
+        if (!session) {
+          const sid = createSessionId();
+          const csrf = createCSRFToken();
+          sessions.set(sid, {
+            githubToken: null, csrfToken: csrf,
+            user: { login: 'demo-user', name: 'Demo User', avatar_url: '', id: 'demo-' + Date.now() },
+            connectedRepos: new Set(),
+            rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
+            harvestRateLimit: { count: 0, resetAt: Date.now() + HARVEST_RATE_LIMIT_WINDOW },
+            isGuest: true,
+          });
+          setSessionCookie(res, sid, csrf);
+        }
+
+        json(res, 200, { success: true, data: demo });
+      } catch (error) {
+        json(res, 404, { success: false, error: error.message });
+      }
+      return;
+    }
+
+    if (pathname === '/api/check-github' && req.method === 'POST') {
+      let body;
+      try { body = await readBody(req); }
+      catch (err) { json(res, 413, { error: err.message }); return; }
+
+      const { repo } = body || {};
+      if (!repo) { json(res, 400, { error: 'Repository is required' }); return; }
+
+      const [owner, repoName] = repo.split('/');
+      if (!owner || !repoName) { json(res, 400, { error: 'Invalid format. Use: owner/repository' }); return; }
+
+      try {
+        const { checkGitHubRepo } = require('./landing-handler');
+        const session = getSession(req);
+        const token = session?.githubToken || null;
+        const result = await checkGitHubRepo(owner, repoName, token);
+        json(res, 200, { success: true, data: result });
+      } catch (error) {
+        json(res, 400, { success: false, error: error.message });
       }
       return;
     }

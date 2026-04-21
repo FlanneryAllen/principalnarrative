@@ -483,6 +483,7 @@ body {
   margin-top: 80px;
   padding-top: 40px;
   border-top: 1px solid var(--border);
+  width: 100%;
 }
 
 .feature-card {
@@ -769,7 +770,7 @@ body {
 <!-- Status Section -->
 <div class="status-section">
   <div class="status-badge">
-    <span class="status-dot connected" id="aiStatus"></span>
+    <span class="status-dot" id="aiStatus"></span>
     <span>AI Ready</span>
   </div>
 </div>
@@ -799,14 +800,12 @@ function switchTab(tab) {
 }
 
 // URL Analysis
-function analyzeURL() {
+async function analyzeURL() {
   const url = document.getElementById('urlInput').value.trim();
   const errorEl = document.getElementById('url-error');
 
-  // Clear previous errors
   errorEl.classList.remove('show');
 
-  // Validate URL
   if (!url) {
     showError('url-error', 'Please enter a URL');
     return;
@@ -822,14 +821,30 @@ function analyzeURL() {
     return;
   }
 
-  // Show loading
   showLoading('Analyzing ' + new URL(url).hostname + '...');
 
-  // Simulate API call
-  setTimeout(() => {
-    // Redirect to main app with URL parameter
-    window.location.href = `/app?url=${encodeURIComponent(url)}&mode=analyze`;
-  }, 1500);
+  try {
+    const res = await fetch('/api/analyze-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+    hideLoading();
+
+    if (data.success) {
+      // Guest session was created by the API — now enter the app
+      // Store the analyzed URL so the dashboard can pick it up
+      sessionStorage.setItem('landing_url', url);
+      sessionStorage.setItem('landing_mode', 'analyze');
+      window.location.href = '/';
+    } else {
+      showError('url-error', data.error || 'Failed to analyze URL');
+    }
+  } catch (err) {
+    hideLoading();
+    showError('url-error', 'Network error — please try again');
+  }
 }
 
 // GitHub Connection
@@ -864,38 +879,74 @@ function authenticateGitHub() {
   window.location.href = '/auth/github?redirect_uri=' + encodeURIComponent(window.location.href);
 }
 
-function checkGitHubRepo(repo) {
-  // Simulate checking for narrative.yaml
-  setTimeout(() => {
+async function checkGitHubRepo(repo) {
+  try {
+    const res = await fetch('/api/check-github', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo }),
+    });
+    const data = await res.json();
     hideLoading();
 
-    // Simulate finding config
-    const hasConfig = Math.random() > 0.5;
-
-    if (hasConfig) {
-      window.location.href = `/app?repo=${encodeURIComponent(repo)}&mode=github`;
+    if (data.success && data.data.exists) {
+      if (data.data.hasNarrative) {
+        // Repo has .narrative config — sign in to connect it
+        authenticateGitHub();
+      } else {
+        showError('github-error', 'Repository found but no .narrative/ config detected. Sign in with GitHub to create one.');
+      }
     } else {
-      showError('github-error', 'No narrative.yaml found in repository. Would you like to create one?');
-      // Could show a create config option here
+      showError('github-error', 'Repository not found or not accessible. Sign in with GitHub for private repos.');
     }
-  }, 2000);
+  } catch (err) {
+    hideLoading();
+    showError('github-error', 'Network error — please try again');
+  }
 }
 
 // Demo Loading
-function loadDemo(type) {
+async function loadDemo(type) {
   showLoading(`Loading ${type} demo...`);
 
-  setTimeout(() => {
-    window.location.href = `/app?demo=${type}&mode=guest`;
-  }, 1000);
+  try {
+    const res = await fetch(`/api/demo/${type}`);
+    const data = await res.json();
+
+    if (data.success) {
+      // Guest session was created — store demo info and enter app
+      sessionStorage.setItem('landing_demo', type);
+      sessionStorage.setItem('landing_mode', 'demo');
+      window.location.href = '/';
+    } else {
+      hideLoading();
+      showError('github-error', data.error || 'Failed to load demo');
+    }
+  } catch (err) {
+    hideLoading();
+    showError('github-error', 'Network error — please try again');
+  }
 }
 
-function startBlank() {
-  showLoading('Creating blank canvas...');
+async function startBlank() {
+  showLoading('Creating workspace...');
 
-  setTimeout(() => {
-    window.location.href = `/app?mode=blank`;
-  }, 800);
+  try {
+    // Create a guest session via the guest API
+    const res = await fetch('/api/guest', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.user) {
+      sessionStorage.setItem('landing_mode', 'blank');
+      window.location.href = '/';
+    } else {
+      hideLoading();
+      showError('github-error', 'Failed to create workspace');
+    }
+  } catch (err) {
+    hideLoading();
+    showError('github-error', 'Network error — please try again');
+  }
 }
 
 // Utility Functions
