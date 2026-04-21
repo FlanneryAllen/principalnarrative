@@ -726,9 +726,11 @@ const server = http.createServer(async (req, res) => {
 
     if ((pathname === '/' || pathname === '/index.html') && req.method === 'GET') {
       const session = getSession(req);
+      const demoParam = url.searchParams.get('demo');
 
-      if (session) {
-        // Authenticated → serve the app dashboard
+      if (session || demoParam) {
+        // Authenticated (or demo link) → serve the app dashboard
+        // ?demo=saas or ?demo=nonprofit creates a guest session in app.html init()
         const dashboardPath = path.join(__dirname, 'app.html');
         if (fs.existsSync(dashboardPath)) {
           res.writeHead(200, { 'Content-Type': 'text/html' });

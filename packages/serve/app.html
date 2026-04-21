@@ -3165,16 +3165,23 @@ async function init() {
     // Check LLM status first
     checkLLMStatus();
 
+    // Check URL params first — ?demo=saas or ?demo=nonprofit bypass auth
+    const urlParams = new URLSearchParams(window.location.search);
+    const demoParam = urlParams.get('demo');
+
     const res = await fetch('/api/me');
-    if (res.status === 401) {
+    if (res.status === 401 && !demoParam) {
       document.getElementById('loginPage').style.display = '';
       checkLLMStatus(); // Also check on login page
       return;
     }
-    const data = await res.json();
-    state.user = data.user;
 
-    // Check for demo workspace from landing page
+    if (res.status === 200) {
+      const data = await res.json();
+      state.user = data.user;
+    }
+
+    // Check for demo workspace from landing page (sessionStorage)
     const demoWorkspaceId = sessionStorage.getItem('demo_workspace_id');
     const landingMode = sessionStorage.getItem('landing_mode');
 
@@ -3186,6 +3193,28 @@ async function init() {
       sessionStorage.removeItem('landing_mode');
 
       await enterDemoWorkspace(demoWorkspaceId, demoName);
+      return;
+    }
+
+    // URL param: ?demo=saas or ?demo=nonprofit — creates workspace and enters directly
+    if (demoParam && (demoParam === 'saas' || demoParam === 'nonprofit')) {
+      try {
+        const demoRes = await fetch(`/api/demo/${demoParam}`);
+        const demoData = await demoRes.json();
+        if (demoData.success && demoData.workspaceId) {
+          // Clean the URL
+          window.history.replaceState({}, '', '/');
+          await enterDemoWorkspace(demoData.workspaceId, demoData.name || demoParam);
+          return;
+        }
+      } catch (e) {
+        console.error('Demo load from URL param failed:', e);
+      }
+    }
+
+    // If we got here with a 401 (demo param failed), show login
+    if (res.status === 401) {
+      document.getElementById('loginPage').style.display = '';
       return;
     }
 
