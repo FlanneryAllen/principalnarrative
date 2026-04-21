@@ -908,27 +908,9 @@ async function checkGitHubRepo(repo) {
 // Demo Loading
 async function loadDemo(type) {
   showLoading(`Loading ${type} demo...`);
-
-  try {
-    const res = await fetch(`/api/demo/${type}`);
-    const data = await res.json();
-
-    if (data.success && data.workspaceId) {
-      // Workspace created and populated — store ID and enter dashboard
-      sessionStorage.setItem('demo_workspace_id', data.workspaceId);
-      sessionStorage.setItem('demo_name', data.name || type);
-      sessionStorage.setItem('landing_mode', 'demo');
-      // Force full page reload — session cookie is now set, server will serve app.html
-      // Use replace + unique param to bust cache, then the server strips it
-      window.location.replace('/?_t=' + Date.now());
-    } else {
-      hideLoading();
-      showError('github-error', data.error || 'Failed to load demo');
-    }
-  } catch (err) {
-    hideLoading();
-    showError('github-error', 'Network error \u2014 please try again');
-  }
+  // Redirect to dashboard with demo param — app.html init() creates the
+  // workspace, fetches metrics, and renders the dashboard in one shot.
+  window.location.replace('/?demo=' + encodeURIComponent(type));
 }
 
 async function startBlank() {
