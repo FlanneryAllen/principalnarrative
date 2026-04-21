@@ -17,6 +17,8 @@
     "narrative": "node packages/serve/cli.js",
     "test": "node packages/serve/test-cli.js",
     "test:coverage": "node packages/serve/test-cli.js --coverage",
+    "test:integrations": "node packages/serve/integrations/test-integrations.js",
+    "test:harvester": "node packages/serve/integrations/test-integrations.js",
     "check": "node packages/serve/check.js",
     "serve": "node packages/serve/server.js",
     "web": "node packages/serve/web-app.js",

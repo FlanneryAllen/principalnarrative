@@ -770,6 +770,33 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ---- Integration Routes ----
+
+    const { isIntegrationRoute, handleIntegrationRoutes } = require('./integration-routes');
+
+    if (isIntegrationRoute(pathname)) {
+      const session = getSession(req);
+      let body = null;
+
+      if (req.method === 'POST') {
+        try { body = await readBody(req); }
+        catch (err) { json(res, 413, { error: err.message }); return; }
+      }
+
+      // Create store based on session type
+      let store = null;
+      if (session) {
+        if (session.workspaceId) {
+          store = workspaces.get(session.workspaceId);
+        }
+        // Could also use GitHub store if needed
+      }
+
+      const result = await handleIntegrationRoutes(pathname, req.method, body, session, store);
+      json(res, result.status, result.data);
+      return;
+    }
+
     // ---- Landing Page API (no auth required) ----
 
     if (pathname === '/api/ai/status' && req.method === 'GET') {

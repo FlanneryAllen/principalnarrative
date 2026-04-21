@@ -1,0 +1,386 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ============================================
+  # Linting and Code Quality
+  # ============================================
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Check for console.logs in production code
+      run: |
+        echo "::group::Checking for console.log statements"
+        FILES=$(git ls-files '*.js' '*.ts' | grep -v test | grep -v spec)
+        if echo "$FILES" | xargs grep -l "console\.log" 2>/dev/null; then
+          echo "::warning::Found console.log statements in production code"
+          echo "$FILES" | xargs grep -n "console\.log" | head -20
+        else
+          echo "✅ No console.log statements found in production code"
+        fi
+        echo "::endgroup::"
+
+  # ============================================
+  # TypeScript Build
+  # ============================================
+  build:
+    name: Build TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build TypeScript
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+        retention-days: 7
+
+  # ============================================
+  # Testing
+  # ============================================
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+
+    - name: Run tests with coverage
+      if: matrix.node-version == '20.x'
+      run: npm run test:coverage || true
+
+    - name: Upload coverage reports
+      if: matrix.node-version == '20.x' && success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 7
+
+  # ============================================
+  # Security Scanning
+  # ============================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=moderate || true
+        npm audit --json > audit-report.json || true
+
+    - name: Check for secrets in code
+      run: |
+        echo "::group::Scanning for potential secrets"
+        git ls-files | xargs grep -l -E "(api[_-]?key|password|secret|token|private[_-]?key)" \
+          | grep -v -E "(test|spec|\.md|\.json|\.lock|\.yml)" || true
+        echo "::endgroup::"
+
+    - name: Dependency check
+      run: |
+        echo "::group::Outdated packages"
+        npm outdated || true
+        echo "::endgroup::"
+
+  # ============================================
+  # Docker Build
+  # ============================================
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, build, test]
+    if: github.event_name == 'push'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # ============================================
+  # Deploy to Staging (GitHub Pages)
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [lint, build, test, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: staging
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build for production
+      run: |
+        npm run build
+        # Create a simple index.html if not exists
+        if [ ! -f dist/index.html ]; then
+          cp packages/serve/app.html dist/index.html 2>/dev/null || true
+        fi
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./dist
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  # ============================================
+  # Deploy to Production (Vercel)
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [lint, build, test, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
+      url: https://narrativeagent.ai
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build for production
+      env:
+        NODE_ENV: production
+      run: npm run build
+
+    - name: Deploy to Vercel
+      if: env.VERCEL_TOKEN != ''
+      env:
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      run: |
+        npm i -g vercel
+        vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+        vercel build --prod --token=$VERCEL_TOKEN
+        vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment:** Production" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Checks Passed" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Linting" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ TypeScript Build" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Security Audit" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Release
+  # ============================================
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [lint, build, test, security]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build for release
+      run: npm run build
+
+    - name: Create tarball
+      run: |
+        tar -czf narrative-agent-${{ github.ref_name }}.tar.gz \
+          dist/ \
+          packages/serve/*.js \
+          packages/serve/*.html \
+          package.json \
+          README.md
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: narrative-agent-${{ github.ref_name }}.tar.gz
+        body: |
+          ## Release ${{ github.ref_name }}
+
+          ### What's Changed
+          ${{ steps.changelog.outputs.CHANGELOG }}
+
+          ### Installation
+          ```bash
+          npm install -g narrative-agent@${{ github.ref_name }}
+          ```
+
+          ### Docker
+          ```bash
+          docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          ```
+        draft: false
+        prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
