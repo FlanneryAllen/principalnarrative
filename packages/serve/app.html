@@ -3174,6 +3174,21 @@ async function init() {
     const data = await res.json();
     state.user = data.user;
 
+    // Check for demo workspace from landing page
+    const demoWorkspaceId = sessionStorage.getItem('demo_workspace_id');
+    const landingMode = sessionStorage.getItem('landing_mode');
+
+    if (landingMode === 'demo' && demoWorkspaceId) {
+      // Clear sessionStorage so refresh doesn't re-trigger
+      const demoName = sessionStorage.getItem('demo_name') || 'Demo';
+      sessionStorage.removeItem('demo_workspace_id');
+      sessionStorage.removeItem('demo_name');
+      sessionStorage.removeItem('landing_mode');
+
+      await enterDemoWorkspace(demoWorkspaceId, demoName);
+      return;
+    }
+
     // Show app
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('app').classList.add('active');
@@ -3199,6 +3214,68 @@ async function init() {
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('loginPage').style.display = '';
+  }
+}
+
+/**
+ * Enter the dashboard directly with a pre-populated demo workspace.
+ * Fetches server-computed algebra metrics (NCI, drift, coverage, layer health,
+ * weighted NCI, scope health) from /api/workspaces/:id/metrics and renders
+ * the full dashboard — identical to selectRepo() but for workspace-based demos.
+ */
+async function enterDemoWorkspace(workspaceId, demoName) {
+  state.currentWorkspace = workspaceId;
+  state.currentRepo = `workspace:${workspaceId}`;
+  state.isGuest = true;
+
+  // Show app, hide login
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userName').textContent = `${demoName} Demo`;
+
+  // Hide repo picker, show dashboard
+  document.getElementById('repoPicker').classList.remove('active');
+  document.getElementById('dashboardView').classList.add('active');
+
+  // Set up tabs and stakeholder controls
+  setupTabs();
+  setupStakeholders();
+
+  // Update repo dropdown
+  const select = document.getElementById('repoSelect');
+  if (select) {
+    select.innerHTML = `<option value="workspace:${workspaceId}" selected>${demoName}</option>`;
+  }
+
+  // Fetch server-computed metrics (algebra runs server-side with full validation)
+  try {
+    const metricsRes = await fetch(`/api/workspaces/${workspaceId}/metrics`, {
+      credentials: 'same-origin',
+    });
+
+    if (!metricsRes.ok) {
+      console.error('Failed to load demo metrics:', metricsRes.status);
+      return;
+    }
+
+    const data = await metricsRes.json();
+    const { metrics, drift, cover, units } = data;
+
+    state.units = units || [];
+    state.repoData = { metrics, drift, cover };
+
+    // Render the full dashboard — same render calls as selectRepo()
+    renderNCI(metrics.narrativeCoherenceIndex);
+    renderMetrics(metrics, drift, cover);
+    renderLayerHealth(metrics.layerHealth);
+    renderGraph(metrics);
+    renderUnits(metrics);
+    renderWeightedNCI(metrics);
+    renderDrift(drift, cover);
+
+  } catch (err) {
+    console.error('Demo workspace load error:', err);
   }
 }
 
@@ -3441,6 +3518,19 @@ function renderGraph(metrics) {
 
   if (!state.currentRepo) return;
 
+  // Workspace-based demos: use state.units directly (no compose API)
+  if (state.currentRepo.startsWith('workspace:')) {
+    const units = state.units || [];
+    const edges = [];
+    for (const u of units) {
+      for (const dep of (u.dependencies || [])) {
+        edges.push({ from: u.id, to: dep });
+      }
+    }
+    drawGraph(units, edges, container);
+    return;
+  }
+
   const [owner, repo] = state.currentRepo.split('/');
 
   fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=board`)
@@ -3562,6 +3652,46 @@ function drawGraph(units, edges, container, opts = {}) {
    ============================================================ */
 function renderUnits(metrics) {
   if (!state.currentRepo) return;
+
+  // Workspace-based demos: render from state.units directly (already validated server-side)
+  if (state.currentRepo.startsWith('workspace:')) {
+    const container = document.getElementById('unitList');
+    const units = state.units || [];
+    container.innerHTML = units.map(u => {
+      const authorBadge = u.author
+        ? `<span class="unit-badge unit-badge-author" title="Authored by ${esc(u.author)}">👤 ${esc(u.author)}</span>`
+        : '';
+      const scopeBadge = u.scope
+        ? `<span class="unit-badge unit-badge-scope" title="Scope: ${esc(u.scope)}">🏯 ${esc(u.scope)}</span>`
+        : '';
+      const contestedBadge = u.validationState === 'CONTESTED'
+        ? `<span class="unit-state CONTESTED" title="This unit is contested">CONTESTED</span>`
+        : '';
+      const intentBadge = u.tensionIntent
+        ? `<span class="unit-badge unit-badge-intent" data-intent="${u.tensionIntent}">${intentLabel(u.tensionIntent)}</span>`
+        : '';
+
+      return `
+        <div class="unit-card ${u.validationState === 'CONTESTED' ? 'unit-contested' : ''}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="unit-id">${u.id}</div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              ${authorBadge}${scopeBadge}${intentBadge}
+            </div>
+          </div>
+          <div class="unit-type">${u.type} — ${u.validationState || 'UNKNOWN'}</div>
+          <div class="unit-assertion">${esc(u.assertion || '')}</div>
+          <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
+            <span class="unit-state ${u.validationState}">${u.validationState || 'UNKNOWN'}</span>
+            ${contestedBadge}
+            <span class="unit-state" style="background: rgba(100,116,139,0.1); color: var(--text-dim);">${Math.round((u.confidence || 0) * 100)}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+
   const [owner, repo] = state.currentRepo.split('/');
 
   fetch(`/api/repos/${owner}/${repo}/validate`, { method: 'POST' })
@@ -3765,7 +3895,6 @@ const ACTION_ICONS = {
 
 async function loadActions() {
   if (!state.currentRepo) return;
-  const [owner, repo] = state.currentRepo.split('/');
   const loadingEl = document.getElementById('actionsLoading');
   const listEl = document.getElementById('actionsList');
   const summaryEl = document.getElementById('actionsSummary');
@@ -3775,7 +3904,16 @@ async function loadActions() {
   listEl.innerHTML = '';
 
   try {
-    const res = await fetch(`/api/repos/${owner}/${repo}/actions`);
+    // Workspace-based demos use workspace actions endpoint
+    let actionsUrl;
+    if (state.currentRepo.startsWith('workspace:')) {
+      const wsId = state.currentRepo.replace('workspace:', '');
+      actionsUrl = `/api/workspaces/${wsId}/actions`;
+    } else {
+      const [owner, repo] = state.currentRepo.split('/');
+      actionsUrl = `/api/repos/${owner}/${repo}/actions`;
+    }
+    const res = await fetch(actionsUrl);
     const data = await res.json();
     loadingEl.style.display = 'none';
 
@@ -4022,7 +4160,6 @@ function setupStakeholders() {
 
 async function loadCompose(stakeholder, btn) {
   if (!state.currentRepo) return;
-  const [owner, repo] = state.currentRepo.split('/');
 
   document.querySelectorAll('.stakeholder-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -4032,7 +4169,15 @@ async function loadCompose(stakeholder, btn) {
   result.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   try {
-    const res = await fetch(`/api/repos/${owner}/${repo}/compose?stakeholder=${stakeholder}`);
+    let composeUrl;
+    if (state.currentRepo.startsWith('workspace:')) {
+      const wsId = state.currentRepo.replace('workspace:', '');
+      composeUrl = `/api/workspaces/${wsId}/compose?stakeholder=${stakeholder}`;
+    } else {
+      const [owner, repo] = state.currentRepo.split('/');
+      composeUrl = `/api/repos/${owner}/${repo}/compose?stakeholder=${stakeholder}`;
+    }
+    const res = await fetch(composeUrl);
     const data = await res.json();
 
     result.innerHTML = `

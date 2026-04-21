@@ -813,27 +813,61 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/demo/') && req.method === 'GET') {
       const demoType = pathname.slice('/api/demo/'.length);
       try {
-        const { loadDemoData } = require('./landing-handler');
-        const demo = await loadDemoData(demoType);
+        const { getDemoData } = require('./demo-data');
+        const demo = getDemoData(demoType);
+        if (!demo) {
+          json(res, 404, { success: false, error: `Unknown demo: ${demoType}` });
+          return;
+        }
 
-        const session = getSession(req);
+        // Create guest session if needed
+        let session = getSession(req);
         if (!session) {
           const sid = createSessionId();
           const csrf = createCSRFToken();
-          sessions.set(sid, {
+          session = {
             githubToken: null, csrfToken: csrf,
             user: { login: 'demo-user', name: 'Demo User', avatar_url: '', id: 'demo-' + Date.now() },
             connectedRepos: new Set(),
             rateLimit: { count: 0, resetAt: Date.now() + RATE_LIMIT_WINDOW },
             harvestRateLimit: { count: 0, resetAt: Date.now() + HARVEST_RATE_LIMIT_WINDOW },
             isGuest: true,
-          });
+          };
+          sessions.set(sid, session);
           setSessionCookie(res, sid, csrf);
         }
 
-        json(res, 200, { success: true, data: demo });
+        // Create a workspace and populate with demo units
+        const store = new MemoryAdapter(`${demo.name} (Demo)`);
+        await store.saveUnits(demo.units, 'demo-canon.yml');
+        await store.saveSkills('terminology', demo.skills);
+        if (demo.skills.voice) {
+          await store.saveSkills('tone', { voice: demo.skills.voice });
+        }
+        workspaces.set(store.id, store);
+
+        // Compute algebra metrics
+        const clarion = runClarionCall(demo.units, demo.skills, 'demo');
+
+        json(res, 200, {
+          success: true,
+          workspaceId: store.id,
+          name: demo.name,
+          description: demo.description,
+          unitCount: demo.units.length,
+          metrics: {
+            nci: clarion.nci,
+            coherenceScore: clarion.coherenceScore,
+            coverageRatio: clarion.coverageRatio,
+            layerHealth: clarion.layerHealth,
+            totalEdges: clarion.totalEdges,
+            driftRate: clarion.driftRate,
+            driftedUnits: clarion.driftedUnits,
+            gaps: clarion.gaps,
+          },
+        });
       } catch (error) {
-        json(res, 404, { success: false, error: error.message });
+        json(res, 500, { success: false, error: error.message });
       }
       return;
     }
@@ -1768,6 +1802,92 @@ const server = http.createServer(async (req, res) => {
       if (wsRest === 'canon' && req.method === 'GET') {
         const data = await store.load();
         json(res, 200, data);
+        return;
+      }
+
+      // GET /api/workspaces/:id/metrics — compute full algebra metrics for workspace
+      if (wsRest === 'metrics' && req.method === 'GET') {
+        try {
+          const data = await store.load();
+          const units = data.units || [];
+          if (units.length === 0) {
+            json(res, 200, {
+              metrics: { narrativeCoherenceIndex: 1.0, weightedNCI: 1.0, weightedBreakdown: {}, layerWeights: {}, coverageRatio: 1.0, layerHealth: {}, scopeHealth: {}, totalUnits: 0, totalEdges: 0, contestedCount: 0, deliberateTensionCount: 0 },
+              drift: { driftRate: 0, driftedUnits: [], byLayer: {} },
+              cover: { coverage: 1.0, byLayer: {}, gaps: [], orphans: [] },
+              units,
+            });
+            return;
+          }
+          const { graph, algebra } = createAlgebra(units);
+          const metrics = algebra.computeMetrics();
+          const driftResult = algebra.drift();
+          const coverResult = algebra.cover();
+          // Use validated units from graph (createAlgebra runs validateAll which sets validationState)
+          const validatedUnits = graph.getAllUnits();
+          json(res, 200, {
+            metrics,
+            drift: {
+              driftRate: driftResult.driftRate,
+              driftedUnits: driftResult.driftedUnits.map(u => ({ id: u.id, type: u.type, assertion: u.assertion })),
+              byLayer: driftResult.byLayer,
+            },
+            cover: {
+              coverage: coverResult.coverage,
+              byLayer: coverResult.byLayer,
+              gaps: coverResult.gaps.map(u => ({ id: u.id, type: u.type })),
+              orphans: coverResult.orphans.map(u => ({ id: u.id, type: u.type })),
+            },
+            units: validatedUnits.map(u => ({ id: u.id, type: u.type, assertion: u.assertion, validationState: u.validationState, scope: u.scope, author: u.author, confidence: u.confidence, dependencies: u.dependencies, tensionIntent: u.tensionIntent, contestedBy: u.contestedBy })),
+          });
+        } catch (error) {
+          json(res, 500, { error: `Metrics computation failed: ${error.message}` });
+        }
+        return;
+      }
+
+      // GET /api/workspaces/:id/compose?stakeholder= — stakeholder view for workspace
+      if (wsRest === 'compose' && req.method === 'GET') {
+        const stakeholder = url.searchParams.get('stakeholder');
+        if (!stakeholder || !STAKEHOLDER_PRESETS[stakeholder]) {
+          json(res, 400, { error: `Invalid stakeholder. Available: ${Object.keys(STAKEHOLDER_PRESETS).join(', ')}` });
+          return;
+        }
+        try {
+          const data = await store.load();
+          const units = data.units || [];
+          const { algebra } = createAlgebra(units);
+          const subgraph = algebra.composeForStakeholder(stakeholder);
+          json(res, 200, {
+            stakeholder,
+            unitCount: subgraph.units.length,
+            edgeCount: subgraph.edges.length,
+            units: subgraph.units.map(u => ({ id: u.id, type: u.type, assertion: u.assertion, validationState: u.validationState, confidence: u.confidence })),
+            edges: subgraph.edges,
+            provenance: subgraph.provenance,
+          });
+        } catch (error) {
+          json(res, 500, { error: `Compose failed: ${error.message}` });
+        }
+        return;
+      }
+
+      // GET /api/workspaces/:id/actions — prescriptive actions for workspace
+      if (wsRest === 'actions' && req.method === 'GET') {
+        try {
+          const data = await store.load();
+          const units = data.units || [];
+          if (units.length === 0) {
+            json(res, 200, { actions: [], summary: { total: 0, byPriority: {}, byType: {} } });
+            return;
+          }
+          const { graph, algebra } = createAlgebra(units);
+          const allActions = generateAllActions(graph, algebra);
+          const summary = summarizeActions(allActions);
+          json(res, 200, { actions: allActions, summary });
+        } catch (error) {
+          json(res, 500, { error: `Actions generation failed: ${error.message}` });
+        }
         return;
       }
 

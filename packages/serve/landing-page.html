@@ -837,7 +837,7 @@ async function analyzeURL() {
       // Store the analyzed URL so the dashboard can pick it up
       sessionStorage.setItem('landing_url', url);
       sessionStorage.setItem('landing_mode', 'analyze');
-      window.location.href = '/';
+      window.location.replace('/?_t=' + Date.now());
     } else {
       showError('url-error', data.error || 'Failed to analyze URL');
     }
@@ -913,18 +913,21 @@ async function loadDemo(type) {
     const res = await fetch(`/api/demo/${type}`);
     const data = await res.json();
 
-    if (data.success) {
-      // Guest session was created — store demo info and enter app
-      sessionStorage.setItem('landing_demo', type);
+    if (data.success && data.workspaceId) {
+      // Workspace created and populated — store ID and enter dashboard
+      sessionStorage.setItem('demo_workspace_id', data.workspaceId);
+      sessionStorage.setItem('demo_name', data.name || type);
       sessionStorage.setItem('landing_mode', 'demo');
-      window.location.href = '/';
+      // Force full page reload — session cookie is now set, server will serve app.html
+      // Use replace + unique param to bust cache, then the server strips it
+      window.location.replace('/?_t=' + Date.now());
     } else {
       hideLoading();
       showError('github-error', data.error || 'Failed to load demo');
     }
   } catch (err) {
     hideLoading();
-    showError('github-error', 'Network error — please try again');
+    showError('github-error', 'Network error \u2014 please try again');
   }
 }
 
@@ -938,7 +941,7 @@ async function startBlank() {
 
     if (data.user) {
       sessionStorage.setItem('landing_mode', 'blank');
-      window.location.href = '/';
+      window.location.replace('/?_t=' + Date.now());
     } else {
       hideLoading();
       showError('github-error', 'Failed to create workspace');
