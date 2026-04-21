@@ -722,6 +722,13 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ---- Health Check (no auth required) ----
+
+    if (pathname === '/health' && req.method === 'GET') {
+      json(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
+      return;
+    }
+
     // ---- Landing Page / Dashboard ----
 
     if ((pathname === '/' || pathname === '/index.html') && req.method === 'GET') {
