@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 12px; color: #0f172a; font-size: 13px; }
+  h1 { font-size: 14px; margin: 0 0 12px; letter-spacing: 0.5px; }
+  .score-card { background: #0a1628; color: #fff; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 16px; }
+  .score-card .num { font-size: 36px; font-weight: 700; margin: 4px 0; }
+  .score-card .label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; }
+  .score-card.pass { background: #064e3b; }
+  .score-card.fail { background: #7c2d12; }
+  .threshold { font-size: 11px; opacity: 0.8; }
+  .layers { margin-bottom: 16px; }
+  .layer { display: flex; align-items: center; padding: 4px 0; font-size: 12px; gap: 8px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .swatch.v  { background: #fef3c7; }
+  .swatch.nv { background: #fde68a; }
+  .swatch.pv { background: #dbeafe; }
+  .swatch.c  { background: #e0e7ff; }
+  .layer .meta { color: #64748b; margin-left: auto; font-size: 11px; }
+  .section-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #64748b; margin: 16px 0 8px; }
+  .suggestion { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+  .suggestion .quote { font-style: italic; font-size: 12px; }
+  .suggestion .src { font-size: 11px; color: #64748b; margin-top: 4px; }
+  button { background: #0a1628; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
+  button:hover { background: #1e293b; }
+  button.secondary { background: #fff; color: #0a1628; border: 1px solid #cbd5e1; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .loading { color: #64748b; font-style: italic; }
+  .override-prompt { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px; margin-top: 8px; font-size: 12px; }
+  textarea { width: 100%; min-height: 60px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: inherit; font-size: 12px; box-sizing: border-box; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Narrative Agent</h1>
+
+<div id="score-card" class="score-card">
+  <div class="label">Provenance score</div>
+  <div class="num" id="score-num">—</div>
+  <div class="threshold" id="threshold-text">Scoring…</div>
+</div>
+
+<div class="layers" id="layers"></div>
+
+<button onclick="scoreNow()">Score draft</button>
+
+<div class="section-title">Suggested huddle quotes</div>
+<div id="suggestions"><div class="loading">Run a score to see suggestions.</div></div>
+
+<div class="section-title">Publish</div>
+<input id="title" placeholder="Post title" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;box-sizing:border-box;margin-bottom:6px"/>
+<button onclick="tryPublish()">Publish</button>
+
+<div id="override-area"></div>
+
+<script>
+  function scoreNow() {
+    setLoading_(true);
+    google.script.run
+      .withSuccessHandler(onScored)
+      .withFailureHandler(onError)
+      .scoreCurrentDocument();
+  }
+
+  function onScored(result) {
+    setLoading_(false);
+    if (!result || result.message) {
+      document.getElementById('threshold-text').textContent = result?.message || 'No result';
+      return;
+    }
+    var s = (result.score * 100).toFixed(0);
+    var passes = result.passes !== false && result.score >= (result.threshold || 0.5);
+    document.getElementById('score-card').className = 'score-card ' + (passes ? 'pass' : 'fail');
+    document.getElementById('score-num').textContent = s + '%';
+    var thr = ((result.threshold || 0.5) * 100).toFixed(0);
+    document.getElementById('threshold-text').textContent =
+      'Threshold: ' + thr + '% · ' + (passes ? 'ready to publish' : 'below threshold');
+    renderLayers_(result.layerBreakdown || {});
+    renderSuggestions_(result.unmatchedRanges || []);
+    google.script.run.applyHighlights(result.spans || []);
+  }
+
+  function renderLayers_(lb) {
+    var rows = [
+      { key: 'verbatim', cls: 'v', label: 'Verbatim' },
+      { key: 'near_verbatim', cls: 'nv', label: 'Near-verbatim' },
+      { key: 'paraphrase_verified', cls: 'pv', label: 'Paraphrase' },
+      { key: 'concept_only', cls: 'c', label: 'Concept' },
+    ];
+    var html = '';
+    rows.forEach(function (r) {
+      var b = lb[r.key] || { chars: 0, count: 0, weight: 0 };
+      html += '<div class="layer">' +
+              '<div class="swatch ' + r.cls + '"></div>' +
+              '<div>' + r.label + '</div>' +
+              '<div class="meta">' + b.count + ' spans · ' + b.chars + ' chars · ×' + (b.weight || '0') + '</div>' +
+              '</div>';
+    });
+    document.getElementById('layers').innerHTML = html;
+  }
+
+  function renderSuggestions_(ranges) {
+    var seen = {};
+    var items = [];
+    ranges.forEach(function (r) {
+      (r.suggestions || []).forEach(function (s) {
+        if (!seen[s.unitId]) { seen[s.unitId] = true; items.push(s); }
+      });
+    });
+    if (items.length === 0) {
+      document.getElementById('suggestions').innerHTML =
+        '<div class="loading">No unmatched paragraphs need suggestions.</div>';
+      return;
+    }
+    var html = '';
+    items.slice(0, 6).forEach(function (s) {
+      html += '<div class="suggestion">' +
+              '<div class="quote">"' + escape_(s.assertion) + '"</div>' +
+              '<div class="src">— ' + escape_(s.author || 'unknown') +
+              (s.timestamp ? ' · ' + escape_(s.timestamp) : '') +
+              ' · sim=' + (s.similarity ? s.similarity.toFixed(2) : '—') +
+              '</div></div>';
+    });
+    document.getElementById('suggestions').innerHTML = html;
+  }
+
+  function tryPublish() {
+    var title = document.getElementById('title').value || 'Untitled draft';
+    google.script.run
+      .withSuccessHandler(onPublishResult)
+      .withFailureHandler(onError)
+      .attemptPublish(title);
+  }
+
+  function onPublishResult(r) {
+    if (r.ok) {
+      alert('Published! ID: ' + r.publishId);
+      document.getElementById('override-area').innerHTML = '';
+      return;
+    }
+    if (r.requires_override) {
+      var prompt = r.prompt || 'Below threshold. Provide a reason to override:';
+      var min = r.minReasonLength || 20;
+      document.getElementById('override-area').innerHTML =
+        '<div class="override-prompt">' + escape_(prompt) +
+        '<textarea id="reason" placeholder="At least ' + min + ' characters"></textarea>' +
+        '<button onclick="overrideNow(' + min + ')">Override and publish</button>' +
+        '</div>';
+    }
+  }
+
+  function overrideNow(minLen) {
+    var reason = document.getElementById('reason').value.trim();
+    if (reason.length < minLen) {
+      alert('Reason must be at least ' + minLen + ' characters.');
+      return;
+    }
+    var title = document.getElementById('title').value || 'Untitled draft';
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (r.ok) {
+          alert('Published with override. ID: ' + r.publishId);
+          document.getElementById('override-area').innerHTML = '';
+        }
+      })
+      .withFailureHandler(onError)
+      .overridePublish(title, reason);
+  }
+
+  function setLoading_(on) {
+    document.getElementById('threshold-text').textContent = on ? 'Scoring…' : '';
+  }
+
+  function onError(err) {
+    setLoading_(false);
+    alert('Error: ' + (err && err.message ? err.message : err));
+  }
+
+  function escape_(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  // Score on first open
+  scoreNow();
+</script>
+
+</body>
+</html>

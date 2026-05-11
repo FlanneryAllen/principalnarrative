@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  body { font-family: 'Inter', -apple-system, sans-serif; margin: 0; padding: 16px; color: #0f172a; font-size: 13px; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin: 12px 0 4px; }
+  input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+  button { background: #0a1628; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+  .hint { font-size: 11px; color: #64748b; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1>Connect Narrative Agent</h1>
+<p class="hint">One-time setup. These are stored privately to your Google account.</p>
+
+<label>Workspace URL</label>
+<input id="url" placeholder="https://narrative-agent-production.up.railway.app"/>
+
+<label>API token</label>
+<input id="token" type="password" placeholder="ng_… (from your workspace settings)"/>
+
+<label>Workspace ID</label>
+<input id="ws" placeholder="workspace_abc123"/>
+
+<label>Your name (for publish log)</label>
+<input id="name" placeholder="Julie Allen"/>
+
+<button onclick="save()">Save and start</button>
+
+<script>
+  function save() {
+    var url = document.getElementById('url').value.trim();
+    var token = document.getElementById('token').value.trim();
+    var ws = document.getElementById('ws').value.trim();
+    var name = document.getElementById('name').value.trim();
+    if (!url || !token || !ws) { alert('Workspace URL, token, and ID are required.'); return; }
+    google.script.run
+      .withSuccessHandler(function () {
+        google.script.host.close();
+      })
+      .withFailureHandler(function (e) { alert('Save failed: ' + e); })
+      .saveSettings(url, token, ws, name);
+  }
+</script>
+</body>
+</html>

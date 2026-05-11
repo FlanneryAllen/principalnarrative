@@ -34,11 +34,14 @@ function test(name, fn) {
 (async () => {
   console.log('\nSkill Loader');
 
-  await test('lists all 3 bundled skills', () => {
+  await test('lists all bundled skills', () => {
     const skills = listSkills();
     const names = skills.map((s) => s.name).sort();
     assert.deepStrictEqual(names, [
+      'blog-authoring-harness',
       'board-deck-view',
+      'huddle-harvest',
+      'provenance-scoring',
       'slack-harvest',
       'weekly-coherence-digest',
     ]);
