@@ -1,0 +1,24 @@
+SCORE: 0.182  threshold: 0.5  passes: false
+totalChars: 6188  matchedChars: 1125
+
+Layer breakdown:
+  verbatim               chars=1125  count=10
+  near_verbatim          chars=   0  count=0
+  paraphrase_verified    chars=   0  count=0
+  concept_only           chars=   0  count=0
+
+Matched spans:
+  [verbatim] (Julie @ 46:52)  "# A New Way to Collaborate With Software
+
+Software used to be a thing you built."
+  [verbatim] (Fernando @ 20:27)  "In our huddle that turned into one sentence we kept saying out loud: we're solving organiz…"
+  [verbatim] (Julie @ 46:52)  "There's another phrase that came up, and it stuck: a new way to collaborate with software."
+  [verbatim] (Fernando @ 40:05)  "What lands on the next person's screen is human-verified content, not a machine guess wear…"
+  [verbatim] (Fernando @ 43:04)  "In our huddle this week we put a name on that quiet tax — burning social capital — and onc…"
+  [verbatim] (Fernando @ 28:34)  "The trail does the work of explaining code clearly and quickly, allowing for easy sharing …"
+  [verbatim] (Julie @ 22:06)  "That's what it looks like to help teams quickly understand project intent and maintain mom…"
+  [verbatim] (Fernando @ thread)  "One of us said it bluntly in the huddle: once you align on intent, the implementation is s…"
+  [verbatim] (Fernando @ thread)  "Now that coding has been solved, code trails will solve alignment to make dependable softw…"
+  [verbatim] (Julie @ 46:52)  "A new way to collaborate with software."
+
+Word count: 1087

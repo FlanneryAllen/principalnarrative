@@ -1,0 +1,22 @@
+SCORE: 0.306  threshold: 0.5  passes: false
+totalChars: 4160  matchedChars: 1271  weightedChars: 1271
+
+Layer breakdown:
+  verbatim               chars=1271  count=10
+  near_verbatim          chars=   0  count=0
+  paraphrase_verified    chars=   0  count=0
+  concept_only           chars=   0  count=0
+
+Matched spans (verbatim, since no embedder):
+  [verbatim] (Fernando @ 32:02)  "The same observation came up three different ways: most developers believe they …"
+  [verbatim] (Julie @ 30:13)  "We're pitching a collaboration primitive — a unit of context two engineers can b…"
+  [verbatim] (Fernando @ 40:05)  "And the part that quietly does the work is this: **human-verified content**."
+  [verbatim] (Fernando @ 43:04)  "Most of the time, nobody pushes back, because pushing back is expensive — it cos…"
+  [verbatim] (Fernando @ 42:23)  "The format is built for it: incremental information discovery, so you progressiv…"
+  [verbatim] (Fernando @ 37:46)  "A TikTok-era approach to documentation: short, focused, and quickly digestible c…"
+  [verbatim] (Fernando @ 59:37)  "Trails that you can trust."
+  [verbatim] (Fernando @ 40:05)  "Ensuring that AI-generated materials are reviewed and validated by humans is not…"
+  [verbatim] (Fernando @ 20:27)  "We're solving organizational alignment, not just traditional code review."
+  [verbatim] (Julie @ 22:06)  "The point is to help teams quickly understand project intent and maintain moment…"
+
+Word count: 689

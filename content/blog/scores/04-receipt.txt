@@ -1,0 +1,24 @@
+SCORE: 0.152  threshold: 0.5  passes: false
+totalChars: 8263  matchedChars: 1254
+
+Layer breakdown:
+  verbatim               chars=1254  count=10
+  near_verbatim          chars=   0  count=0
+  paraphrase_verified    chars=   0  count=0
+  concept_only           chars=   0  count=0
+
+Matched spans:
+  [verbatim] (Fernando @ 43:04)  "We started calling this burning social capital."
+  [verbatim] (Julie @ 31:09)  "Asking for review currently burns significant time and resources, and the asker pays the s…"
+  [verbatim] (Fernando @ 32:02)  "## The diagnosis
+
+We kept circling the same observation in huddles: most developers believ…"
+  [verbatim] (Fernando @ thread)  "Or, as one of us put it three huddles ago: now that coding has been solved, code trails wi…"
+  [verbatim] (Fernando @ thread)  "The corollary we keep coming back to: once you align on intent, the implementation is stra…"
+  [verbatim] (Julie @ 30:13)  "We've been describing them internally as a collaboration primitive, not a tool you bolt on…"
+  [verbatim] (Fernando @ 40:05)  "A small, visible difference between human-verified content and machine-drafted content, in…"
+  [verbatim] (Julie @ 46:52)  "We're pitching it as a new way to collaborate with software."
+  [verbatim] (Fernando @ 20:27)  "It's solving organizational alignment, not just traditional code review."
+  [verbatim] (Julie @ 22:06)  "The point is to help teams quickly understand project intent and maintain momentum in coll…"
+
+Word count: 1416

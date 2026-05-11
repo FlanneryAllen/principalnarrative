@@ -1,0 +1,25 @@
+SCORE: 0.202  threshold: 0.5  passes: false
+totalChars: 3985  matchedChars: 805
+
+Layer breakdown:
+  verbatim               chars= 805  count=9
+  near_verbatim          chars=   0  count=0
+  paraphrase_verified    chars=   0  count=0
+  concept_only           chars=   0  count=0
+
+Matched spans:
+  [verbatim] (Fernando @ 43:04)  "# Stop Burning Social Capital Every Time You Ask for a Review
+
+Every engineer knows the fe…"
+  [verbatim] (Fernando @ 43:04)  "And in our huddle this week, we put a name on it: burning social capital."
+  [verbatim] (Julie @ 31:09)  "## The asymmetry in code feedback
+
+Most code feedback today is asymmetric in a way nobody …"
+  [verbatim] (Julie @ 31:09)  "That asking for review currently burns significant time and resources is the real bug, and…"
+  [verbatim] (Julie @ 30:13)  "We're pitching CodeTrails as a collaboration primitive precisely because that's where the …"
+  [verbatim] (Fernando @ 28:34)  "The trail does the work of explaining code clearly and quickly, allowing for easy sharing …"
+  [verbatim] (Julie @ 23:23)  "Show, don't tell."
+  [verbatim] (Julie @ 46:52)  "This is what makes it a new way to collaborate with software — not a new review tool, a ne…"
+  [verbatim] (Fernando @ 43:04)  "Stop burning social capital every time you ask for a review."
+
+Word count: 695
