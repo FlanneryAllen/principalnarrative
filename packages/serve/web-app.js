@@ -2185,6 +2185,97 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // POST /api/workspaces/:id/harvest/document — PDF document upload harvest
+      if (wsRest === 'harvest/document' && req.method === 'POST') {
+        // SECURITY: Validate CSRF token
+        if (!validateCSRF(req, session)) {
+          json(res, 403, { error: 'Invalid CSRF token. Please refresh and try again.' });
+          return;
+        }
+
+        // SECURITY: Check harvest-specific rate limit
+        if (!checkHarvestRateLimit(session)) {
+          json(res, 429, {
+            error: 'Harvest rate limit exceeded. Maximum 3 harvests per minute.',
+            retryAfter: 60
+          });
+          return;
+        }
+
+        let body;
+        try { body = await readBody(req); } catch (err) { json(res, 413, { error: err.message }); return; }
+
+        const { document, filename, author, config } = body || {};
+
+        if (!document || typeof document !== 'string') {
+          json(res, 400, { error: 'Missing or invalid document field (expected base64)' });
+          return;
+        }
+
+        if (!filename || !filename.toLowerCase().endsWith('.pdf')) {
+          json(res, 400, { error: 'Invalid filename. Only PDF files are supported.' });
+          return;
+        }
+
+        try {
+          // 1. Decode base64 to Buffer
+          const pdfBuffer = Buffer.from(document, 'base64');
+
+          // 2. Load document-harvest skill
+          const pdfParse = require('pdf-parse');
+          const documentHarvest = require('../../skills/document-harvest/index.js');
+
+          // 3. Run harvest
+          const harvestResult = await documentHarvest.harvest({
+            pdfBuffer,
+            metadata: {
+              filename,
+              author: author || 'Unknown',
+              uploadedAt: new Date().toISOString(),
+            },
+            pdfParser: pdfParse,
+            config: config || {},
+          });
+
+          const { units, metadata } = harvestResult;
+
+          // 4. Compute algebra metrics
+          let algebraResult = {};
+          if (units.length > 0) {
+            try {
+              const { algebra } = createAlgebra(units);
+              const metrics = algebra.computeMetrics();
+              algebraResult.nci = metrics.narrativeCoherenceIndex;
+              algebraResult.layerHealth = metrics.layerHealth;
+              algebraResult.totalEdges = metrics.totalEdges;
+            } catch { /* algebra may fail on minimal data */ }
+          }
+
+          // 5. Auto-save to workspace
+          if (units.length > 0) {
+            try {
+              await store.saveUnits(units, `document-${filename.replace(/\.pdf$/i, '')}-${Date.now()}.yaml`, {
+                source: 'pdf-upload',
+                filename,
+                uploadedAt: metadata.uploadedAt,
+                pageCount: metadata.pageCount,
+              });
+            } catch { /* save failure is non-fatal */ }
+          }
+
+          json(res, 200, {
+            units,
+            metadata,
+            algebra: algebraResult,
+            totalUnits: units.length,
+          });
+        } catch (err) {
+          console.error('Document harvest error:', err);
+          json(res, 500, { error: `Document harvest failed: ${err.message}` });
+        }
+        return;
+      }
+
       json(res, 404, { error: `Unknown workspace route: ${wsRest}` });
       return;
     }
