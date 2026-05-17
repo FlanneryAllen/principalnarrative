@@ -1,0 +1,13 @@
+{
+  "name": "@principal-skills/blog-authoring-harness",
+  "version": "0.1.0",
+  "description": "Wraps provenance-scoring into an authoring workflow — live scoring, suggestion engine, publish gate with override logging",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@principal-skills/provenance-scoring": "^0.1.0",
+    "@principal-skills/huddle-harvest": "^0.1.0"
+  },
+  "author": "Principal AI",
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@principal-skills/huddle-harvest",
+  "version": "0.1.0",
+  "description": "Pulls Slack huddle recordings, transcribes them, and harvests verbatim quotes + extracted ideas as canon units",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {},
+  "author": "Principal AI",
+  "license": "UNLICENSED"
+}

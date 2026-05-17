@@ -1,0 +1,10 @@
+{
+  "name": "@principal-skills/provenance-scoring",
+  "version": "0.1.0",
+  "description": "Computes the provenance score P(draft) — what fraction of a draft is traceable to canon",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {},
+  "author": "Principal AI",
+  "license": "UNLICENSED"
+}

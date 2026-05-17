@@ -25,7 +25,8 @@
     "start": "node packages/serve/web-app.js",
     "prepare": "husky",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "validate:skills": "node skills/validate-skills.js"
   },
   "keywords": [
     "narrative",
